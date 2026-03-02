@@ -35,12 +35,12 @@ KW = dict(
 
 def _is_zombie(r):
     """True se o retorno de _classify_vmdk é um ZombieVmdkResult (não skip)."""
-    return r is not None and not (isinstance(r, tuple) and len(r) == 2 and r[0] is None)
+    return r is not None and not (isinstance(r, tuple) and r[0] is None)
 
 
 def _is_skip(r):
-    """True se o retorno de _classify_vmdk é um skip (None ou (None, reason))."""
-    return r is None or (isinstance(r, tuple) and len(r) == 2 and r[0] is None)
+    """True se o retorno de _classify_vmdk é um skip (tuple com None como primeiro elemento)."""
+    return isinstance(r, tuple) and r[0] is None
 
 
 def _classify(
@@ -199,7 +199,7 @@ def test_delta_vmdk_without_active_snapshot(filename, is_delta, expected_type):
     result = _classify(entry, inv, folder_files=folder_files, global_files=global_files)
     if filename.endswith("-delta.vmdk"):
         assert _is_skip(result)
-        assert isinstance(result, tuple) and result[1] == "suffix_exclusion"
+        assert isinstance(result, tuple) and result[0] is None and result[1] == "suffix_exclusion"
     else:
         assert _is_zombie(result)
         assert result.tipo_zombie == expected_type

@@ -255,6 +255,10 @@ class ZombieVmdkResult:
     vmdk_filename: str = ""
     """Nome do arquivo VMDK (ex.: VM_ANTIGA_01.vmdk)."""
 
+    evidence_log: list[str] = field(default_factory=list)
+    """Trilha de auditoria: cada checagem que o arquivo passou/falhou em _classify_vmdk.
+    Populado em ordem de execução; vazio quando evidence_log não foi solicitado."""
+
 
 @dataclass
 class DatastoreScanMetric:
@@ -1099,12 +1103,14 @@ def _classify_vmdk(
     orphan_days: int,
     stale_snapshot_days: int,
     min_file_size_mb: int,
-) -> ZombieVmdkResult | tuple[None, str]:
+) -> "ZombieVmdkResult | tuple[None, str, list[str]]":
     # READ-ONLY: no write operations
+    evlog: list[str] = []  # trilha de auditoria deste arquivo
 
     if entry.is_vmx:
         _skip(entry, "vmx")
-        return (None, "vmx")
+        evlog.append("SKIP: arquivo .vmx ignorado")
+        return (None, "vmx", evlog)
 
     name_lower = entry.name.lower()
 
@@ -1116,12 +1122,15 @@ def _classify_vmdk(
         or name_lower.endswith("-ctk.vmdk")
     ):
         _skip(entry, "suffix_exclusion")
-        return (None, "suffix_exclusion")
+        suffix = name_lower.rsplit("-", 1)[-1] if "-" in name_lower else name_lower
+        evlog.append(f"SKIP: sufixo excluído (-{suffix})")
+        return (None, "suffix_exclusion", evlog)
 
     # EX-4: vCLS (vSphere Cluster Services) — sempre ignorar
     if _VCLS_RE.match(entry.name):
         _skip(entry, "vcls")
-        return (None, "vcls")
+        evlog.append("SKIP: vCLS (vSphere Cluster Services)")
+        return (None, "vcls", evlog)
 
     if (
         entry.size_bytes is not None
@@ -1130,7 +1139,9 @@ def _classify_vmdk(
         and not entry.is_descriptor_vmdk
     ):
         _skip(entry, "tamanho")
-        return (None, "tamanho")
+        size_mb = entry.size_bytes / (1024 * 1024)
+        evlog.append(f"SKIP: tamanho {size_mb:.1f} MB < min_file_size_mb({min_file_size_mb})")
+        return (None, "tamanho", evlog)
 
     # Rejeitar arquivos modificados dentro do período de graça
     if entry.modification is not None:
@@ -1151,7 +1162,20 @@ def _classify_vmdk(
                     age_days, threshold_days, size_gb, entry.full_path,
                 )
                 _skip(entry, "recente")
-                return (None, "recente")
+                evlog.append(
+                    f"FAIL_SKIP: modificação há {age_days} dias < orphan_days({threshold_days})"
+                )
+                return (None, "recente", evlog)
+            else:
+                evlog.append(
+                    f"PASS: modificação há {age_days} dias ≥ orphan_days({threshold_days})"
+                )
+    else:
+        evlog.append("PASS: data de modificação desconhecida (sem filtro de recência)")
+
+    if entry.size_bytes is not None:
+        size_gb_log = entry.size_bytes / (1024 ** 3)
+        evlog.append(f"PASS: tamanho {size_gb_log:.2f} GB ≥ min_file_size_mb({min_file_size_mb})")
 
     # Normalizar o caminho para comparação
     norm_path = _normalize(entry.full_path)
@@ -1159,16 +1183,22 @@ def _classify_vmdk(
     # Comparar cada VMDK encontrado com os caminhos registrados
     if norm_path in inventory.vmdk_paths:
         _skip(entry, "inventario")
-        return (None, "inventario")
+        evlog.append("SKIP: encontrado em inventory.vmdk_paths (VM/template ativo)")
+        return (None, "inventario", evlog)
+    evlog.append("PASS: não está em inventory.vmdk_paths")
 
     if norm_path in inventory.fcd_paths:
         _skip(entry, "fcd")
-        return (None, "fcd")
+        evlog.append("SKIP: encontrado em inventory.fcd_paths (FCD/IVD gerenciado)")
+        return (None, "fcd", evlog)
+    evlog.append("PASS: não está em inventory.fcd_paths")
 
     folder_norm = _normalize(entry.folder)
     if _is_content_library_path(folder_norm, norm_path, inventory.content_library_paths):
         _skip(entry, "content_library")
-        return (None, "content_library")
+        evlog.append("SKIP: pasta pertence à Content Library (EX-6)")
+        return (None, "content_library", evlog)
+    evlog.append("PASS: não está em content_library")
 
     # Tipos e Motivos baseados nas regras SCAN-REGRAS-VMDK
     is_backup_artifact = "backup" in name_lower or "veeam" in name_lower or "pre-" in name_lower
@@ -1185,20 +1215,37 @@ def _classify_vmdk(
         mapped_tipo = ZombieType.POSSIBLE_FALSE_POSITIVE
         reason = "Datastore compartilhado entre múltiplos vCenters (EX-3)"
         false_positive_reason_val = _CAUSES_BY_TYPE["POSSIBLE_FALSE_POSITIVE"][0]
+        evlog.append("WARN: datastore compartilhado multi-vCenter → POSSIBLE_FALSE_POSITIVE (EX-3)")
     elif not folder_has_registered_vm:
         reason = "VM removida do inventário mas arquivos não foram deletados"
         mapped_tipo = ZombieType.UNREGISTERED_DIR  # Mais próximo do legado para "pasta inteira órfã"
+        evlog.append("PASS: pasta sem VM registrada no vCenter → UNREGISTERED_DIR")
     elif is_backup_artifact:
         reason = "Possível artefato de backup"
         mapped_tipo = ZombieType.ORPHANED
+        evlog.append("INFO: nome sugere artefato de backup → ORPHANED")
     else:
         reason = "Arquivo VMDK sem VM associada no inventário"
         if _has_broken_chain(entry, folder_files, global_files, ds_type):
             mapped_tipo = ZombieType.BROKEN_CHAIN
+            evlog.append("PASS: extent esperado ausente no datastore → BROKEN_CHAIN")
         elif is_snapshot_leftover:
             mapped_tipo = ZombieType.SNAPSHOT_ORPHAN
+            evlog.append("PASS: nome sugere snapshot ativo ausente → SNAPSHOT_ORPHAN")
         else:
             mapped_tipo = ZombieType.ORPHANED
+            evlog.append("PASS: sem VM associada no inventário → ORPHANED")
+
+    # Construir score e entry final
+    score = _compute_confidence_score(
+        tipo_zombie=mapped_tipo,
+        folder_has_registered_vm=folder_has_registered_vm,
+        is_shared_datastore=is_shared_datastore,
+        modification=_utc(entry.modification),
+        orphan_days=orphan_days,
+        stale_snapshot_days=stale_snapshot_days,
+    )
+    evlog.append(f"CLASSIFIED: {mapped_tipo.value} | score={score}")
 
     # Construir e retornar ScanResult com os órfãos detectados
     return ZombieVmdkResult(
@@ -1222,14 +1269,8 @@ def _classify_vmdk(
         false_positive_reason=false_positive_reason_val,
         folder=entry.folder,
         datastore_type=ds_type,
-        confidence_score=_compute_confidence_score(
-            tipo_zombie=mapped_tipo,
-            folder_has_registered_vm=folder_has_registered_vm,
-            is_shared_datastore=is_shared_datastore,
-            modification=_utc(entry.modification),
-            orphan_days=orphan_days,
-            stale_snapshot_days=stale_snapshot_days,
-        ),
+        confidence_score=score,
+        evidence_log=evlog,
     )
 
 def _find_datacenter(content: Any, name: str) -> Any:
@@ -1427,7 +1468,8 @@ def _scan_datacenter_sync(
                 min_file_size_mb=min_file_size_mb,
             )
             if isinstance(out, tuple):
-                _, reason = out
+                # Desempacota o 3-tuple (None, reason, evlog)
+                _, reason, _skip_evlog = out
                 if reason == "recente":
                     skips_recente += 1
                     global_skips["recente"] += 1
@@ -1449,6 +1491,8 @@ def _scan_datacenter_sync(
                     global_skips["vcls"] += 1
                 elif reason == "vmx":
                     skips_vmx += 1
+                if _skip_evlog and logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("SKIP evlog [%s]: %s", reason, _skip_evlog)
                 continue
             zombie = out
             if zombie:
@@ -1559,6 +1603,15 @@ def _scan_datacenter_sync(
         },
     }
     logger.info("SCAN_SUMMARY_JSON %s", json.dumps(scan_summary, ensure_ascii=False))
+    # Em modo DEBUG, inclui evidence_log de cada zombie no log (somente para diagnóstico)
+    if logger.isEnabledFor(logging.DEBUG) and results:
+        for _z in results:
+            if _z.evidence_log:
+                logger.debug(
+                    "EVIDENCE [%s] %s",
+                    _z.path,
+                    " → ".join(_z.evidence_log),
+                )
 
     return results, metrics
 
