@@ -23,40 +23,40 @@
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-const API_RESULTS  = "/api/v1/scan/results";
+const API_RESULTS = "/api/v1/scan/results";
 const API_VCENTERS = "/api/v1/vcenters";
 const API_APPROVALS = "/api/v1/approvals";
-const PAGE_SIZES   = [25, 50, 100, 200];
+const PAGE_SIZES = [25, 50, 100, 200];
 
 /** Metadados de cada tipo zombie — cores por especificação */
 const ZM = {
-  ORPHANED:                 { label: "Orphaned",          color: "#dc3545", bg: "rgba(220,53,69,.2)",   icon: "bi-x-circle-fill", darkText: false },
-  SNAPSHOT_ORPHAN:          { label: "Snapshot Orphan",   color: "#fd7e14", bg: "rgba(253,126,20,.2)",  icon: "bi-camera-fill",    darkText: false },
-  BROKEN_CHAIN:             { label: "Broken Chain",      color: "#6f42c1", bg: "rgba(111,66,193,.2)",  icon: "bi-link-45deg",     darkText: false },
-  UNREGISTERED_DIR:         { label: "Unregistered Dir",  color: "#ffc107", bg: "rgba(255,193,7,.25)", icon: "bi-folder-x",       darkText: true },
-  POSSIBLE_FALSE_POSITIVE:  { label: "False Positive",    color: "#6c757d", bg: "rgba(108,117,125,.2)", icon: "bi-question-circle-fill", darkText: false },
+  ORPHANED: { label: "Orphaned", color: "#dc3545", bg: "rgba(220,53,69,.2)", icon: "bi-x-circle-fill", darkText: false },
+  SNAPSHOT_ORPHAN: { label: "Snapshot Orphan", color: "#fd7e14", bg: "rgba(253,126,20,.2)", icon: "bi-camera-fill", darkText: false },
+  BROKEN_CHAIN: { label: "Broken Chain", color: "#6f42c1", bg: "rgba(111,66,193,.2)", icon: "bi-link-45deg", darkText: false },
+  UNREGISTERED_DIR: { label: "Unregistered Dir", color: "#ffc107", bg: "rgba(255,193,7,.25)", icon: "bi-folder-x", darkText: true },
+  POSSIBLE_FALSE_POSITIVE: { label: "False Positive", color: "#6c757d", bg: "rgba(108,117,125,.2)", icon: "bi-question-circle-fill", darkText: false },
 };
 
 /** Status do registro VMDK */
 const STATUS_META = {
-  NOVO:               { label: "Novo",              cls: "text-bg-danger"  },
-  EM_QUARENTENA:      { label: "Em Quarentena",     cls: "text-bg-warning" },
-  APROVADO_DELECAO:   { label: "Aprovado p/ Deleção", cls: "text-bg-secondary" },
-  WHITELIST:          { label: "Whitelist",         cls: "text-bg-success" },
+  NOVO: { label: "Novo", cls: "text-bg-danger" },
+  EM_QUARENTENA: { label: "Em Quarentena", cls: "text-bg-warning" },
+  APROVADO_DELECAO: { label: "Aprovado p/ Deleção", cls: "text-bg-secondary" },
+  WHITELIST: { label: "Whitelist", cls: "text-bg-success" },
 };
 
 // ── Estado interno ────────────────────────────────────────────────────────────
 
-let dtInstance   = null;          // Instância DataTables
+let dtInstance = null;          // Instância DataTables
 let selectedRows = new Set();     // Conjunto de IDs selecionados para lote
 let currentDetailRow = null;      // Linha atual aberta no modal de detalhes
 let approvalTargetRow = null;     // Linha atual no modal de aprovação
 
 // ── Bootstrap modals (criados uma vez, reutilizados) ─────────────────────────
 
-let bsModalDetails  = null;
+let bsModalDetails = null;
 let bsModalApproval = null;
-let bsModalBatch    = null;
+let bsModalBatch = null;
 
 // ── Inicialização ─────────────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ── Polling de status do job ──────────────────────────────────────────────────
 
-let _pollTimer   = null;
+let _pollTimer = null;
 let _lastJobStatus = null;
 let _lastStepCount = 0;  // Para detectar novos passos sem re-renderizar tudo
 
@@ -92,36 +92,36 @@ async function _startJobPolling(jobId) {
 }
 
 async function _fetchJobStatus(jobId) {
-  const banner  = document.getElementById("zh-scan-status-banner");
-  const iconEl  = document.getElementById("zh-scan-status-icon");
-  const textEl  = document.getElementById("zh-scan-status-text");
-  const detEl   = document.getElementById("zh-scan-status-detail");
+  const banner = document.getElementById("zh-scan-status-banner");
+  const iconEl = document.getElementById("zh-scan-status-icon");
+  const textEl = document.getElementById("zh-scan-status-text");
+  const detEl = document.getElementById("zh-scan-status-detail");
   if (!banner) return;
 
   try {
-    const resp = await fetch(`/api/v1/scan/jobs/${jobId}`, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" } });
+    const resp = await fetch(`/api/v1/scan/jobs/${jobId}`, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Accept": "application/json" } });
     if (!resp.ok) return;
     const job = await resp.json();
-    const st  = job.status ?? "unknown";
+    const st = job.status ?? "unknown";
 
     banner.classList.remove("d-none");
     banner.style.display = "block";
 
     if (st === "running" || st === "pending") {
-      banner.style.background   = "rgba(56,139,253,.08)";
-      banner.style.borderColor  = "rgba(56,139,253,.3)";
+      banner.style.background = "rgba(56,139,253,.08)";
+      banner.style.borderColor = "rgba(56,139,253,.3)";
 
       const prog = job.progress || {};
-      const dsIdx   = prog.ds_index   || 0;
-      const dsTotal = prog.ds_total   || 0;
-      const dsCur   = prog.ds_current || "";
-      const dsSt    = prog.ds_status  || "";
+      const dsIdx = prog.ds_index || 0;
+      const dsTotal = prog.ds_total || 0;
+      const dsCur = prog.ds_current || "";
+      const dsSt = prog.ds_status || "";
 
       // ── Linha de título ────────────────────────────────────────────────────
       const spinnerHtml = `<span class="spinner-border spinner-border-sm" style="width:13px;height:13px;border-width:2px;color:var(--zh-blue);vertical-align:middle;"></span>`;
-      iconEl.innerHTML  = spinnerHtml;
-      textEl.innerHTML  = `<span style="color:var(--zh-blue);font-weight:600;">${st === "running" ? "Varredura em andamento" : "Aguardando início"}</span>
-        <small class="text-muted ms-2">Job ${jobId.substring(0,8)}</small>`;
+      iconEl.innerHTML = spinnerHtml;
+      textEl.innerHTML = `<span style="color:var(--zh-blue);font-weight:600;">${st === "running" ? "Varredura em andamento" : "Aguardando início"}</span>
+        <small class="text-muted ms-2">Job ${jobId.substring(0, 8)}</small>`;
       textEl.style.color = "";
 
       // ── Barra de progresso por datastore ──────────────────────────────────
@@ -151,13 +151,13 @@ async function _fetchJobStatus(jobId) {
       _pollTimer = setTimeout(() => _fetchJobStatus(jobId), 3000);
 
     } else if (st === "completed") {
-      banner.style.background  = "rgba(63,185,80,.08)";
+      banner.style.background = "rgba(63,185,80,.08)";
       banner.style.borderColor = "rgba(63,185,80,.3)";
-      iconEl.innerHTML  = `<i class="bi bi-check-circle-fill" style="color:var(--zh-green);font-size:1rem;"></i>`;
+      iconEl.innerHTML = `<i class="bi bi-check-circle-fill" style="color:var(--zh-green);font-size:1rem;"></i>`;
       const total = job.summary?.total_vmdks_encontrados ?? 0;
       const sizeStr = window.zhFormatSizeGB ? window.zhFormatSizeGB(job.summary?.total_size_gb ?? 0) : (job.summary?.total_size_gb ?? 0).toFixed(2) + " GB";
-      textEl.innerHTML  = `<span style="color:var(--zh-green);font-weight:600;">Varredura concluída</span>
-        <small class="text-muted ms-2">Job ${jobId.substring(0,8)}</small>`;
+      textEl.innerHTML = `<span style="color:var(--zh-green);font-weight:600;">Varredura concluída</span>
+        <small class="text-muted ms-2">Job ${jobId.substring(0, 8)}</small>`;
       textEl.style.color = "";
       detEl.innerHTML = `<span style="font-size:.82rem;">${total} VMDKs encontrados &middot; ${sizeStr} recuperáveis</span>
         <button class="btn btn-sm btn-outline-secondary ms-2 py-0 px-2" style="font-size:.72rem;" onclick="document.getElementById('zh-progress-panel').classList.toggle('d-none')">Ver log</button>`;
@@ -168,13 +168,13 @@ async function _fetchJobStatus(jobId) {
       }
 
     } else if (st === "failed") {
-      banner.style.background  = "rgba(248,81,73,.08)";
+      banner.style.background = "rgba(248,81,73,.08)";
       banner.style.borderColor = "rgba(248,81,73,.3)";
-      iconEl.innerHTML  = `<i class="bi bi-x-circle-fill" style="color:var(--zh-red);font-size:1rem;"></i>`;
-      textEl.innerHTML  = `<span style="color:var(--zh-red);font-weight:600;">Varredura falhou</span>`;
+      iconEl.innerHTML = `<i class="bi bi-x-circle-fill" style="color:var(--zh-red);font-size:1rem;"></i>`;
+      textEl.innerHTML = `<span style="color:var(--zh-red);font-weight:600;">Varredura falhou</span>`;
       textEl.style.color = "";
       const errs = job.error_messages ?? [];
-      detEl.innerHTML = `<span class="text-muted" style="font-size:.82rem;">${errs.length ? errs[0].substring(0,120) : "Verifique os logs do servidor"}</span>`;
+      detEl.innerHTML = `<span class="text-muted" style="font-size:.82rem;">${errs.length ? errs[0].substring(0, 120) : "Verifique os logs do servidor"}</span>`;
     }
 
     _lastJobStatus = st;
@@ -186,10 +186,10 @@ async function _fetchJobStatus(jobId) {
 
 const _STEP_ICON = { info: "ℹ️", success: "✅", warning: "⚠️", error: "❌" };
 const _STEP_COLOR = {
-  info:    "rgba(200,200,200,.7)",
+  info: "rgba(200,200,200,.7)",
   success: "var(--zh-green)",
   warning: "#e3a008",
-  error:   "var(--zh-red)",
+  error: "var(--zh-red)",
 };
 
 function _renderProgressLog(steps) {
@@ -219,9 +219,9 @@ function _renderProgressLog(steps) {
   _lastStepCount = steps.length;
 
   panel.innerHTML = steps.map((s) => {
-    const icon  = _STEP_ICON[s.level]  || "•";
+    const icon = _STEP_ICON[s.level] || "•";
     const color = _STEP_COLOR[s.level] || "rgba(200,200,200,.7)";
-    const msg   = (s.msg || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const msg = (s.msg || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return `<div style="color:${color};line-height:1.6;">
       <span style="opacity:.5;">${s.ts}</span>
       <span style="margin:0 4px;">${icon}</span>
@@ -237,19 +237,19 @@ function _renderProgressLog(steps) {
 
 function _initDataTable() {
   dtInstance = $("#zh-table-results").DataTable({
-    serverSide:  true,
-    processing:  true,
+    serverSide: true,
+    processing: true,
     deferRender: true,
     ajax: {
-      url:  API_RESULTS,
+      url: API_RESULTS,
       type: "GET",
       // Transforma parâmetros DataTables → query params da API
       data: (d) => _buildAjaxParams(d),
       // Mapeia resposta da API para formato DataTables
       dataSrc: (json) => {
         // Atualiza contador de registros totais para paginação
-        json.recordsTotal    = json.total       ?? 0;
-        json.recordsFiltered = json.total       ?? 0;
+        json.recordsTotal = json.total ?? 0;
+        json.recordsFiltered = json.total ?? 0;
         _updateSummaryBar(json);
         return json.items ?? json.results ?? [];
       },
@@ -262,19 +262,19 @@ function _initDataTable() {
     columns: [
       // 0 — Checkbox de seleção
       {
-        title:      `<input type="checkbox" id="zh-check-all" class="form-check-input" title="Selecionar todos visíveis"/>`,
-        data:       "id",
-        orderable:  false,
+        title: `<input type="checkbox" id="zh-check-all" class="form-check-input" title="Selecionar todos visíveis"/>`,
+        data: "id",
+        orderable: false,
         searchable: false,
-        width:      "36px",
-        className:  "text-center",
+        width: "36px",
+        className: "text-center",
         render: (id) =>
           `<input type="checkbox" class="form-check-input zh-row-check" data-id="${id}" title="Selecionar"/>`,
       },
       // 1 — vCenter
       {
         title: "vCenter",
-        data:  "vcenter_host",
+        data: "vcenter_host",
         render: (d, t, row) =>
           `<span class="text-zombie-blue fw-semibold" style="font-size:.82rem;">`
           + _esc(row.vcenter_name || d)
@@ -283,14 +283,14 @@ function _initDataTable() {
       // 2 — Datastore
       {
         title: "Datastore",
-        data:  "datastore",
+        data: "datastore",
         render: (d) =>
           `<span class="text-muted-zh font-monospace" style="font-size:.78rem;">${_esc(d ?? "—")}</span>`,
       },
       // 3 — Caminho completo
       {
         title: "VMDK Path",
-        data:  "path",
+        data: "path",
         render: (d) =>
           `<span class="font-monospace" style="font-size:.78rem;" title="${_esc(d)}">`
           + _esc(_trunc(d, 60))
@@ -298,59 +298,59 @@ function _initDataTable() {
       },
       // 4 — Tamanho GB
       {
-        title:     "Tamanho",
-        data:      "tamanho_gb",
+        title: "Tamanho",
+        data: "tamanho_gb",
         className: "text-end",
         render: (d, t, row) => _renderSize(d, row.tipo_zombie),
       },
       // 5 — Tipo Zombie (badge)
       {
-        title:     "Tipo",
-        data:      "tipo_zombie",
-        render:    (d) => _typeBadge(d),
+        title: "Tipo",
+        data: "tipo_zombie",
+        render: (d) => _typeBadge(d),
       },
       // 6 — Score de confiança (barra de progresso)
       {
-        title:     "Confiança",
-        data:      "confidence_score",
+        title: "Confiança",
+        data: "confidence_score",
         className: "text-center",
-        render:    (d) => _confidenceBar(d),
+        render: (d) => _confidenceBar(d),
       },
       // 7 — Última modificação
       {
         title: "Última Mod.",
-        data:  "ultima_modificacao",
+        data: "ultima_modificacao",
         render: (d) =>
           d
-          ? `<span data-zh-date="${d}">${window.zhFormatDate(d)}</span>`
-          : `<span class="text-muted-zh">—</span>`,
+            ? `<span data-zh-date="${d}">${window.zhFormatDate(d)}</span>`
+            : `<span class="text-muted-zh">—</span>`,
       },
       // 8 — Status
       {
-        title:  "Status",
-        data:   "status",
+        title: "Status",
+        data: "status",
         render: (d) => _statusBadge(d),
       },
       // 9 — Ações
       {
-        title:      "Ações",
-        data:       null,
-        orderable:  false,
+        title: "Ações",
+        data: null,
+        orderable: false,
         searchable: false,
-        className:  "text-end",
+        className: "text-end",
         render: (d, t, row) => _actionBtns(row),
       },
     ],
 
-    order:      [[4, "desc"]],          // padrão: maior tamanho primeiro
+    order: [[4, "desc"]],          // padrão: maior tamanho primeiro
     pageLength: PAGE_SIZES[0],
     lengthMenu: [PAGE_SIZES, PAGE_SIZES.map((n) => `${n} por página`)],
-    searching:  false,
-    info:       true,
+    searching: false,
+    info: true,
     responsive: false,
-    scrollX:    true,
+    scrollX: true,
 
-    rowCallback: function(row, data) {
+    rowCallback: function (row, data) {
       const score = data.confidence_score != null ? Number(data.confidence_score) : "";
       row.setAttribute("data-score", String(score));
       row.setAttribute("data-tipo", String(data.tipo_zombie || ""));
@@ -365,25 +365,25 @@ function _initDataTable() {
     },
 
     language: {
-      processing:  `<span class="text-muted-zh small"><i class="bi bi-hourglass-split me-1"></i>Carregando…</span>`,
-      info:        "Exibindo _START_–_END_ de _TOTAL_ VMDKs",
-      infoEmpty:   "Nenhum VMDK encontrado",
-      infoFiltered:"(filtrado de _MAX_ total)",
-      lengthMenu:  "_MENU_",
-      paginate:    { first: "«", last: "»", next: "›", previous: "‹" },
-      emptyTable:  "Nenhum VMDK detectado para os filtros aplicados.",
+      processing: `<span class="text-muted-zh small"><i class="bi bi-hourglass-split me-1"></i>Carregando…</span>`,
+      info: "Exibindo _START_–_END_ de _TOTAL_ VMDKs",
+      infoEmpty: "Nenhum VMDK encontrado",
+      infoFiltered: "(filtrado de _MAX_ total)",
+      lengthMenu: "_MENU_",
+      paginate: { first: "«", last: "»", next: "›", previous: "‹" },
+      emptyTable: "Nenhum VMDK detectado para os filtros aplicados.",
       zeroRecords: "Nenhum resultado. Tente ajustar os filtros.",
     },
 
     dom:
       "<'d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2'"
-      +   "<'d-flex align-items-center gap-2'l<'zh-export-btns'>>"
-      +   "<'text-muted-zh small'i>"
+      + "<'d-flex align-items-center gap-2'l<'zh-export-btns'>>"
+      + "<'text-muted-zh small'i>"
       + ">"
       + "<'table-responsive'tr>"
       + "<'d-flex justify-content-end mt-2'p>",
 
-    drawCallback: function() {
+    drawCallback: function () {
       _rebindRowEvents();
       _syncCheckAll();
       _applyClientFilters();
@@ -395,39 +395,39 @@ function _initDataTable() {
 /** Constrói query params da API a partir dos parâmetros DataTables */
 function _buildAjaxParams(d) {
   const params = {
-    page:     Math.floor(d.start / d.length) + 1,
+    page: Math.floor(d.start / d.length) + 1,
     per_page: d.length,
   };
 
   // Ordenação
   if (d.order?.length) {
-    const colIdx  = d.order[0].column;
+    const colIdx = d.order[0].column;
     const colData = d.columns[colIdx]?.data;
-    const sortMap = { tamanho_gb: "size", ultima_modificacao: "modified", tipo_zombie: "tipo", confidence_score: "confidence_score" };
-    params.sort_by  = sortMap[colData] ?? colData;
+    const sortMap = { tamanho_gb: "tamanho_gb", ultima_modificacao: "ultima_modificacao", tipo_zombie: "tipo_zombie", confidence_score: "confidence_score" };
+    params.sort_by = sortMap[colData] ?? colData;
     params.sort_dir = d.order[0].dir;
   }
 
   // Filtros do painel
-  const fVc   = document.getElementById("f-vcenter")?.value;
+  const fVc = document.getElementById("f-vcenter")?.value;
   const fTipo = document.getElementById("f-tipo")?.value;
-  const fSts  = document.getElementById("f-status")?.value;
-  const fGb   = document.getElementById("f-min-gb")?.value;
+  const fSts = document.getElementById("f-status")?.value;
+  const fGb = document.getElementById("f-min-gb")?.value;
   const fConf = document.getElementById("f-min-confidence")?.value;
-  const fModAfter  = document.getElementById("f-modified-after")?.value;
+  const fModAfter = document.getElementById("f-modified-after")?.value;
   const fModBefore = document.getElementById("f-modified-before")?.value;
   const fDate = document.getElementById("f-date")?.value;
-  const fJob  = document.getElementById("f-job-id")?.value;
+  const fJob = document.getElementById("f-job-id")?.value;
 
-  if (fVc)   params.vcenter   = fVc;
-  if (fTipo) params.tipo      = fTipo;
-  if (fSts)  params.status    = fSts;
-  if (fGb)   params.min_size_gb = parseFloat(fGb);
+  if (fVc) params.vcenter = fVc;
+  if (fTipo) params.tipo = fTipo;
+  if (fSts) params.status = fSts;
+  if (fGb) params.min_size_gb = parseFloat(fGb);
   if (fConf) params.min_confidence = parseInt(fConf, 10);
-  if (fModAfter)  params.modified_after  = fModAfter;
+  if (fModAfter) params.modified_after = fModAfter;
   if (fModBefore) params.modified_before = fModBefore;
   if (fDate) params.scan_date = fDate;
-  if (fJob)  params.job_id   = fJob;
+  if (fJob) params.job_id = fJob;
 
   _updateActiveFiltersBadge(params);
   return params;
@@ -459,12 +459,12 @@ async function _populateVcenterFilter() {
   const sel = document.getElementById("f-vcenter");
   if (!sel) return;
   try {
-    const resp = await fetch(API_VCENTERS, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" } });
+    const resp = await fetch(API_VCENTERS, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Accept": "application/json" } });
     if (!resp.ok) return;
     const list = await resp.json();
     list.forEach((vc) => {
       const opt = document.createElement("option");
-      opt.value       = vc.id;
+      opt.value = vc.id;
       opt.textContent = vc.name;
       sel.appendChild(opt);
     });
@@ -475,31 +475,38 @@ async function _populateVcenterFilter() {
 function _applyClientFilters() {
   const tbody = document.querySelector("#zh-table-results tbody");
   if (!tbody) return;
-  const scoreMin = parseInt(document.getElementById("zh-cf-score")?.value ?? "60", 10);
+
+  // Lê controles — usa 0 se o score-slider estiver ausente
+  const scoreMin = parseInt(document.getElementById("zh-cf-score")?.value ?? "0", 10);
   const sizeMin = parseFloat(document.getElementById("zh-cf-size")?.value ?? "0") || 0;
   const modifiedDaysRaw = document.getElementById("zh-cf-modified-days")?.value?.trim();
-  const modifiedDaysMin = modifiedDaysRaw === "" ? null : parseInt(modifiedDaysRaw, 10);
+  const modifiedDaysMin = (!modifiedDaysRaw || modifiedDaysRaw === "") ? null : parseInt(modifiedDaysRaw, 10);
   const checkedTipos = new Set();
   document.querySelectorAll(".zh-cf-tipo:checked").forEach((cb) => checkedTipos.add(cb.value));
 
   tbody.querySelectorAll("tr").forEach((tr) => {
-    if (tr.cells.length < 2) return;
-    const score = tr.getAttribute("data-score");
-    const scoreNum = score === "" || score === null ? -1 : parseFloat(score);
-    const tipo = tr.getAttribute("data-tipo") || "";
-    const size = tr.getAttribute("data-size");
-    const sizeNum = size === "" || size === null ? -1 : parseFloat(size);
-    const modDays = tr.getAttribute("data-modified-days");
-    const modDaysNum = modDays === "" || modDays === null ? null : parseInt(modDays, 10);
+    if (tr.cells.length < 2) return;  // linha auxiliar (loading/empty)
 
-    const passScore = scoreNum < 0 || scoreNum >= scoreMin;
-    const passTipo = checkedTipos.size === 0 || checkedTipos.has(tipo);
-    const passSize = sizeNum < 0 || sizeNum >= sizeMin;
-    const passMod = modifiedDaysMin === null || (modDaysNum !== null && modDaysNum >= modifiedDaysMin);
+    const scoreAttr = tr.getAttribute("data-score");
+    // Se score não foi setado ainda pelo rowCallback, deixa passar
+    const passScore = !scoreAttr || scoreAttr === "" || parseFloat(scoreAttr) >= scoreMin;
+
+    const tipo = tr.getAttribute("data-tipo") ?? "";
+    // Se tipo não foi setado ainda, ou todos os tipos estão marcados, deixa passar
+    const passTipo = checkedTipos.size === 0 || !tipo || checkedTipos.has(tipo);
+
+    const sizeAttr = tr.getAttribute("data-size");
+    const passSize = !sizeAttr || sizeAttr === "" || parseFloat(sizeAttr) >= sizeMin;
+
+    const modDaysAttr = tr.getAttribute("data-modified-days");
+    const passMod = modifiedDaysMin === null
+      || !modDaysAttr || modDaysAttr === ""
+      || parseInt(modDaysAttr, 10) >= modifiedDaysMin;
 
     tr.style.display = passScore && passTipo && passSize && passMod ? "" : "none";
   });
 }
+
 
 /** Atualiza o texto "Exibindo X de Y resultados" */
 function _updateVisibleCount() {
@@ -622,7 +629,7 @@ function _injectExportButtons() {
     btn.style.cssText = "font-size:.75rem;padding:2px 8px;";
     btn.title = `Exportar ${fmt.toUpperCase()}`;
     btn.innerHTML = `<i class="bi ${icon}"></i> ${fmt.toUpperCase()}`;
-    btn.href  = jobId
+    btn.href = jobId
       ? `/api/v1/scan/results/${jobId}/export?format=${fmt}`
       : `/api/v1/scan/results/export?format=${fmt}`;
     btn.target = "_blank";
@@ -631,7 +638,7 @@ function _injectExportButtons() {
 
   const grp = document.createElement("div");
   grp.className = "d-flex gap-1";
-  grp.appendChild(mkBtn("csv",  "bi-filetype-csv", ""));
+  grp.appendChild(mkBtn("csv", "bi-filetype-csv", ""));
   grp.appendChild(mkBtn("json", "bi-filetype-json", ""));
   wrapper.appendChild(grp);
 }
@@ -681,12 +688,12 @@ function _rebindRowEvents() {
 }
 
 function _syncCheckAll() {
-  const all   = document.querySelectorAll(".zh-row-check");
-  const chkd  = document.querySelectorAll(".zh-row-check:checked");
+  const all = document.querySelectorAll(".zh-row-check");
+  const chkd = document.querySelectorAll(".zh-row-check:checked");
   const master = document.getElementById("zh-check-all");
   if (!master) return;
   master.indeterminate = chkd.length > 0 && chkd.length < all.length;
-  master.checked       = chkd.length > 0 && chkd.length === all.length;
+  master.checked = chkd.length > 0 && chkd.length === all.length;
 }
 
 // ── Barra de ação em lote ─────────────────────────────────────────────────────
@@ -707,7 +714,7 @@ function _bindBatchBar() {
 }
 
 function _updateBatchBar() {
-  const bar   = document.getElementById("zh-batch-bar");
+  const bar = document.getElementById("zh-batch-bar");
   const count = document.getElementById("zh-batch-count");
   if (!bar) return;
   bar.classList.toggle("d-none", selectedRows.size === 0);
@@ -721,19 +728,19 @@ function _openDetailsModal(row) {
   const m = document.getElementById("zh-modal-details");
   if (!m) return;
 
-  const zm  = ZM[row.tipo_zombie] ?? { label: row.tipo_zombie, color: "#6e7681", icon: "bi-question" };
+  const zm = ZM[row.tipo_zombie] ?? { label: row.tipo_zombie, color: "#6e7681", icon: "bi-question" };
 
   // Cabeçalho
-  _setHtml("det-title",       _esc(row.path ?? "VMDK"));
-  _setHtml("det-type-badge",  _typeBadge(row.tipo_zombie));
-  _setHtml("det-status-badge",_statusBadge(row.status));
+  _setHtml("det-title", _esc(row.path ?? "VMDK"));
+  _setHtml("det-type-badge", _typeBadge(row.tipo_zombie));
+  _setHtml("det-status-badge", _statusBadge(row.status));
 
   // Campos principais
-  _setText("det-path",        row.path);
-  _setText("det-datastore",   row.datastore_name || row.datastore);
-  _setText("det-vcenter",     row.vcenter_name ?? row.vcenter_host);
-  _setText("det-datacenter",  row.datacenter_path || row.datacenter);
-  _setText("det-folder",      row.vmdk_folder || row.folder || "—");
+  _setText("det-path", row.path);
+  _setText("det-datastore", row.datastore_name || row.datastore);
+  _setText("det-vcenter", row.vcenter_name ?? row.vcenter_host);
+  _setText("det-datacenter", row.datacenter_path || row.datacenter);
+  _setText("det-folder", row.vmdk_folder || row.folder || "—");
   _setText("det-vmdk-filename", row.vmdk_filename || "—");
   const sizeGb = row.tamanho_gb != null ? +row.tamanho_gb : null;
   const sizeStr = sizeGb == null
@@ -742,10 +749,10 @@ function _openDetailsModal(row) {
       ? "< 1 MB (apenas descriptor — dados ausentes)"
       : (window.zhFormatSizeGB ? window.zhFormatSizeGB(sizeGb) : `${sizeGb.toFixed(3)} GB`);
   _setText("det-size", sizeStr);
-  _setText("det-modified",    window.zhFormatDate(row.ultima_modificacao));
-  _setText("det-job-id",      row.job_id);
-  _setText("det-ds-type",     row.datastore_type || "—");
-  _setText("det-false-pos",   row.false_positive_reason || "—");
+  _setText("det-modified", window.zhFormatDate(row.ultima_modificacao));
+  _setText("det-job-id", row.job_id);
+  _setText("det-ds-type", row.datastore_type || "—");
+  _setText("det-false-pos", row.false_positive_reason || "—");
 
   // Links vCenter — mostrar apenas quando disponíveis
   const btnUi = document.getElementById("det-btn-vsphere-ui");
@@ -816,15 +823,15 @@ function _openApprovalModal(row) {
   approvalTargetRow = row;
 
   // Preenche preview do VMDK no modal
-  _setText("apv-vmdk-path",  row.path);
-  _setText("apv-vcenter",    row.vcenter_name ?? row.vcenter_host ?? "");
-  _setText("apv-size",       row.tamanho_gb != null ? (window.zhFormatSizeGB ? window.zhFormatSizeGB(row.tamanho_gb) : `${(+row.tamanho_gb).toFixed(2)} GB`) : "—");
+  _setText("apv-vmdk-path", row.path);
+  _setText("apv-vcenter", row.vcenter_name ?? row.vcenter_host ?? "");
+  _setText("apv-size", row.tamanho_gb != null ? (window.zhFormatSizeGB ? window.zhFormatSizeGB(row.tamanho_gb) : `${(+row.tamanho_gb).toFixed(2)} GB`) : "—");
   _setHtml("apv-type-badge", _typeBadge(row.tipo_zombie));
 
   // Campos do formulário
-  const fPath     = document.getElementById("apv-field-path");
-  const fVcenter  = document.getElementById("apv-field-vcenter");
-  if (fPath)    fPath.value    = row.path ?? "";
+  const fPath = document.getElementById("apv-field-path");
+  const fVcenter = document.getElementById("apv-field-vcenter");
+  if (fPath) fPath.value = row.path ?? "";
   if (fVcenter) fVcenter.value = row.vcenter_host ?? "";
 
   // Limpa erros e estado anterior
@@ -859,15 +866,15 @@ function _openBatchModal() {
 // ── Submissão de aprovação (individual) ──────────────────────────────────────
 
 async function submitApproval() {
-  const row         = approvalTargetRow;
+  const row = approvalTargetRow;
   if (!row) return;
 
-  const justEl  = document.getElementById("apv-justificativa");
-  const analEl  = document.getElementById("apv-analista");
-  const acaoEl  = document.getElementById("apv-acao");
-  const errEl   = document.getElementById("apv-error");
-  const okEl    = document.getElementById("apv-success");
-  const btnEl   = document.getElementById("apv-btn-submit");
+  const justEl = document.getElementById("apv-justificativa");
+  const analEl = document.getElementById("apv-analista");
+  const acaoEl = document.getElementById("apv-acao");
+  const errEl = document.getElementById("apv-error");
+  const okEl = document.getElementById("apv-success");
+  const btnEl = document.getElementById("apv-btn-submit");
 
   // Validação
   let valid = true;
@@ -890,14 +897,14 @@ async function submitApproval() {
 
   try {
     const resp = await fetch(API_APPROVALS, {
-      method:  "POST",
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Content-Type": "application/json", Accept: "application/json" },
-      body:    JSON.stringify({
-        vmdk_path:     row.path,
-        vcenter_id:    String(row.vcenter_id ?? row.vcenter_host ?? ""),
-        action:        acaoEl.value,
+      method: "POST",
+      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        vmdk_path: row.path,
+        vcenter_id: String(row.vcenter_id ?? row.vcenter_host ?? ""),
+        action: acaoEl.value,
         justificativa: justEl.value.trim(),
-        analista:      analEl.value.trim(),
+        analista: analEl.value.trim(),
       }),
     });
 
@@ -934,13 +941,13 @@ async function submitApproval() {
 // ── Submissão em lote ─────────────────────────────────────────────────────────
 
 async function submitBatchApproval() {
-  const justEl  = document.getElementById("batch-justificativa");
-  const analEl  = document.getElementById("batch-analista");
-  const acaoEl  = document.getElementById("batch-acao");
-  const errEl   = document.getElementById("batch-error");
+  const justEl = document.getElementById("batch-justificativa");
+  const analEl = document.getElementById("batch-analista");
+  const acaoEl = document.getElementById("batch-acao");
+  const errEl = document.getElementById("batch-error");
   const progWrap = document.getElementById("batch-progress-wrap");
-  const progBar  = document.getElementById("batch-progress-bar");
-  const btnEl   = document.getElementById("batch-btn-submit");
+  const progBar = document.getElementById("batch-progress-bar");
+  const btnEl = document.getElementById("batch-btn-submit");
 
   // Validação
   justEl.classList.remove("is-invalid");
@@ -954,10 +961,10 @@ async function submitBatchApproval() {
   }
   if (!valid) return;
 
-  const ids    = [...selectedRows];
-  const total  = ids.length;
-  let done     = 0;
-  let errors   = 0;
+  const ids = [...selectedRows];
+  const total = ids.length;
+  let done = 0;
+  let errors = 0;
 
   btnEl.disabled = true;
   progWrap?.classList.remove("d-none");
@@ -975,14 +982,14 @@ async function submitBatchApproval() {
 
     try {
       const resp = await fetch(API_APPROVALS, {
-        method:  "POST",
-        headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Content-Type": "application/json", Accept: "application/json" },
-        body:    JSON.stringify({
-          vmdk_path:     row.path,
-          vcenter_id:    String(row.vcenter_id ?? row.vcenter_host ?? ""),
-          action:        acaoEl.value,
+        method: "POST",
+        headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          vmdk_path: row.path,
+          vcenter_id: String(row.vcenter_id ?? row.vcenter_host ?? ""),
+          action: acaoEl.value,
           justificativa: justEl.value.trim(),
-          analista:      analEl.value.trim(),
+          analista: analEl.value.trim(),
         }),
       });
       if (!resp.ok) errors++;
@@ -1018,13 +1025,13 @@ async function submitBatchApproval() {
 // ── Inicialização dos modais Bootstrap ───────────────────────────────────────
 
 function _initModals() {
-  const detEl  = document.getElementById("zh-modal-details");
-  const apvEl  = document.getElementById("zh-modal-approval");
-  const batEl  = document.getElementById("zh-modal-batch");
+  const detEl = document.getElementById("zh-modal-details");
+  const apvEl = document.getElementById("zh-modal-approval");
+  const batEl = document.getElementById("zh-modal-batch");
 
-  if (detEl)  bsModalDetails  = new bootstrap.Modal(detEl);
-  if (apvEl)  bsModalApproval = new bootstrap.Modal(apvEl);
-  if (batEl)  bsModalBatch    = new bootstrap.Modal(batEl);
+  if (detEl) bsModalDetails = new bootstrap.Modal(detEl);
+  if (apvEl) bsModalApproval = new bootstrap.Modal(apvEl);
+  if (batEl) bsModalBatch = new bootstrap.Modal(batEl);
 
   // Vincula botão de submit do modal de aprovação individual
   document.getElementById("apv-btn-submit")
@@ -1038,8 +1045,8 @@ function _initModals() {
 // ── Helpers de sumário ────────────────────────────────────────────────────────
 
 function _updateSummaryBar(json) {
-  _setText("zh-summary-total",  (json.total ?? 0).toLocaleString("pt-BR"));
-  _setText("zh-summary-gb",     json.total_size_gb != null && window.zhFormatSizeGB
+  _setText("zh-summary-total", (json.total ?? 0).toLocaleString("pt-BR"));
+  _setText("zh-summary-gb", json.total_size_gb != null && window.zhFormatSizeGB
     ? window.zhFormatSizeGB(json.total_size_gb) : (json.total_size_gb != null ? `${(+json.total_size_gb).toFixed(2)} GB` : "—"));
 }
 
@@ -1108,7 +1115,7 @@ function _statusBadge(status) {
  */
 function _confidenceBar(score, wide = false) {
   if (score == null) return `<span class="text-muted-zh">—</span>`;
-  const pct   = Math.max(0, Math.min(100, Math.round(score)));
+  const pct = Math.max(0, Math.min(100, Math.round(score)));
   const color = pct >= 85 ? "#198754" : pct >= 60 ? "#ffc107" : "#6c757d";
   const label = wide ? `<div class="mt-1 text-center fw-semibold" style="font-size:.8rem;color:${color};">${pct}%</div>` : "";
   return (
@@ -1127,8 +1134,8 @@ function _actionBtns(row) {
   let btns = (
     `<div class="d-flex gap-1 justify-content-end flex-nowrap align-items-center">`
     + `<button class="btn btn-sm btn-outline-secondary zh-btn-details"`
-    +   ` style="padding:2px 8px;font-size:.75rem;" title="Ver detalhes técnicos">`
-    +   `<i class="bi bi-eye"></i></button>`
+    + ` style="padding:2px 8px;font-size:.75rem;" title="Ver detalhes técnicos">`
+    + `<i class="bi bi-eye"></i></button>`
   );
   if (linkUi) {
     btns += `<a href="${_esc(linkUi)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" style="padding:2px 8px;font-size:.75rem;" title="Abrir no vSphere Client"><i class="bi bi-display"></i></a>`;
@@ -1138,10 +1145,10 @@ function _actionBtns(row) {
   }
   btns += (
     `<button class="btn btn-sm btn-outline-danger zh-btn-approval"`
-    +   ` style="padding:2px 8px;font-size:.75rem;"`
-    +   ` title="${isWhitelist ? 'VMDK em whitelist' : 'Solicitar aprovação de ação'}"`
-    +   `${isWhitelist ? " disabled" : ""}>`
-    +   `<i class="bi bi-shield-plus"></i></button>`
+    + ` style="padding:2px 8px;font-size:.75rem;"`
+    + ` title="${isWhitelist ? 'VMDK em whitelist' : 'Solicitar aprovação de ação'}"`
+    + `${isWhitelist ? " disabled" : ""}>`
+    + `<i class="bi bi-shield-plus"></i></button>`
     + `</div>`
   );
   return btns;
@@ -1150,8 +1157,8 @@ function _actionBtns(row) {
 // ── Utilitários gerais ────────────────────────────────────────────────────────
 
 const _esc = (s) => String(s ?? "")
-  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 
 const _trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "…" : (s ?? "");
 

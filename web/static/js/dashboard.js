@@ -133,19 +133,31 @@ async function loadDashboard(forceSpinner = false) {
     const data = await resp.json();
     lastData = data;
 
-    // Normaliza formato da API FastAPI para o esperado pelos gráficos
-    const byTypeArray = Array.isArray(data.by_type)
+    // Normaliza formato da API Flask para o esperado pelos gráficos
+    // by_type: Flask retorna [{tipo_zombie, count, size_gb}]
+    const byTypeRaw = Array.isArray(data.by_type)
       ? data.by_type
-      : Object.entries(data.by_type || {}).map(([tipo, e]) => ({ tipo, count: e.count ?? 0 }));
-    const byVcenter = (data.by_vcenter ?? []).map((o) => ({
-      ...o,
-      total_size_gb: o.size_gb ?? o.total_size_gb,
-      count: o.total_vmdks ?? o.count,
-    }));
-    const trend = (data.trend_last_10 ?? data.trend_last_4 ?? []).map((x) => ({
+      : Object.entries(data.by_type || {}).map(([tipo_zombie, e]) => ({ tipo_zombie, count: e.count ?? 0 }));
+    // Normaliza: garante que cada item tenha a chave `tipo` usada internamente
+    const byTypeArray = byTypeRaw.map((x) => ({
       ...x,
-      started_at: x.started_at ?? x.finished_at,
+      tipo: x.tipo_zombie ?? x.tipo,
+    }));
+
+    // top_vcenters: Flask retorna [{name, size_gb}]
+    const byVcenter = (data.top_vcenters ?? data.by_vcenter ?? []).map((o) => ({
+      ...o,
+      vcenter: o.name ?? o.vcenter ?? o.datastore,
+      total_size_gb: o.size_gb ?? o.total_size_gb ?? 0,
+      count: o.count ?? o.total_vmdks ?? 0,
+    }));
+
+    // trend: Flask retorna [{job_id, scan_date, total_gb}]
+    const trend = (data.trend ?? data.trend_last_10 ?? data.trend_last_4 ?? []).map((x) => ({
+      ...x,
+      started_at: x.scan_date ?? x.started_at ?? x.finished_at,
       completed_at: x.finished_at ?? x.completed_at,
+      total_size_gb: x.total_gb ?? x.total_size_gb ?? 0,
       total_vmdks: x.total_vmdks ?? 0,
     }));
 
@@ -153,14 +165,14 @@ async function loadDashboard(forceSpinner = false) {
     _renderDonut(byTypeArray);
     _renderBars(byVcenter);
     _renderTrend(trend);
-    _renderTable(data.recent_vmdks ?? []);
+    // Flask retorna recent_alerts; FastAPI retornava recent_vmdks
+    _renderTable(data.recent_alerts ?? data.recent_vmdks ?? []);
     _renderLastUpdated();
     _setLoadingState(false);
     _setErrorState(null);
 
   } catch (err) {
     console.error("[ZombieHunter Dashboard] Erro ao carregar dados:", err);
-    alert("Erro ao carregar o dashboard: " + err.message);
     _setErrorState(err.message);
     _setLoadingState(false);
   }
@@ -173,8 +185,9 @@ async function loadDashboard(forceSpinner = false) {
  * @param {Object} data Resposta da API /dashboard
  */
 function _renderCards(data) {
-  _setCard("zh-card-total-vmdks", _fmt(data.total_vmdks_all_time));
-  _setCard("zh-card-total-gb", _fmtGb(data.total_size_all_time_gb));
+  // Flask: total_zombies / total_size_gb; FastAPI: total_vmdks_all_time / total_size_all_time_gb
+  _setCard("zh-card-total-vmdks", _fmt(data.total_zombies ?? data.total_vmdks_all_time));
+  _setCard("zh-card-total-gb", _fmtGb(data.total_size_gb ?? data.total_size_all_time_gb));
   _setCard("zh-card-pending", _fmt(data.pending_approvals ?? 0));
   _setCard("zh-card-vcenter-count", _fmt(data.vcenter_count ?? 0));
 

@@ -411,11 +411,14 @@ def api_dashboard():
         ]
 
         # Últimos 10 VMDKs (tabela de alertas recentes)
-        recent = db.execute(
-            select(ZombieVmdkRecord)
-            .order_by(ZombieVmdkRecord.created_at.desc())
-            .limit(10)
-        ).scalars().all()
+        recent_alerts = [
+            _vmdk_to_dict(r)
+            for r in db.execute(
+                select(ZombieVmdkRecord)
+                .order_by(ZombieVmdkRecord.created_at.desc())
+                .limit(10)
+            ).scalars().all()
+        ]
 
     return _ok({
         "total_zombies":     total_zombies,
@@ -426,7 +429,7 @@ def api_dashboard():
         "by_type":           by_type,
         "top_vcenters":      top_vcenters,
         "trend":             trend,
-        "recent_alerts":     [_vmdk_to_dict(r) for r in recent],
+        "recent_alerts":     recent_alerts,
     })
 
 
@@ -509,8 +512,11 @@ def api_scan_results():
             data.append(d)
 
     return _ok({
-        "data":         data,
+        "items":        data,
+        "data":         data,   # alias mantido para compatibilidade
         "total":        total,
+        "recordsTotal":    total,
+        "recordsFiltered": total,
         "pages":        max(1, -(-total // per_page)),
         "current_page": page,
         "per_page":     per_page,
@@ -541,6 +547,125 @@ def _vmdk_to_dict(r: ZombieVmdkRecord) -> dict:
             85 if r.tipo_zombie == "UNREGISTERED_DIR"        else 95
         ),
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# API — Scan (iniciar varredura + status de job)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/scan/start")
+@app.post("/api/v1/scan/start")
+def api_scan_start():
+    """Dispara varredura zombie assíncrona e retorna job_id imediatamente."""
+    import asyncio
+    import threading
+
+    data        = request.get_json(silent=True) or {}
+    vcenter_ids = data.get("vcenter_ids", [])
+    datacenters = data.get("datacenters") or None   # None = todos os DCs
+
+    if not vcenter_ids:
+        return _err("vcenter_ids é obrigatório e não pode ser vazio.", 422)
+
+    # Valida que pelo menos um vCenter existe no banco
+    with _db() as db:
+        found_any = False
+        for ref in vcenter_ids:
+            # Tenta por ID inteiro ou por nome
+            from sqlalchemy import or_ as _or_
+            try:
+                vc_id = int(ref)
+                row = db.execute(select(VCenter).where(VCenter.id == vc_id)).scalar_one_or_none()
+            except (ValueError, TypeError):
+                row = db.execute(select(VCenter).where(VCenter.name == str(ref))).scalar_one_or_none()
+            if row:
+                found_any = True
+                break
+        if not found_any:
+            return _err("Nenhum dos vCenter IDs/nomes informados foi encontrado no banco.", 422)
+
+    # Cria o ZombieScanJob no banco (status: pending)
+    job_id = str(uuid.uuid4())
+    with _db() as db:
+        job = ZombieScanJob(
+            job_id      = job_id,
+            vcenter_ids = list(vcenter_ids),
+            datacenters = datacenters,
+            status      = "pending",
+        )
+        db.add(job)
+
+    def _run_in_thread():
+        """Executa a coroutine run_zombie_scan em um event-loop dedicado."""
+        from app.core.scanner.scan_runner import run_zombie_scan
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(
+                run_zombie_scan(job_id, list(vcenter_ids), datacenters)
+            )
+        except Exception as exc:
+            logger.error("[job:%s] Falha na thread de varredura: %s", job_id, exc)
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=_run_in_thread, daemon=True, name=f"scan-{job_id[:8]}")
+    t.start()
+
+    return _ok({
+        "job_id":      job_id,
+        "status":      "pending",
+        "vcenter_ids": list(vcenter_ids),
+        "datacenters": datacenters,
+        "started_at":  None,
+        "finished_at": None,
+    }, 202)
+
+
+@app.get("/api/scan/jobs/<job_id>")
+@app.get("/api/v1/scan/jobs/<job_id>")
+def api_scan_job_status(job_id: str):
+    """Retorna status e sumário de um job de varredura."""
+    with _db() as db:
+        job = db.get(ZombieScanJob, job_id)
+        if not job:
+            return _err("Job não encontrado.", 404)
+
+        summary = None
+        if job.status == "completed":
+            from sqlalchemy import func as _func
+            rows = db.execute(
+                select(
+                    ZombieVmdkRecord.tipo_zombie,
+                    _func.count(ZombieVmdkRecord.id),
+                ).where(ZombieVmdkRecord.job_id == job_id)
+                 .group_by(ZombieVmdkRecord.tipo_zombie)
+            ).all()
+            breakdown = {r[0]: r[1] for r in rows}
+            summary = {
+                "total_vmdks_encontrados": job.total_vmdks or 0,
+                "total_size_gb":           round(float(job.total_size_gb or 0.0), 3),
+                "breakdown": {
+                    "ORPHANED":                breakdown.get("ORPHANED", 0),
+                    "SNAPSHOT_ORPHAN":         breakdown.get("SNAPSHOT_ORPHAN", 0),
+                    "BROKEN_CHAIN":            breakdown.get("BROKEN_CHAIN", 0),
+                    "UNREGISTERED_DIR":        breakdown.get("UNREGISTERED_DIR", 0),
+                    "POSSIBLE_FALSE_POSITIVE": breakdown.get("POSSIBLE_FALSE_POSITIVE", 0),
+                },
+            }
+
+        return _ok({
+            "job_id":          job.job_id,
+            "status":          job.status,
+            "vcenter_ids":     job.vcenter_ids or [],
+            "datacenters":     job.datacenters,
+            "started_at":      _dt_iso(job.started_at),
+            "finished_at":     _dt_iso(job.finished_at),
+            "error_messages":  job.error_messages or [],
+            "created_at":      _dt_iso(job.created_at),
+            "summary":         summary,
+            "datastore_metrics": job.datastore_metrics or [],
+        })
 
 
 # ─────────────────────────────────────────────────────────────────────────────
