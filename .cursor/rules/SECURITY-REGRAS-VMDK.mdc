@@ -1,0 +1,36 @@
+---
+description: Regras de segurança obrigatórias — leitura apenas. PRIORIDADE MÁXIMA.
+globs: ["**/*.py"]
+alwaysApply: true
+---
+
+# SEGURANÇA — READ-ONLY ABSOLUTO
+
+Este projeto é ESTRITAMENTE de leitura e análise. NENHUMA ação destrutiva é permitida.
+
+## PROIBIDO IMPLEMENTAR OU SUGERIR:
+- Chamadas que deletem, movam ou renomeiem arquivos no vCenter/datastore
+- vim.FileManager.DeleteDatastoreFile_Task
+- vim.FileManager.MoveDatastoreFile_Task
+- vim.VirtualMachine.Destroy_Task
+- Qualquer DELETE/PATCH/PUT que modifique estado do vCenter
+- Remover disco de VM (device.remove)
+- Credenciais com papel diferente de Read-Only no vCenter
+
+## PERMITIDO APENAS:
+- GET e POST para consulta (leitura)
+- DatastoreBrowser.SearchDatastoreSubFolders_Task (leitura)
+- RetrieveContent, viewManager, CreateContainerView (leitura)
+- vStorageObjectManager.ListVStorageObject, RetrieveVStorageObject (leitura)
+
+## SE DELEÇÃO FOR NECESSÁRIA (FLUXO OBRIGATÓRIO):
+1. Confirmação explícita solicitada ao analista
+2. Analista digita ou clica em confirmação deliberada
+3. Exibir exatamente o que será afetado: nome, caminho e tamanho
+4. Logar: timestamp, usuário e arquivo afetado
+5. Período de cooling/revisão antes de qualquer execução
+
+## NO CÓDIGO:
+- Toda função de scan deve ter: # READ-ONLY: no write operations
+- API: apenas GET ou POST para consulta, nunca DELETE
+- Credenciais vCenter: papel Read-Only

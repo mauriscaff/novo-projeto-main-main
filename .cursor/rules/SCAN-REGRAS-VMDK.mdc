@@ -1,0 +1,59 @@
+---
+description: Regras do algoritmo de scan de VMDKs zombie. Seguir sempre ao modificar scanner.
+globs: ["app/core/scanner/**/*.py"]
+alwaysApply: true
+---
+
+# REGRAS DO SCAN DE VMDKs ZOMBIE
+
+## FLUXO OBRIGATÓRIO (7 passos — Broadcom KB 404094):
+1. Coletar todas as VMs/templates registradas no inventário do vCenter
+2. Montar conjunto de VMDKs em uso (hardware atual + cadeia completa de snapshots + parent chain)
+3. Coletar FCDs/IVDs via vStorageObjectManager (EX-7) — nunca são orphan
+4. Coletar pastas de Content Library (EX-6) — nunca são orphan
+5. Varrer cada datastore via DatastoreBrowser.SearchDatastoreSubFolders_Task
+6. Comparar cada VMDK encontrado com os conjuntos acima (case-insensitive, normalizado)
+7. Classificar e calcular confidence_score por critérios Broadcom
+
+## EXCLUSÕES OBRIGATÓRIAS (nunca reportar como orphan):
+- *-flat.vmdk  → extent de dados de disco thick
+- *-delta.vmdk → extent de snapshot ativo
+- *-sesparse.vmdk → snapshot sparse
+- *-ctk.vmdk   → Change Block Tracking
+- vCLS-*.vmdk  → vSphere Cluster Services
+- FCDs/IVDs registrados no vStorageObjectManager
+- Arquivos em pastas de Content Library (contentlib-*)
+
+## FILTROS DE NEGÓCIO (respeitar sempre):
+- orphan_days: VMDK modificado há menos de N dias → SKIP (motivo: "recente")
+- stale_snapshot_days: snapshot delta modificado há menos de N dias → SKIP
+- min_file_size_mb: VMDK menor que N MB → SKIP (exceto BROKEN_CHAIN)
+- Esses filtros DEVEM ser aplicados no início de _classify_vmdk, antes de qualquer retorno
+
+## TIPOS DE ZOMBIE:
+- ORPHANED: VMDK fora do inventário, sem referência em Get-HardDisk
+- SNAPSHOT_ORPHAN: *-delta ou *-000001 sem snapshot ativo associado
+- BROKEN_CHAIN: descriptor sem -flat ou parent ausente
+- UNREGISTERED_DIR: pasta inteira sem nenhuma VM registrada no vCenter
+- POSSIBLE_FALSE_POSITIVE: datastore compartilhado entre múltiplos vCenters (EX-3, KB 383876)
+
+## CONFIDENCE SCORE (0–100):
+- +40: ausente do Get-HardDisk (pré-requisito)
+- +10: assume sem lock ativo
+- +20: pasta sem VM registrada
+- +15: UNREGISTERED_DIR
+- +15: BROKEN_CHAIN
+- -50: datastore compartilhado multi-vCenter
+- -20: arquivo recente (< orphan_days)
+- Score ≥ 85 → ELEGÍVEL para aprovação
+- Score 60–84 → SUSPEITO, revisar manualmente
+- Score < 60 → MONITORAR, não agir
+
+## RESILIÊNCIA:
+- Se um datastore falhar no browse → logar com logger.exception e continuar nos demais
+- Nunca interromper o scan completo por falha em datastore isolado
+
+## PROIBIDO:
+- confidence_score = 95 (hardcoded) — sempre usar _compute_confidence_score()
+- Ignorar orphan_days ou stale_snapshot_days na função _classify_vmdk
+- Ignorar min_file_size_mb na função _classify_vmdk
