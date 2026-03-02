@@ -1,0 +1,267 @@
+from contextlib import asynccontextmanager
+import logging
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from sqlalchemy import select, text
+
+from app.api.routes import auth, vcenter, scan, scanner, schedules, webhooks, dashboard, approvals
+from app.core.scheduler import scheduler, start as scheduler_start, stop as scheduler_stop
+from app.core.vcenter.connection_manager import connection_manager
+from app.models.base import AsyncSessionLocal, init_db
+from app.models.audit_log import ApprovalToken, TERMINAL_STATUSES
+from app.models.vcenter import VCenter
+from config import get_settings
+
+# ── Jinja2 + arquivos estáticos ───────────────────────────────────────────────
+_WEB_DIR = Path(__file__).parent / "web"
+templates = Jinja2Templates(directory=str(_WEB_DIR / "templates"))
+
+settings = get_settings()
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup ──────────────────────────────────────────────────────────
+    await init_db()
+    await _register_existing_vcenters()
+    await scheduler_start()          # inicia APScheduler + recarrega schedules do banco
+    yield
+    # ── Shutdown ─────────────────────────────────────────────────────────
+    scheduler_stop()                 # para o APScheduler graciosamente
+    connection_manager.disconnect_all()
+
+
+async def _register_existing_vcenters() -> None:
+    """
+    Ao iniciar, carrega todos os vCenters ativos do banco e os registra no pool.
+    As conexões são lazy — o pool conecta apenas no primeiro uso.
+    """
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(VCenter).where(VCenter.is_active.is_(True))
+        )
+        vcenters = result.scalars().all()
+
+    for vc in vcenters:
+        try:
+            connection_manager.register(vc)
+            logger.info("vCenter '%s' (%s) registrado no pool.", vc.name, vc.host)
+        except Exception as exc:
+            logger.warning(
+                "Não foi possível registrar vCenter '%s' no pool: %s", vc.name, exc
+            )
+
+    logger.info("%d vCenter(s) registrado(s) no pool de conexões.", len(vcenters))
+
+
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    description=(
+        "API REST para varredura de VMDKs zombie/orphaned "
+        "em múltiplos vCenters VMware.\n\n"
+        "**Autenticação:** Bearer JWT (`POST /api/v1/auth/token`) "
+        "ou header `X-API-Key`."
+    ),
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+
+# CORS: origens permitidas (CORS_ALLOWED_ORIGINS, separado por vírgula)
+# Fallback seguro: apenas localhost:8000 quando variável não definida
+_cors_origins_raw = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8000")
+_cors_origins = [x.strip() for x in _cors_origins_raw.split(",") if x.strip()] or ["http://localhost:8000"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router,      prefix="/api/v1/auth",       tags=["Autenticação"])
+app.include_router(vcenter.router,   prefix="/api/v1/vcenters",   tags=["vCenters"])
+app.include_router(scan.router,      prefix="/api/v1/scans",      tags=["Varredura VMDK (legado)"])
+app.include_router(scanner.router,   prefix="/api/v1/scan",       tags=["Varredura Zombie"])
+app.include_router(schedules.router, prefix="/api/v1/schedules",  tags=["Agendamentos"])
+app.include_router(webhooks.router,   prefix="/api/v1/webhooks",   tags=["Webhooks"])
+app.include_router(dashboard.router,  prefix="/api/v1/dashboard",  tags=["Dashboard"])
+app.include_router(approvals.router,  prefix="/api/v1/approvals",  tags=["Aprovações & Auditoria"])
+
+# ── Arquivos estáticos (CSS, JS) ──────────────────────────────────────────────
+app.mount("/static", StaticFiles(directory=str(_WEB_DIR / "static")), name="static")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helper: contexto Jinja2 base (variáveis compartilhadas entre todos os templates)
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def _base_ctx(request: Request) -> dict:
+    """
+    Monta o dicionário de contexto comum a todas as páginas web.
+    Inclui status dos vCenters, modo readonly, contagem de aprovações pendentes.
+    """
+    # Status de conectividade dos vCenters registrados no pool
+    pool = connection_manager.pool_status()
+    vcenter_status = [
+        {"name": name, "connected": info.get("connected", False)}
+        for name, info in pool.items()
+    ]
+
+    # Contagem de tokens de aprovação pendentes
+    pending = 0
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(ApprovalToken).where(
+                    ApprovalToken.status.notin_(TERMINAL_STATUSES),
+                    ApprovalToken.expires_at > datetime.now(timezone.utc),
+                )
+            )
+            pending = len(result.scalars().all())
+    except Exception:
+        pass
+
+    return {
+        "request":          request,
+        "readonly_mode":    settings.readonly_mode,
+        "vcenter_status":   vcenter_status,
+        "api_version":      settings.app_version,
+        "api_key":          settings.api_key,       # injetado no fetch global do JS
+        "last_scan_at":     None,   # preenchido por cada rota que precise
+        "pending_approvals": pending,
+        "flash_messages":   [],     # lista de (category, message) — sem Flask
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Rotas web (HTML)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_dashboard(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("dashboard.html", ctx)
+
+
+@app.get("/dashboard", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_dashboard_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/")
+
+
+@app.get("/scan/results", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_scan_results(request: Request):
+    ctx = await _base_ctx(request)
+    ctx["job_id"] = None
+    return templates.TemplateResponse("scan_results.html", ctx)
+
+
+@app.get("/scan/results/{job_id}", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_scan_results_job(request: Request, job_id: str):
+    ctx = await _base_ctx(request)
+    ctx["job_id"] = job_id
+    return templates.TemplateResponse("scan_results.html", ctx)
+
+
+@app.get("/approvals", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_approvals(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("approvals.html", ctx)
+
+
+@app.get("/audit-log", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_audit_log(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("audit.html", ctx)
+
+
+@app.get("/vcenters", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_vcenters(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("vcenters.html", ctx)
+
+
+@app.get("/whitelist", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_whitelist(request: Request):
+    """Redireciona para a página de resultados com filtro de whitelist."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/scan/results?status=WHITELIST")
+
+
+@app.get("/settings", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_settings(request: Request):
+    """Página de configurações — redireciona para vcenters por enquanto."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/vcenters")
+
+
+@app.get("/health", tags=["Health"])
+async def health_check() -> dict:
+    """
+    Healthcheck completo da API.
+
+    Verifica:
+    - Conectividade com o banco SQLite
+    - Estado do APScheduler (agendamentos ativos)
+    - Estado do pool de conexões com os vCenters cadastrados
+    """
+    # ── Banco de dados ────────────────────────────────────────────────────────
+    db_status = "ok"
+    db_detail: str | None = None
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+    except Exception as exc:
+        db_status = "error"
+        db_detail = str(exc)
+        logger.error("Health: falha no banco de dados — %s", exc)
+
+    # ── APScheduler ───────────────────────────────────────────────────────────
+    aps_jobs = scheduler.get_jobs() if scheduler.running else []
+    scheduler_info = {
+        "running": scheduler.running,
+        "jobs_count": len(aps_jobs),
+        "jobs": [
+            {
+                "id": j.id,
+                "name": j.name,
+                "next_run_at": j.next_run_time.isoformat() if j.next_run_time else None,
+            }
+            for j in aps_jobs
+        ],
+    }
+
+    # ── Pool de vCenters ──────────────────────────────────────────────────────
+    pool = connection_manager.pool_status()
+    connected_count = sum(1 for s in pool.values() if s.get("connected", False))
+
+    # ── Status geral ──────────────────────────────────────────────────────────
+    overall = "ok" if db_status == "ok" else "degraded"
+
+    response: dict = {
+        "status": overall,
+        "version": settings.app_version,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "database": {"status": db_status},
+        "scheduler": scheduler_info,
+        "vcenters": {
+            "total": len(pool),
+            "connected": connected_count,
+            "pool": pool,
+        },
+    }
+    if db_detail:
+        response["database"]["detail"] = db_detail
+
+    return response

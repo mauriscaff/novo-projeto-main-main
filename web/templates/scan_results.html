@@ -1,0 +1,926 @@
+{% extends "base.html" %}
+{#
+  scan_results.html — Resultados de Varredura de VMDKs Zombie
+  ============================================================
+  Herda base.html. Toda a lógica de dados é gerenciada por scan_results.js:
+    - Paginação server-side via GET /api/v1/scan/results
+    - Modal de detalhes técnicos
+    - Modal de solicitação de aprovação (POST /api/v1/approvals)
+    - Seleção e aprovação em lote
+    - Exportação CSV / JSON
+
+  Variável Jinja2 opcional:
+    job_id  str | None  — Se presente, pré-filtra pelos resultados do job
+#}
+
+{% block title %}Resultados da Varredura{% endblock %}
+
+{% block content %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   CABEÇALHO DA PÁGINA
+───────────────────────────────────────────────────────────────────────────── #}
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h4 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-search text-zombie-blue" aria-hidden="true"></i>
+      Resultados da Varredura
+    </h4>
+    <small class="text-muted-zh">
+      VMDKs zombie detectados — filtre, inspecione e solicite aprovações
+    </small>
+
+    {# Badge de job_id pré-selecionado (exibido quando acessado via /scan/results/{id}) #}
+    <span id="zh-job-id-badge" class="badge text-bg-secondary ms-2 d-none" style="font-size:.72rem;">
+      <i class="bi bi-hash me-1"></i>Job: <span id="zh-job-id-text"></span>
+    </span>
+  </div>
+
+  {# Banner de status da varredura — visível quando job_id disponível #}
+  {# Banner de status + log de progresso em tempo real #}
+  <div id="zh-scan-status-banner" class="d-none px-3 py-2 rounded-2 mb-1"
+       style="background:rgba(56,139,253,.08);border:1px solid rgba(56,139,253,.3);font-size:.82rem;">
+    <div class="d-flex align-items-center gap-2">
+      <span id="zh-scan-status-icon"></span>
+      <span id="zh-scan-status-text" class="fw-semibold"></span>
+    </div>
+    <div id="zh-scan-status-detail" class="mt-1"></div>
+    {# O painel de log #zh-progress-panel é criado dinamicamente pelo JS #}
+  </div>
+
+  {# Sumário dinâmico (preenchido pelo JS ao receber resposta da API) #}
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="text-center">
+      <div class="text-zombie-red fw-bold fs-5 lh-1" id="zh-summary-total">—</div>
+      <div class="text-muted-zh" style="font-size:.72rem;">VMDKs encontrados</div>
+    </div>
+    <div class="vr" style="background:var(--zh-border);"></div>
+    <div class="text-center">
+      <div class="text-zombie-yellow fw-bold fs-5 lh-1" id="zh-summary-gb">—</div>
+      <div class="text-muted-zh" style="font-size:.72rem;">Total recuperável</div>
+    </div>
+  </div>
+</div>
+
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   PAINEL DE FILTROS
+   Formulário inline com 5 controles + botões Filtrar / Limpar
+───────────────────────────────────────────────────────────────────────────── #}
+<div class="zh-card mb-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-funnel-fill text-zombie-blue" aria-hidden="true"></i>
+    <span>Filtros</span>
+    {# Indicador de filtros ativos (opcional — controlado via JS) #}
+    <span class="badge text-bg-secondary ms-1 d-none" id="zh-active-filters-badge">0 ativos</span>
+  </div>
+  <div class="card-body py-3">
+    <form id="zh-filter-form" class="row g-2 align-items-end" autocomplete="off" novalidate>
+
+      {# Campo oculto: job_id pré-selecionado via rota #}
+      <input type="hidden" id="f-job-id" value="{{ job_id or '' }}" />
+
+      {# Filtro 1 — vCenter (populado via JS ao carregar a página) #}
+      <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <label for="f-vcenter" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          vCenter
+        </label>
+        <select
+          id="f-vcenter"
+          class="form-select form-select-sm zh-dark-select"
+          title="Filtrar por vCenter"
+        >
+          <option value="">Todos</option>
+          {# Opções carregadas dinamicamente pelo JS #}
+        </select>
+      </div>
+
+      {# Filtro 2 — Tipo zombie #}
+      <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <label for="f-tipo" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Tipo Zombie
+        </label>
+        <select id="f-tipo" class="form-select form-select-sm zh-dark-select" title="Filtrar por tipo">
+          <option value="">Todos os tipos</option>
+          <option value="ORPHANED">🔴 Orphaned</option>
+          <option value="SNAPSHOT_ORPHAN">🟠 Snapshot Orphan</option>
+          <option value="BROKEN_CHAIN">🟡 Broken Chain</option>
+          <option value="UNREGISTERED_DIR">🟣 Unregistered Dir</option>
+          <option value="POSSIBLE_FALSE_POSITIVE">⚫ False Positive</option>
+        </select>
+      </div>
+
+      {# Filtro 3 — Status do registro #}
+      <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <label for="f-status" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Status
+        </label>
+        <select id="f-status" class="form-select form-select-sm zh-dark-select" title="Filtrar por status">
+          <option value="">Todos os status</option>
+          <option value="NOVO">Novo</option>
+          <option value="EM_QUARENTENA">Em Quarentena</option>
+          <option value="APROVADO_DELECAO">Aprovado p/ Deleção</option>
+          <option value="WHITELIST">Whitelist</option>
+        </select>
+      </div>
+
+      {# Filtro 4 — Tamanho mínimo em GB #}
+      <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+        <label for="f-min-gb" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Tamanho mín.
+        </label>
+        <div class="input-group input-group-sm">
+          <input
+            type="number"
+            id="f-min-gb"
+            class="form-control zh-dark-input"
+            placeholder="0"
+            min="0"
+            step="0.1"
+            title="Tamanho mínimo em GB"
+          />
+          <span class="input-group-text zh-dark-input-addon">GB</span>
+        </div>
+      </div>
+
+      {# Filtro 5 — Score de confiança mínimo (0–100) #}
+      <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+        <label for="f-min-confidence" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Score mín.
+        </label>
+        <input
+          type="number"
+          id="f-min-confidence"
+          class="form-control form-control-sm zh-dark-input"
+          placeholder="0"
+          min="0"
+          max="100"
+          step="1"
+          title="Score de confiança mínimo (0–100)"
+        />
+      </div>
+
+      {# Filtro 6 — Última modificação do arquivo VMDK (após / antes) #}
+      <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+        <label for="f-modified-after" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Últ. mod. após
+        </label>
+        <input
+          type="date"
+          id="f-modified-after"
+          class="form-control form-control-sm zh-dark-input"
+          title="Arquivo modificado após esta data"
+        />
+      </div>
+      <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+        <label for="f-modified-before" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Últ. mod. antes
+        </label>
+        <input
+          type="date"
+          id="f-modified-before"
+          class="form-control form-control-sm zh-dark-input"
+          title="Arquivo modificado antes desta data"
+        />
+      </div>
+
+      {# Filtro 7 — Data da varredura (job) #}
+      <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+        <label for="f-date" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Data da varredura
+        </label>
+        <input
+          type="date"
+          id="f-date"
+          class="form-control form-control-sm zh-dark-input"
+          title="Resultados de jobs iniciados nesta data"
+        />
+      </div>
+
+      {# Botões de ação dos filtros #}
+      <div class="col-12 col-xl-auto d-flex gap-2 align-items-end">
+        <button
+          type="button"
+          id="zh-btn-filter"
+          class="btn btn-sm btn-primary d-flex align-items-center gap-2"
+          title="Aplicar filtros"
+        >
+          <i class="bi bi-funnel-fill"></i>
+          Filtrar
+        </button>
+        <button
+          type="button"
+          id="zh-btn-clear"
+          class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+          title="Remover todos os filtros"
+        >
+          <i class="bi bi-x-lg"></i>
+          Limpar
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   BARRA DE AÇÃO EM LOTE
+   Aparece flutuante na base quando há checkboxes selecionados
+───────────────────────────────────────────────────────────────────────────── #}
+<div
+  id="zh-batch-bar"
+  class="d-none alert mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2 py-2"
+  style="background-color:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:8px;"
+  role="alert"
+>
+  <span class="d-flex align-items-center gap-2" style="font-size:.875rem;">
+    <i class="bi bi-check2-square text-zombie-red" aria-hidden="true"></i>
+    <strong id="zh-batch-count">0</strong> VMDK(s) selecionado(s)
+  </span>
+  <div class="d-flex gap-2">
+    <button
+      id="zh-btn-batch-approve"
+      class="btn btn-sm btn-danger d-flex align-items-center gap-2"
+      type="button"
+      title="Solicitar aprovação para todos os selecionados"
+    >
+      <i class="bi bi-shield-plus"></i>
+      Aprovar Selecionados
+    </button>
+    <button
+      id="zh-btn-batch-clear"
+      class="btn btn-sm btn-outline-secondary"
+      type="button"
+      title="Limpar seleção"
+    >
+      <i class="bi bi-x-lg"></i>
+      Limpar seleção
+    </button>
+  </div>
+</div>
+
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   FILTROS CLIENT-SIDE (sem nova requisição ao servidor)
+───────────────────────────────────────────────────────────────────────────── #}
+<div class="zh-card mb-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-funnel text-zombie-blue" aria-hidden="true"></i>
+    <span>Filtro na tabela</span>
+  </div>
+  <div class="card-body py-3">
+    <div class="row g-3 align-items-end flex-wrap">
+      <div class="col-12 col-sm-6 col-md-4 col-lg-2">
+        <label for="zh-cf-score" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">Score mínimo</label>
+        <div class="d-flex align-items-center gap-2">
+          <input type="range" id="zh-cf-score" class="form-range" min="0" max="100" value="60" style="max-width:120px;">
+          <span id="zh-cf-score-val" style="font-size:.8rem;min-width:2rem;">60</span>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <span class="d-block mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">Tipo de zombie</span>
+        <div class="d-flex flex-wrap gap-2">
+          <label class="d-inline-flex align-items-center gap-1" style="font-size:.8rem;"><input type="checkbox" class="form-check-input zh-cf-tipo" value="ORPHANED" checked> Orphaned</label>
+          <label class="d-inline-flex align-items-center gap-1" style="font-size:.8rem;"><input type="checkbox" class="form-check-input zh-cf-tipo" value="SNAPSHOT_ORPHAN" checked> Snapshot</label>
+          <label class="d-inline-flex align-items-center gap-1" style="font-size:.8rem;"><input type="checkbox" class="form-check-input zh-cf-tipo" value="BROKEN_CHAIN" checked> Broken</label>
+          <label class="d-inline-flex align-items-center gap-1" style="font-size:.8rem;"><input type="checkbox" class="form-check-input zh-cf-tipo" value="UNREGISTERED_DIR" checked> Unreg. Dir</label>
+          <label class="d-inline-flex align-items-center gap-1" style="font-size:.8rem;"><input type="checkbox" class="form-check-input zh-cf-tipo" value="POSSIBLE_FALSE_POSITIVE" checked> False Pos.</label>
+        </div>
+      </div>
+      <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <label for="zh-cf-modified-days" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">Modificado há mais de (dias)</label>
+        <input type="number" id="zh-cf-modified-days" class="form-control form-control-sm zh-dark-input" min="0" placeholder="—" title="Vazio = sem filtro">
+      </div>
+      <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <label for="zh-cf-size" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">Tamanho mín. (GB)</label>
+        <input type="number" id="zh-cf-size" class="form-control form-control-sm zh-dark-input" min="0" step="0.1" value="0">
+      </div>
+      <div class="col-12 col-lg-auto ms-lg-auto d-flex align-items-center gap-2 flex-wrap">
+        <span id="zh-visible-count" class="text-muted-zh" style="font-size:.85rem;">Exibindo 0 de 0 resultados</span>
+        <button type="button" id="zh-export-csv-filtered" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" title="Exportar apenas as linhas visíveis (após filtros)">
+          <i class="bi bi-file-earmark-arrow-down"></i> Exportar CSV (visíveis)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   TABELA DATATABLES
+   O thead define as colunas; tbody é preenchido pelo DataTables via AJAX.
+───────────────────────────────────────────────────────────────────────────── #}
+<div class="zh-card">
+  <div class="card-body p-0">
+    <table
+      id="zh-table-results"
+      class="table table-dark table-hover table-sm mb-0 align-middle"
+      style="border-color:var(--zh-border);font-size:.84rem;width:100%;"
+      aria-label="Resultados de varredura de VMDKs zombie"
+    >
+      <thead style="background-color:var(--zh-bg-sidebar);border-bottom:2px solid var(--zh-border);">
+        <tr>
+          {#
+            Cabeçalho do checkbox: DataTables injeta aqui o elemento
+            <input id="zh-check-all"> definido em columns[0].title (scan_results.js).
+            Não adicionar conteúdo manual — seria sobrescrito pelo DataTables.
+          #}
+          <th style="width:36px;padding:10px 12px;"><!-- zh-check-all injetado pelo JS --></th>
+          <th style="padding:10px 12px;white-space:nowrap;">vCenter</th>
+          <th style="padding:10px 12px;white-space:nowrap;">Datastore</th>
+          <th style="padding:10px 12px;">VMDK Path</th>
+          <th style="padding:10px 12px;white-space:nowrap;text-align:right;">Tamanho</th>
+          <th style="padding:10px 12px;white-space:nowrap;">Tipo</th>
+          <th style="padding:10px 12px;white-space:nowrap;text-align:center;">Confiança</th>
+          <th style="padding:10px 12px;white-space:nowrap;">Última Mod.</th>
+          <th style="padding:10px 12px;white-space:nowrap;">Status</th>
+          <th style="padding:10px 12px;white-space:nowrap;text-align:right;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {# DataTables preenche este corpo via AJAX — nenhuma <tr> aqui #}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   MODAL 1 — DETALHES TÉCNICOS DO VMDK
+   Abre ao clicar em "Detalhes" (ícone olho) em qualquer linha.
+════════════════════════════════════════════════════════════════════════════ #}
+<div
+  class="modal fade"
+  id="zh-modal-details"
+  tabindex="-1"
+  aria-labelledby="det-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+
+      {# Cabeçalho com path truncado e badges de tipo/status #}
+      <div class="modal-header" style="border-color:var(--zh-border);">
+        <div class="d-flex flex-column gap-1 overflow-hidden">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span id="det-type-badge"></span>
+            <span id="det-status-badge"></span>
+          </div>
+          <h5
+            class="modal-title font-monospace text-truncate mb-0"
+            id="det-modal-label"
+            style="font-size:.9rem;max-width:580px;"
+          ></h5>
+        </div>
+        <button
+          type="button"
+          class="btn-close btn-close-white flex-shrink-0 ms-3"
+          data-bs-dismiss="modal"
+          aria-label="Fechar"
+        ></button>
+      </div>
+
+      <div class="modal-body" style="font-size:.875rem;">
+
+        {# Linha 1 — Localização no vCenter #}
+        <h6 class="text-muted-zh text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.8px;">
+          <i class="bi bi-geo-alt me-1"></i>📍 Localização no vCenter
+        </h6>
+        <div class="row g-2 mb-3">
+          <div class="col-12">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Caminho completo</span>
+              <div class="d-flex align-items-start gap-2">
+                <code class="zh-detail-value font-monospace flex-grow-1" id="det-path" style="word-break:break-all;"></code>
+                <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="det-copy-path" title="Copiar caminho">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Datacenter</span>
+              <span class="zh-detail-value" id="det-datacenter"></span>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Datastore</span>
+              <span class="zh-detail-value font-monospace" id="det-datastore"></span>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Pasta</span>
+              <span class="zh-detail-value font-monospace" id="det-folder"></span>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Arquivo</span>
+              <span class="zh-detail-value font-monospace" id="det-vmdk-filename"></span>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">vCenter</span>
+              <span class="zh-detail-value text-zombie-blue" id="det-vcenter"></span>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Tipo de Datastore</span>
+              <span class="zh-detail-value" id="det-ds-type"></span>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">ID da Varredura</span>
+              <code class="zh-detail-value" style="font-size:.78rem;" id="det-job-id"></code>
+            </div>
+          </div>
+          {# Links vCenter — vSphere UI e URL /folder #}
+          <div class="col-12 mt-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <a id="det-btn-vsphere-ui" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary d-none" title="Abrir datastore no vSphere HTML5 Client">
+                <i class="bi bi-display me-1"></i> Abrir no vSphere Client
+              </a>
+              <a id="det-btn-folder" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary d-none" title="Abrir arquivo/pasta no vCenter (URL /folder)">
+                <i class="bi bi-folder2-open me-1"></i> Abrir Arquivo Direto
+              </a>
+            </div>
+            <p id="det-folder-warning" class="text-warning mt-2 mb-0 d-none" style="font-size:.75rem;">
+              <i class="bi bi-exclamation-triangle me-1"></i> Esta URL permite download do VMDK. Use apenas para validação. Não faça download de discos de produção sem aprovação.
+            </p>
+          </div>
+        </div>
+
+        <hr style="border-color:var(--zh-border);">
+
+        {# Linha 2 — Métricas #}
+        <h6 class="text-muted-zh text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.8px;">
+          <i class="bi bi-bar-chart me-1"></i>Métricas
+        </h6>
+        <div class="row g-2 mb-3">
+          <div class="col-sm-4">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Tamanho</span>
+              <span class="zh-detail-value text-zombie-yellow fw-bold" id="det-size"></span>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Última modificação</span>
+              <span class="zh-detail-value" id="det-modified"></span>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="zh-detail-field">
+              <span class="zh-detail-label">Score de confiança</span>
+              <div id="det-confidence"></div>
+            </div>
+          </div>
+        </div>
+
+        <hr style="border-color:var(--zh-border);">
+
+        {# Linha 3 — Diagnóstico técnico #}
+        <h6 class="text-muted-zh text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.8px;">
+          <i class="bi bi-stethoscope me-1"></i>Diagnóstico Técnico
+          <span class="text-muted-zh fw-normal normal-case ms-1" style="text-transform:none;letter-spacing:0;">— regras que classificaram este VMDK como zombie</span>
+        </h6>
+        <ul class="list-unstyled mb-3" id="det-rules" style="padding-left:4px;"></ul>
+
+        {# Razão de falso positivo (se aplicável) #}
+        <div id="det-fp-block" class="mb-0">
+          <div class="zh-detail-field">
+            <span class="zh-detail-label">Motivo do Falso Positivo</span>
+            <span class="zh-detail-value text-muted-zh" id="det-false-pos"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="border-color:var(--zh-border);">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+        {# Botão de aprovação abre o modal de aprovação com os dados já preenchidos #}
+        <button
+          type="button"
+          id="det-btn-approval"
+          class="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
+        >
+          <i class="bi bi-shield-plus"></i>
+          Solicitar Aprovação
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   MODAL 2 — SOLICITAR APROVAÇÃO (individual)
+   POST /api/v1/approvals com vmdk_path, vcenter_id, action, justificativa
+════════════════════════════════════════════════════════════════════════════ #}
+<div
+  class="modal fade"
+  id="zh-modal-approval"
+  tabindex="-1"
+  aria-labelledby="apv-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+
+      <div class="modal-header" style="border-color:var(--zh-border);">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="apv-modal-label">
+          <i class="bi bi-shield-plus text-zombie-red"></i>
+          Solicitar Aprovação de Ação
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+
+        {# Preview do VMDK alvo — somente leitura #}
+        <div class="zh-card p-3 mb-4" style="background-color:var(--zh-bg-sidebar);">
+          <div class="d-flex align-items-start gap-2 mb-2">
+            <i class="bi bi-file-earmark-code text-muted-zh mt-1 flex-shrink-0"></i>
+            <div class="overflow-hidden">
+              <div class="text-muted-zh" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">VMDK alvo</div>
+              <code
+                id="apv-vmdk-path"
+                class="d-block text-truncate"
+                style="font-size:.78rem;color:#e6edf3;"
+              ></code>
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-4">
+              <div class="text-muted-zh" style="font-size:.7rem;">vCenter</div>
+              <div style="font-size:.82rem;" id="apv-vcenter"></div>
+            </div>
+            <div class="col-4">
+              <div class="text-muted-zh" style="font-size:.7rem;">Tamanho</div>
+              <div class="text-zombie-yellow fw-semibold" style="font-size:.82rem;" id="apv-size"></div>
+            </div>
+            <div class="col-4">
+              <div class="text-muted-zh" style="font-size:.7rem;">Tipo</div>
+              <div id="apv-type-badge"></div>
+            </div>
+          </div>
+        </div>
+
+        {# Campos ocultos — preenchidos via JS #}
+        <input type="hidden" id="apv-field-path" />
+        <input type="hidden" id="apv-field-vcenter" />
+
+        {# Formulário de aprovação #}
+        <div class="mb-3">
+          <label for="apv-acao" class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+            <i class="bi bi-lightning-fill text-zombie-red me-1"></i>
+            Ação desejada <span class="text-zombie-red">*</span>
+          </label>
+          <select id="apv-acao" class="form-select form-select-sm zh-dark-select">
+            <option value="QUARANTINE">🟡 QUARANTINE — Mover para pasta de quarentena (reversível)</option>
+            <option value="DELETE">🔴 DELETE — Remover permanentemente (IRREVERSÍVEL)</option>
+          </select>
+          <div class="form-text text-muted-zh">
+            <i class="bi bi-info-circle me-1"></i>
+            A ação só será executada após dry-run e confirmação explícita.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="apv-analista" class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+            <i class="bi bi-person-fill me-1"></i>
+            Nome do analista <span class="text-zombie-red">*</span>
+          </label>
+          <input
+            type="text"
+            id="apv-analista"
+            class="form-control form-control-sm zh-dark-input"
+            placeholder="ex.: joao.silva"
+            autocomplete="username"
+          />
+          <div class="invalid-feedback">Nome do analista é obrigatório.</div>
+        </div>
+
+        <div class="mb-3">
+          <label for="apv-justificativa" class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+            <i class="bi bi-chat-text-fill me-1"></i>
+            Justificativa técnica <span class="text-zombie-red">*</span>
+          </label>
+          <textarea
+            id="apv-justificativa"
+            class="form-control zh-dark-input"
+            rows="4"
+            placeholder="Descreva em detalhes o motivo desta ação (mínimo 20 caracteres)…&#10;Ex.: VMDK orphaned confirmado — sem VM referenciada há 90+ dias, validado com o líder técnico João em 25/02/2026."
+            style="font-size:.84rem;resize:vertical;"
+          ></textarea>
+          <div class="d-flex justify-content-between mt-1">
+            <div class="invalid-feedback d-block text-zombie-red" id="apv-just-feedback" style="display:none!important;font-size:.75rem;">
+              Justificativa obrigatória (mínimo 20 caracteres).
+            </div>
+            <div class="text-muted-zh ms-auto" style="font-size:.72rem;" id="apv-char-count">0 / 20 mín.</div>
+          </div>
+        </div>
+
+        {# Aviso lembrete do fluxo — contexto de segurança para o analista #}
+        <div class="alert d-flex gap-2 py-2 mb-3"
+          style="background-color:rgba(210,153,34,.1);border-color:rgba(210,153,34,.3);font-size:.8rem;">
+          <i class="bi bi-info-circle-fill text-zombie-yellow flex-shrink-0 mt-1"></i>
+          <div>
+            <strong>Próximos passos obrigatórios:</strong>
+            <ol class="mb-0 ps-3 mt-1">
+              <li>Receba o <code>approval_token</code> abaixo</li>
+              <li>Execute o <strong>dry-run</strong>: <code>GET /api/v1/approvals/{token}/dryrun</code></li>
+              <li>Confirme a execução: <code>POST /api/v1/approvals/{token}/execute</code></li>
+            </ol>
+          </div>
+        </div>
+
+        {# Feedback de erro e sucesso #}
+        <div id="apv-error" class="alert alert-danger d-none py-2" style="font-size:.82rem;" role="alert"></div>
+        <div id="apv-success" class="alert d-none py-2"
+          style="background-color:rgba(63,185,80,.1);border-color:rgba(63,185,80,.3);font-size:.82rem;" role="status">
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="border-color:var(--zh-border);">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button
+          id="apv-btn-submit"
+          type="button"
+          class="btn btn-sm btn-danger d-flex align-items-center gap-2"
+        >
+          <i class="bi bi-shield-plus"></i>
+          Confirmar Solicitação
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   MODAL 3 — APROVAÇÃO EM LOTE
+   Aplica a mesma justificativa e ação a todos os VMDKs selecionados.
+════════════════════════════════════════════════════════════════════════════ #}
+<div
+  class="modal fade"
+  id="zh-modal-batch"
+  tabindex="-1"
+  aria-labelledby="batch-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+
+      <div class="modal-header" style="border-color:var(--zh-border);">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="batch-modal-label">
+          <i class="bi bi-shield-plus text-zombie-red"></i>
+          Aprovação em Lote
+          <span class="badge text-bg-danger ms-1" id="batch-count-text">0</span>
+          VMDKs
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+
+        {# Aviso: tokens individuais serão gerados para cada VMDK #}
+        <div class="alert d-flex gap-2 py-2 mb-3"
+          style="background-color:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3);font-size:.8rem;">
+          <i class="bi bi-exclamation-triangle-fill text-zombie-red flex-shrink-0 mt-1"></i>
+          <div>
+            Um <strong>ApprovalToken individual</strong> será gerado para cada VMDK selecionado.
+            Tokens conflitantes (VMDK já com token ativo) serão pulados.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="batch-acao" class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+            <i class="bi bi-lightning-fill text-zombie-red me-1"></i>
+            Ação para todos os selecionados <span class="text-zombie-red">*</span>
+          </label>
+          <select id="batch-acao" class="form-select form-select-sm zh-dark-select">
+            <option value="QUARANTINE">🟡 QUARANTINE — Mover para quarentena</option>
+            <option value="DELETE">🔴 DELETE — Remover permanentemente</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="batch-analista" class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+            <i class="bi bi-person-fill me-1"></i>
+            Nome do analista <span class="text-zombie-red">*</span>
+          </label>
+          <input
+            type="text"
+            id="batch-analista"
+            class="form-control form-control-sm zh-dark-input"
+            placeholder="ex.: joao.silva"
+          />
+          <div class="invalid-feedback">Nome do analista é obrigatório.</div>
+        </div>
+
+        <div class="mb-3">
+          <label for="batch-justificativa" class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+            <i class="bi bi-chat-text-fill me-1"></i>
+            Justificativa (aplicada a todos) <span class="text-zombie-red">*</span>
+          </label>
+          <textarea
+            id="batch-justificativa"
+            class="form-control zh-dark-input"
+            rows="3"
+            placeholder="Justificativa aplicada a todos os VMDKs selecionados (mín. 20 caracteres)…"
+            style="font-size:.84rem;resize:vertical;"
+          ></textarea>
+          <div class="invalid-feedback">Justificativa obrigatória (mínimo 20 caracteres).</div>
+        </div>
+
+        {# Barra de progresso do envio em lote #}
+        <div id="batch-progress-wrap" class="d-none mb-2">
+          <div class="d-flex justify-content-between mb-1" style="font-size:.78rem;">
+            <span class="text-muted-zh">Enviando solicitações…</span>
+          </div>
+          <div class="progress" style="height:8px;background:#30363d;border-radius:4px;">
+            <div
+              id="batch-progress-bar"
+              class="progress-bar bg-danger"
+              role="progressbar"
+              style="width:0%;border-radius:4px;transition:width .3s ease;"
+            >0%</div>
+          </div>
+        </div>
+
+        <div id="batch-error" class="alert alert-danger d-none py-2" style="font-size:.82rem;" role="alert"></div>
+
+      </div>
+
+      <div class="modal-footer" style="border-color:var(--zh-border);">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button
+          id="batch-btn-submit"
+          type="button"
+          class="btn btn-sm btn-danger d-flex align-items-center gap-2"
+        >
+          <i class="bi bi-shield-plus"></i>
+          Confirmar para Todos
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}{# fim block content #}
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   SCRIPTS
+════════════════════════════════════════════════════════════════════════════ #}
+{% block scripts %}
+<style>
+  /* ── Campos de formulário no tema escuro ──────────────────────────────── */
+  .zh-dark-select,
+  .zh-dark-input {
+    background-color: var(--zh-bg-sidebar) !important;
+    border-color: var(--zh-border) !important;
+    color: #e6edf3 !important;
+  }
+  .zh-dark-select:focus,
+  .zh-dark-input:focus {
+    border-color: var(--zh-accent-blue) !important;
+    box-shadow: 0 0 0 2px rgba(88,166,255,.2) !important;
+  }
+  .zh-dark-input-addon {
+    background-color: var(--zh-bg-sidebar) !important;
+    border-color: var(--zh-border) !important;
+    color: var(--zh-text-muted) !important;
+  }
+
+  /* ── Células de campo de detalhe no modal ─────────────────────────────── */
+  .zh-detail-field {
+    background-color: var(--zh-bg-sidebar);
+    border: 1px solid var(--zh-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    height: 100%;
+  }
+  .zh-detail-label {
+    display: block;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--zh-text-muted);
+    margin-bottom: 3px;
+  }
+  .zh-detail-value {
+    display: block;
+    font-size: .83rem;
+    color: #e6edf3;
+    word-break: break-all;
+  }
+
+  /* ── DataTables no tema escuro ─────────────────────────────────────────── */
+  .dataTables_wrapper {
+    padding: 14px 16px;
+  }
+  .dataTables_wrapper .dataTables_processing {
+    background: var(--zh-bg-card);
+    color: var(--zh-text-muted);
+    border: 1px solid var(--zh-border);
+    border-radius: 6px;
+    top: 50%;
+  }
+  .dataTables_wrapper .dataTables_length select,
+  .dataTables_wrapper .dataTables_filter input {
+    background-color: var(--zh-bg-sidebar) !important;
+    border-color: var(--zh-border) !important;
+    color: #e6edf3 !important;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: .82rem;
+  }
+  .dataTables_wrapper .dataTables_info {
+    font-size: .78rem;
+    color: var(--zh-text-muted);
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    font-size: .8rem !important;
+    border-radius: 6px !important;
+    color: var(--zh-text-muted) !important;
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button:not(.disabled):hover {
+    background: rgba(88,166,255,.15) !important;
+    color: var(--zh-accent-blue) !important;
+    border-color: transparent !important;
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: rgba(88,166,255,.2) !important;
+    color: var(--zh-accent-blue) !important;
+    border-color: transparent !important;
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+    opacity: .35;
+  }
+
+  /* Barra de score de confiança */
+  .score-bar { position: relative; height: 20px; background: var(--zh-bg-sidebar); border-radius: 4px; min-width: 50px; overflow: hidden; }
+  .score-bar .score-fill { height: 100%; border-radius: 4px; transition: width .2s ease; }
+  .score-bar .score-label { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 600; color: #e6edf3; text-shadow: 0 0 2px #000; pointer-events: none; }
+
+  /* Linha da tabela hover */
+  #zh-table-results tbody tr:hover td {
+    background-color: rgba(88,166,255,.04);
+  }
+  /* Linha selecionada */
+  #zh-table-results tbody tr.selected-row td {
+    background-color: rgba(248,81,73,.06);
+  }
+
+  /* Contador de caracteres da justificativa */
+  #apv-justificativa ~ * #apv-char-count { transition: color .2s; }
+</style>
+
+{# Injeta job_id como variável global para o script (Jinja2 → JS) #}
+<script>
+  window.ZH_JOB_ID = {{ ('"' ~ job_id ~ '"') | safe if job_id else 'null' }};
+</script>
+
+{# Script principal da página #}
+<script src="/static/js/scan_results.js?v={{ api_version }}"></script>
+
+{# Script inline — contador de caracteres e pequenos comportamentos de UX #}
+<script>
+  "use strict";
+
+  // ── Contador de caracteres na justificativa ────────────────────────────
+  const justEl  = document.getElementById("apv-justificativa");
+  const countEl = document.getElementById("apv-char-count");
+  const MIN_CHARS = 20;
+
+  justEl?.addEventListener("input", () => {
+    const len = justEl.value.trim().length;
+    if (countEl) {
+      countEl.textContent = `${len} / ${MIN_CHARS} mín.`;
+      countEl.style.color = len >= MIN_CHARS ? "var(--zh-accent-green)" : "var(--zh-text-muted)";
+    }
+    // Remove indicador de erro em tempo real
+    if (len >= MIN_CHARS) justEl.classList.remove("is-invalid");
+  });
+
+  // ── Destaque visual de linha ao marcar checkbox ───────────────────────
+  // O DataTables perde os event listeners após redraw — delegamos ao tbody
+  document.querySelector("#zh-table-results tbody")
+    ?.addEventListener("change", (e) => {
+      if (!e.target.classList.contains("zh-row-check")) return;
+      e.target.closest("tr")?.classList.toggle("selected-row", e.target.checked);
+    });
+</script>
+{% endblock %}

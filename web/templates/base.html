@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="dark">
+{#
+base.html — Template base do ZombieHunter
+==========================================
+Todas as páginas do sistema herdam este template via Jinja2.
+
+Blocks disponíveis para as páginas filhas:
+block title — Título da aba do navegador (após " | ZombieHunter")
+block content — Conteúdo principal da página
+block scripts — Scripts JS adicionais no final do
+
+<body>
+
+  Variáveis de contexto esperadas (injetadas pelo backend):
+  readonly_mode bool — True quando READONLY_MODE=true no .env
+  vcenter_status list — [{ "name": str, "connected": bool }, ...]
+  last_scan_at str — Timestamp da última varredura concluída (ou None)
+  api_version str — Versão da API (ex.: "1.0.0")
+  pending_approvals int — Quantidade de tokens pendentes de execução
+  #}
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ZombieHunter — Gerenciador de VMDKs Orphaned em vCenter" />
+
+    <!-- ── Título da página ─────────────────────────────────────────────── -->
+    <title>{% block title %}Dashboard{% endblock %} | ZombieHunter</title>
+
+    <!-- ── Bootstrap 5.3 (dark theme nativo) ───────────────────────────── -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      crossorigin="anonymous" />
+
+    <!-- ── Bootstrap Icons 1.11 ─────────────────────────────────────────── -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <!-- ── DataTables 2.x — Bootstrap 5 integration ────────────────────── -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css" />
+
+    <!-- ── Estilos customizados do ZombieHunter ─────────────────────────── -->
+    <style>
+      /* ── Paleta base ──────────────────────────────────────────────────── */
+      :root {
+        --zh-sidebar-width: 240px;
+        --zh-navbar-height: 56px;
+        --zh-bg-sidebar: #0d1117;
+        --zh-bg-body: #161b22;
+        --zh-bg-card: #1c2128;
+        --zh-border: #30363d;
+        --zh-text-muted: #8b949e;
+        --zh-accent-red: #f85149;
+        --zh-accent-green: #3fb950;
+        --zh-accent-yellow: #d29922;
+        --zh-accent-blue: #58a6ff;
+        --zh-accent-purple: #bc8cff;
+      }
+
+      /* ── Reset de fundo ───────────────────────────────────────────────── */
+      html,
+      body {
+        background-color: var(--zh-bg-body);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ── Navbar ───────────────────────────────────────────────────────── */
+      .zh-navbar {
+        height: var(--zh-navbar-height);
+        background-color: var(--zh-bg-sidebar);
+        border-bottom: 1px solid var(--zh-border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1040;
+      }
+
+      /* Logo com efeito de brilho sutil */
+      .zh-logo-text {
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        color: var(--zh-accent-blue);
+      }
+
+      .zh-logo-icon {
+        font-size: 1.3rem;
+        color: var(--zh-accent-red);
+        filter: drop-shadow(0 0 6px rgba(248, 81, 73, 0.5));
+      }
+
+      /* Badge READ-ONLY — sempre visível, nunca esconder */
+      .zh-readonly-badge {
+        background-color: rgba(248, 81, 73, 0.15);
+        color: var(--zh-accent-red);
+        border: 1px solid rgba(248, 81, 73, 0.4);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        animation: zh-pulse-red 2.5s ease-in-out infinite;
+        white-space: nowrap;
+      }
+
+      @keyframes zh-pulse-red {
+
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(248, 81, 73, 0);
+        }
+
+        50% {
+          box-shadow: 0 0 0 4px rgba(248, 81, 73, 0.2);
+        }
+      }
+
+      /* Status dot de conectividade */
+      .zh-vcenter-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      .zh-vcenter-dot.connected {
+        background-color: var(--zh-accent-green);
+        box-shadow: 0 0 6px rgba(63, 185, 80, 0.6);
+      }
+
+      .zh-vcenter-dot.disconnected {
+        background-color: var(--zh-accent-red);
+        box-shadow: 0 0 6px rgba(248, 81, 73, 0.5);
+      }
+
+      /* ── Sidebar ──────────────────────────────────────────────────────── */
+      .zh-sidebar {
+        width: var(--zh-sidebar-width);
+        background-color: var(--zh-bg-sidebar);
+        border-right: 1px solid var(--zh-border);
+        position: fixed;
+        top: var(--zh-navbar-height);
+        bottom: 0;
+        left: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 1030;
+        /* Scrollbar customizada */
+        scrollbar-width: thin;
+        scrollbar-color: var(--zh-border) transparent;
+      }
+
+      .zh-sidebar::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .zh-sidebar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .zh-sidebar::-webkit-scrollbar-thumb {
+        background: var(--zh-border);
+        border-radius: 2px;
+      }
+
+      /* Seção de título na sidebar */
+      .zh-sidebar-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--zh-text-muted);
+        padding: 16px 16px 4px;
+      }
+
+      /* Links de navegação */
+      .zh-nav-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 16px;
+        border-radius: 8px;
+        margin: 1px 8px;
+        color: #c9d1d9;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 400;
+        transition: background-color 0.15s ease, color 0.15s ease;
+        position: relative;
+      }
+
+      .zh-nav-link:hover {
+        background-color: rgba(88, 166, 255, 0.08);
+        color: #e6edf3;
+      }
+
+      .zh-nav-link.active {
+        background-color: rgba(88, 166, 255, 0.15);
+        color: var(--zh-accent-blue);
+        font-weight: 500;
+      }
+
+      /* Linha indicadora da página ativa */
+      .zh-nav-link.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 20%;
+        bottom: 20%;
+        width: 3px;
+        background-color: var(--zh-accent-blue);
+        border-radius: 0 2px 2px 0;
+        margin-left: -8px;
+      }
+
+      .zh-nav-link i {
+        font-size: 1rem;
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      /* Badge contador de aprovações pendentes */
+      .zh-nav-badge {
+        margin-left: auto;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 10px;
+        min-width: 20px;
+        text-align: center;
+        background-color: var(--zh-accent-red);
+        color: #fff;
+      }
+
+      .zh-nav-badge.zero {
+        background-color: var(--zh-border);
+        color: var(--zh-text-muted);
+      }
+
+      /* ── Área de conteúdo principal ───────────────────────────────────── */
+      .zh-main {
+        margin-left: var(--zh-sidebar-width);
+        margin-top: var(--zh-navbar-height);
+        min-height: calc(100vh - var(--zh-navbar-height) - 48px);
+        /* 48px = footer */
+        padding: 24px 28px;
+      }
+
+      /* ── Footer ───────────────────────────────────────────────────────── */
+      .zh-footer {
+        margin-left: var(--zh-sidebar-width);
+        background-color: var(--zh-bg-sidebar);
+        border-top: 1px solid var(--zh-border);
+        padding: 10px 28px;
+        height: 48px;
+        font-size: 0.72rem;
+        color: var(--zh-text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      /* Aviso de segurança no footer */
+      .zh-footer-security {
+        color: var(--zh-accent-yellow);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+      }
+
+      /* ── Cards de conteúdo ────────────────────────────────────────────── */
+      .zh-card {
+        background-color: var(--zh-bg-card);
+        border: 1px solid var(--zh-border);
+        border-radius: 10px;
+      }
+
+      .zh-card .card-header {
+        background-color: transparent;
+        border-bottom: 1px solid var(--zh-border);
+        padding: 14px 18px;
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+
+      /* ── Utilitários ──────────────────────────────────────────────────── */
+      .text-zombie-red {
+        color: var(--zh-accent-red);
+      }
+
+      .text-zombie-green {
+        color: var(--zh-accent-green);
+      }
+
+      .text-zombie-yellow {
+        color: var(--zh-accent-yellow);
+      }
+
+      .text-zombie-blue {
+        color: var(--zh-accent-blue);
+      }
+
+      .text-zombie-purple {
+        color: var(--zh-accent-purple);
+      }
+
+      .text-muted-zh {
+        color: var(--zh-text-muted) !important;
+      }
+
+      /* Separador horizontal na sidebar */
+      .zh-sidebar-divider {
+        border-color: var(--zh-border);
+        margin: 8px 16px;
+        opacity: 1;
+      }
+
+      /* ── Responsividade — oculta sidebar em mobile ────────────────────── */
+      @media (max-width: 768px) {
+        .zh-sidebar {
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+        }
+
+        .zh-sidebar.open {
+          transform: translateX(0);
+        }
+
+        .zh-main,
+        .zh-footer {
+          margin-left: 0;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+       NAVBAR SUPERIOR
+       - Logo + nome à esquerda
+       - Badge READ-ONLY sempre visível à direita
+       - Status de conectividade dos vCenters
+  ═══════════════════════════════════════════════════════════════════ -->
+    <nav class="zh-navbar d-flex align-items-center px-3 gap-3">
+
+      <!-- ── Botão hambúrguer (apenas mobile) ─────────────────────────── -->
+      <button class="btn btn-sm btn-outline-secondary d-md-none border-0 p-1" id="zh-sidebar-toggle"
+        aria-label="Abrir menu" title="Menu">
+        <i class="bi bi-list fs-5"></i>
+      </button>
+
+      <!-- ── Logo e nome do sistema ───────────────────────────────────── -->
+      <a href="/" class="d-flex align-items-center gap-2 text-decoration-none flex-shrink-0">
+        <!-- Ícone de caveira simbolizando VMDKs "mortos" -->
+        <i class="bi bi-bug-fill zh-logo-icon" aria-hidden="true"></i>
+        <span class="zh-logo-text">ZombieHunter</span>
+      </a>
+
+      <!-- ── Separador flexível ────────────────────────────────────────── -->
+      <div class="flex-grow-1"></div>
+
+      <!-- ── Status de conectividade dos vCenters ─────────────────────── -->
+      <!-- Exibido como dropdown com cada vCenter e seu estado de conexão -->
+      <div class="dropdown d-none d-sm-block">
+        <button class="btn btn-sm btn-link text-decoration-none text-secondary d-flex align-items-center gap-2 p-1"
+          data-bs-toggle="dropdown" aria-expanded="false" title="Status dos vCenters">
+          <!-- Dot global: verde se todos conectados, vermelho se algum offline -->
+          <span
+            class="zh-vcenter-dot {% if vcenter_status and vcenter_status | selectattr('connected', 'equalto', false) | list %}disconnected{% else %}connected{% endif %}"
+            id="zh-global-dot"></span>
+          <span class="small">
+            vCenters
+            <!-- Contador: X/total conectados -->
+            <span class="text-muted-zh" id="zh-vcenter-count">
+              ({{ (vcenter_status | selectattr('connected') | list | length) if vcenter_status else 0 }}/{{
+              (vcenter_status | length) if vcenter_status else 0 }})
+            </span>
+          </span>
+          <i class="bi bi-chevron-down" style="font-size: .65rem;"></i>
+        </button>
+
+        <!-- Lista de cada vCenter com seu status individual -->
+        <ul class="dropdown-menu dropdown-menu-end shadow"
+          style="min-width: 220px; background-color: var(--zh-bg-card); border-color: var(--zh-border);">
+          <li>
+            <span class="dropdown-item-text text-muted-zh"
+              style="font-size: .7rem; padding: 6px 14px; text-transform: uppercase; letter-spacing: .8px;">
+              Conectividade
+            </span>
+          </li>
+          {% if vcenter_status %}
+          {% for vc in vcenter_status %}
+          <li>
+            <span class="dropdown-item d-flex align-items-center gap-2" style="font-size: .825rem; cursor: default;">
+              <span class="zh-vcenter-dot {{ 'connected' if vc.connected else 'disconnected' }}"></span>
+              <span>{{ vc.name }}</span>
+              <span class="ms-auto text-muted-zh" style="font-size: .7rem;">
+                {{ 'OK' if vc.connected else 'OFFLINE' }}
+              </span>
+            </span>
+          </li>
+          {% endfor %}
+          {% else %}
+          <!-- Fallback quando nenhum vCenter está cadastrado -->
+          <li>
+            <span class="dropdown-item-text text-muted-zh" style="font-size: .8rem; padding: 8px 14px;">
+              <i class="bi bi-info-circle me-1"></i>Nenhum vCenter cadastrado
+            </span>
+          </li>
+          {% endif %}
+          <li>
+            <hr class="dropdown-divider" style="border-color: var(--zh-border);">
+          </li>
+          <li>
+            <a class="dropdown-item" href="/vcenters" style="font-size: .8rem;">
+              <i class="bi bi-gear me-2"></i>Gerenciar vCenters
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- ── Badge READ-ONLY MODE — NUNCA OCULTAR ─────────────────────── -->
+      <!--
+      Este badge é a principal salvaguarda visual do sistema.
+      Independente de qualquer estado, ele SEMPRE deve estar visível.
+      Quando READONLY_MODE=true (padrão), exibe em vermelho pulsante.
+      Quando READONLY_MODE=false, exibe aviso em laranja.
+    -->
+      <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        {% if readonly_mode %}
+        <!-- Modo padrão seguro: operações destrutivas bloqueadas -->
+        <span class="zh-readonly-badge"
+          title="READONLY_MODE=true no .env — nenhuma operação destrutiva pode ser executada">
+          <i class="bi bi-lock-fill me-1" aria-hidden="true"></i>READ-ONLY MODE
+        </span>
+        {% else %}
+        <!-- Modo escrita habilitado — aviso especial de atenção -->
+        <span class="zh-readonly-badge"
+          style="background-color: rgba(210,153,34,0.15); color: #d29922; border-color: rgba(210,153,34,0.4); animation: none;"
+          title="READONLY_MODE=false — ações destrutivas HABILITADAS com ApprovalToken">
+          <i class="bi bi-unlock-fill me-1" aria-hidden="true"></i>WRITE ENABLED
+        </span>
+        {% endif %}
+      </div>
+
+    </nav><!-- fim .zh-navbar -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+       SIDEBAR ESQUERDA
+       Links de navegação principal com ícones e badge de aprovações
+  ═══════════════════════════════════════════════════════════════════ -->
+    <aside class="zh-sidebar" id="zh-sidebar" aria-label="Navegação principal">
+
+      <!-- ── Seção: Operações ──────────────────────────────────────────── -->
+      <p class="zh-sidebar-label">Operações</p>
+
+      <!-- Dashboard — visão geral de métricas históricas -->
+      <a href="/" class="zh-nav-link {% if request.url.path == '/' %}active{% endif %}" title="Dashboard">
+        <i class="bi bi-grid-1x2-fill"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <!-- Resultados da Varredura — lista paginada de VMDKs zombie detectados -->
+      <a href="/scan/results" class="zh-nav-link {% if '/scan' in request.url.path %}active{% endif %}"
+        title="Resultados da Varredura">
+        <i class="bi bi-search"></i>
+        <span>Varredura</span>
+      </a>
+
+      <!-- Aprovações Pendentes — badge em vermelho com quantidade -->
+      <a href="/approvals" class="zh-nav-link {% if '/approvals' in request.url.path %}active{% endif %}"
+        title="Aprovações Pendentes">
+        <i class="bi bi-shield-check"></i>
+        <span>Aprovações</span>
+        <!-- Badge: mostra 0 quando não há pendências (cor neutra) -->
+        <span class="zh-nav-badge {{ 'zero' if (pending_approvals or 0) == 0 }}" id="zh-pending-badge">
+          {{ pending_approvals or 0 }}
+        </span>
+      </a>
+
+      <hr class="zh-sidebar-divider" />
+
+      <!-- ── Seção: Infraestrutura ─────────────────────────────────────── -->
+      <p class="zh-sidebar-label">Infraestrutura</p>
+
+      <!-- vCenters — cadastro e gestão de conexões -->
+      <a href="/vcenters" class="zh-nav-link {% if '/vcenters' in request.url.path %}active{% endif %}"
+        title="Gerenciar vCenters">
+        <i class="bi bi-hdd-network-fill"></i>
+        <span>vCenters</span>
+      </a>
+
+      <!-- Agendamentos — configuração de varreduras automáticas via cron -->
+      <a href="/schedules" class="zh-nav-link {% if '/schedules' in request.url.path %}active{% endif %}"
+        title="Agendamentos de Varredura">
+        <i class="bi bi-calendar-check-fill"></i>
+        <span>Agendamentos</span>
+      </a>
+
+      <!-- Webhooks — alertas para Teams, Slack e HTTP genérico -->
+      <a href="/webhooks" class="zh-nav-link {% if '/webhooks' in request.url.path %}active{% endif %}"
+        title="Webhooks de Alerta">
+        <i class="bi bi-bell-fill"></i>
+        <span>Webhooks</span>
+      </a>
+
+      <hr class="zh-sidebar-divider" />
+
+      <!-- ── Seção: Auditoria ──────────────────────────────────────────── -->
+      <p class="zh-sidebar-label">Auditoria</p>
+
+      <!-- Audit Log — histórico imutável de todas as operações e tentativas -->
+      <a href="/audit-log" class="zh-nav-link {% if '/audit-log' in request.url.path %}active{% endif %}"
+        title="Log de Auditoria">
+        <i class="bi bi-journal-text"></i>
+        <span>Audit Log</span>
+      </a>
+
+      <!-- Whitelist — VMDKs marcados como seguros e excluídos de varreduras -->
+      <a href="/whitelist" class="zh-nav-link {% if '/whitelist' in request.url.path %}active{% endif %}"
+        title="Whitelist de VMDKs">
+        <i class="bi bi-shield-fill-check"></i>
+        <span>Whitelist</span>
+      </a>
+
+      <hr class="zh-sidebar-divider" />
+
+      <!-- ── Seção: Sistema ────────────────────────────────────────────── -->
+      <p class="zh-sidebar-label">Sistema</p>
+
+      <!-- Configurações — parâmetros gerais do ZombieHunter -->
+      <a href="/settings" class="zh-nav-link {% if '/settings' in request.url.path %}active{% endif %}"
+        title="Configurações do Sistema">
+        <i class="bi bi-gear-fill"></i>
+        <span>Configurações</span>
+      </a>
+
+      <!-- Health check — status da API, banco e conexões vCenter -->
+      <a href="/health" class="zh-nav-link {% if '/health' in request.url.path %}active{% endif %}" title="Health Check"
+        target="_blank" rel="noopener">
+        <i class="bi bi-activity"></i>
+        <span>Health</span>
+        <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: .65rem; opacity: .5;"></i>
+      </a>
+
+      <!-- Espaço inferior para não cortar o último item -->
+      <div style="height: 20px;"></div>
+
+    </aside><!-- fim .zh-sidebar -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+       CONTEÚDO PRINCIPAL — bloco "content" preenchido pelas páginas filhas
+  ═══════════════════════════════════════════════════════════════════ -->
+    <main class="zh-main" id="zh-main-content">
+
+      <!-- ── Breadcrumb dinâmico (opcional por página) ─────────────────── -->
+      {% block breadcrumb %}{% endblock %}
+
+      <!-- ── Alertas globais de sessão (injetados via contexto Jinja2) ── -->
+      {% if flash_messages %}
+      <div class="mb-3" role="alert" aria-live="polite">
+        {% for category, message in flash_messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-start gap-2 mb-2"
+          role="alert">
+          <i
+            class="bi bi-{{ 'exclamation-triangle-fill' if category == 'warning' else 'check-circle-fill' if category == 'success' else 'x-circle-fill' if category == 'danger' else 'info-circle-fill' }} mt-1 flex-shrink-0"></i>
+          <span>{{ message }}</span>
+          <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- ── Conteúdo injetado pelas páginas filhas ─────────────────────── -->
+      {% block content %}
+      <!-- Fallback: página filha não definiu content -->
+      <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 50vh;">
+        <i class="bi bi-bug-fill text-zombie-red mb-3" style="font-size: 3rem;"></i>
+        <h5 class="text-muted-zh">Nenhum conteúdo definido para esta página.</h5>
+        <a href="/" class="btn btn-sm btn-outline-secondary mt-3">
+          <i class="bi bi-house me-1"></i>Voltar ao Dashboard
+        </a>
+      </div>
+      {% endblock %}
+
+    </main><!-- fim .zh-main -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+       FOOTER
+       - Última varredura (timestamp dinâmico)
+       - Versão da API
+       - Aviso de segurança obrigatório
+  ═══════════════════════════════════════════════════════════════════ -->
+    <footer class="zh-footer" role="contentinfo">
+
+      <!-- Coluna esquerda: metadata do sistema -->
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+
+        <!-- Timestamp da última varredura concluída -->
+        <span class="d-flex align-items-center gap-1">
+          <i class="bi bi-clock-history" aria-hidden="true"></i>
+          <span>Última varredura:</span>
+          <span id="zh-last-scan-time">
+            {% if last_scan_at %}
+            <time datetime="{{ last_scan_at }}" title="{{ last_scan_at }}" class="text-zombie-blue">{{ last_scan_at
+              }}</time>
+            {% else %}
+            <em class="text-muted-zh">Nenhuma varredura concluída</em>
+            {% endif %}
+          </span>
+        </span>
+
+        <!-- Separador visual -->
+        <span class="text-muted-zh d-none d-md-inline" aria-hidden="true">·</span>
+
+        <!-- Versão da API -->
+        <span class="d-none d-md-flex align-items-center gap-1">
+          <i class="bi bi-cpu" aria-hidden="true"></i>
+          <span>API</span>
+          <span class="text-zombie-blue">v{{ api_version or '—' }}</span>
+        </span>
+
+      </div>
+
+      <!-- Coluna direita: aviso de segurança — sempre visível -->
+      <!--
+      ATENÇÃO: Este aviso não deve ser removido. Reforça ao usuário que
+      o sistema é estritamente READ-ONLY por padrão e que toda ação
+      destrutiva exige aprovação explícita de um analista humano.
+    -->
+      <div class="zh-footer-security" role="note" aria-label="Aviso de segurança">
+        <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+        <span>Nenhuma ação é executada sem aprovação do analista</span>
+      </div>
+
+    </footer><!-- fim .zh-footer -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+       SCRIPTS — carregados no final do body para performance
+  ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ── Configuração global da API: autenticação automática ──────────
+       Injeta a API Key do servidor e sobrescreve window.fetch para que
+       TODOS os requests para /api/* incluam X-API-Key automaticamente.
+       Isso evita 401 em todos os arquivos JS sem precisar alterá-los.
+  ─────────────────────────────────────────────────────────────────── -->
+    <script>
+      "use strict";
+
+      // API Key injetada pelo servidor (Jinja2)
+      // Se a variável não existir no contexto, usa string vazia (sem auth)
+      window.ZH_API_KEY = "{{ api_key | default('') | e }}";
+
+      // Também injeta no $.ajax do jQuery (usado pelo DataTables)
+      (function () {
+        document.addEventListener("DOMContentLoaded", function () {
+          if (window.$ && window.ZH_API_KEY) {
+            $.ajaxSetup({
+              beforeSend: function (xhr, settings) {
+                if (settings.url && settings.url.startsWith("/api")) {
+                  xhr.setRequestHeader("X-API-Key", window.ZH_API_KEY);
+                }
+              },
+            });
+          }
+        });
+      })();
+    </script>
+
+    <!-- Bootstrap 5.3 Bundle (inclui Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js?v={{ api_version }}"
+      crossorigin="anonymous"></script>
+
+    <!-- Chart.js 4.x — gráficos de tendência e distribuição -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js?v={{ api_version }}"></script>
+
+    <!-- DataTables 2.x core + integração Bootstrap 5 -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js?v={{ api_version }}"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js?v={{ api_version }}"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js?v={{ api_version }}"></script>
+
+    <!-- ── Scripts globais do ZombieHunter ──────────────────────────── -->
+    <script>
+      "use strict";
+
+      // ── Configuração global do Chart.js para tema escuro ─────────────
+      Chart.defaults.color = "#8b949e";
+      Chart.defaults.borderColor = "#30363d";
+      Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
+
+      // ── Toggle da sidebar em mobile ───────────────────────────────────
+      const sidebarToggle = document.getElementById("zh-sidebar-toggle");
+      const sidebar = document.getElementById("zh-sidebar");
+
+      if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener("click", () => {
+          sidebar.classList.toggle("open");
+        });
+
+        // Fecha ao clicar fora da sidebar em mobile
+        document.addEventListener("click", (e) => {
+          if (
+            window.innerWidth <= 768 &&
+            sidebar.classList.contains("open") &&
+            !sidebar.contains(e.target) &&
+            !sidebarToggle.contains(e.target)
+          ) {
+            sidebar.classList.remove("open");
+          }
+        });
+      }
+
+      // ── Atualização periódica do badge de aprovações pendentes ────────
+      // Consulta a API a cada 60s para refletir novos tokens emitidos
+      async function refreshPendingBadge() {
+        try {
+          const resp = await fetch("/api/v1/approvals?status=pending_dryrun&status=dryrun_done&only_active=true", {
+            headers: {
+              "Accept": "application/json",
+              "X-API-Key": window.ZH_API_KEY || ""
+            }
+          });
+          if (!resp.ok) return;
+          const tokens = await resp.json();
+          const badge = document.getElementById("zh-pending-badge");
+          if (badge) {
+            badge.textContent = tokens.length;
+            badge.classList.toggle("zero", tokens.length === 0);
+          }
+        } catch (_) {
+          // Falha silenciosa — não interrompe a navegação
+        }
+      }
+      // Primeira chamada após 5s (evita conflito com carregamento inicial)
+      setTimeout(refreshPendingBadge, 5000);
+      setInterval(refreshPendingBadge, 60_000);
+
+      // ── Atualização periódica do status dos vCenters ──────────────────
+      // Consulta /health a cada 2 minutos e atualiza o dot global
+      async function refreshVcenterDot() {
+        try {
+          const resp = await fetch("/health", {
+            headers: {
+              "Accept": "application/json",
+              "X-API-Key": window.ZH_API_KEY || ""
+            }
+          });
+          if (!resp.ok) return;
+          const data = await resp.json();
+          const allOk = data.vcenter_pool?.all_connected ?? true;
+          const dot = document.getElementById("zh-global-dot");
+          if (dot) {
+            dot.classList.toggle("connected", allOk);
+            dot.classList.toggle("disconnected", !allOk);
+          }
+        } catch (_) {
+          // Falha silenciosa
+        }
+      }
+      setTimeout(refreshVcenterDot, 10_000);
+      setInterval(refreshVcenterDot, 120_000);
+
+      // ── Helper: formata valor em GB → "X.XX GB" ou "X.XX TB" (>= 1024 GB) ───────────
+      window.zhFormatSizeGB = (gb) => {
+        if (gb == null) return "—";
+        const n = Number(gb);
+        if (n >= 1024) return (n / 1024).toFixed(2) + " TB";
+        return n.toFixed(2) + " GB";
+      };
+      // Formata bytes para GB ou TB (usa zhFormatSizeGB)
+      window.zhFormatGB = (bytes) => {
+        if (bytes == null) return "—";
+        return window.zhFormatSizeGB(bytes / (1024 ** 3));
+      };
+
+      // ── Helper: formata timestamp ISO para locale pt-BR ───────────────
+      window.zhFormatDate = (isoStr) => {
+        if (!isoStr) return "—";
+        try {
+          return new Intl.DateTimeFormat("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+            timeZone: "America/Sao_Paulo",
+          }).format(new Date(isoStr));
+        } catch (_) {
+          return isoStr;
+        }
+      };
+
+      // Aplica formatação em todos os elementos com data-zh-date
+      document.querySelectorAll("[data-zh-date]").forEach((el) => {
+        el.textContent = window.zhFormatDate(el.dataset.zhDate);
+      });
+    </script>
+
+    <!-- ── Block para scripts adicionais das páginas filhas ─────────── -->
+    {% block scripts %}{% endblock %}
+
+  </body>
+
+</html>

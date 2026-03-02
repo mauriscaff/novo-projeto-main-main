@@ -1,0 +1,17 @@
+{'POST'} /api/v1/scans/
+{'GET'} /api/v1/scans/
+{'GET'} /api/v1/scans/{job_id}
+{'GET'} /api/v1/scans/{job_id}/results
+{'GET'} /api/v1/scans/{job_id}/summary
+{'POST'} /api/v1/scan/start
+{'GET'} /api/v1/scan/jobs/{job_id}
+{'POST'} /api/v1/scan/jobs/mark-latest-stuck
+{'POST'} /api/v1/scan/jobs/{job_id}/mark-stuck
+{'GET'} /api/v1/scan/results
+{'GET'} /api/v1/scan/results/{job_id}
+{'GET'} /api/v1/scan/results/{job_id}/export
+{'POST'} /api/v1/scan/results/{job_id}/mark-safe/{vmdk_path_encoded:path}
+{'GET'} /api/v1/scan/whitelist
+{'DELETE'} /api/v1/scan/whitelist/{whitelist_id}
+{'GET'} /scan/results
+{'GET'} /scan/results/{job_id}

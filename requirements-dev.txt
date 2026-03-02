@@ -1,0 +1,16 @@
+# Testes automatizados — ZombieHunter
+# Instalar: pip install -r requirements-dev.txt
+#
+# pytest          — runner e assertions
+# pytest-asyncio  — suporte a testes async (FastAPI, init_db)
+# pytest-cov      — cobertura de código
+# httpx           — cliente HTTP para TestClient (FastAPI)
+#
+# unittest.mock  — stdlib, não precisa instalar
+
+-r requirements.txt
+
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+pytest-cov>=6.0.0
+httpx>=0.28.0

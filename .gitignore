@@ -1,0 +1,50 @@
+# Ambiente e segredos (nunca versionar)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov/
+
+# Debug logs gerados pela aplicação
+debug-*.log
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Cursor / IDE
+.cursor/
+
+# Virtualenv (opcional)
+.venv/
+venv/
+env/
+
+# Banco de dados local
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

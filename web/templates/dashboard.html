@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+{#
+dashboard.html — Página principal do ZombieHunter
+===================================================
+Herda base.html. Todos os dados são carregados via AJAX em dashboard.js
+(GET /api/v1/dashboard), sem SSR de conteúdo crítico — apenas o esqueleto
+HTML é renderizado pelo servidor.
+
+Variáveis Jinja2 usadas deste template (além das do base.html):
+Nenhuma — todos os dados vêm da API via JavaScript.
+#}
+
+{% block title %}Dashboard{% endblock %}
+
+{# ── Estilos específicos do Dashboard ──────────────────────────────────────── #}
+{% block head_extra %}{% endblock %}
+
+{% block content %}
+
+{# ═══════════════════════════════════════════════════════════════════════════
+CABEÇALHO DA PÁGINA
+Título + botão de atualização manual + timestamp de última atualização
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+
+  <div>
+    <h4 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-grid-1x2-fill text-zombie-blue" aria-hidden="true"></i>
+      Dashboard
+    </h4>
+    <small class="text-muted-zh">
+      Visão consolidada de VMDKs zombie detectados em todos os vCenters
+    </small>
+  </div>
+
+  <div class="d-flex align-items-center gap-3">
+    {# Timestamp da última atualização (preenchido pelo JS) #}
+    <span class="text-muted-zh" style="font-size:.8rem;">
+      <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>
+      Atualizado em: <span id="zh-last-updated">—</span>
+    </span>
+
+    {# Botão de atualização manual — desabilitado durante loading #}
+    <button id="zh-btn-refresh" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+      title="Atualizar dados agora" type="button">
+      <i class="bi bi-arrow-clockwise"></i>
+      Atualizar
+    </button>
+  </div>
+</div>
+
+{# Overlay de loading global (exibido na primeira carga) #}
+<div id="zh-loading-overlay" class="text-center py-5 mb-4">
+  <div class="spinner-border text-zombie-blue mb-3" role="status" style="width:2.5rem;height:2.5rem;">
+    <span class="visually-hidden">Carregando...</span>
+  </div>
+  <p class="text-muted-zh mb-0">Buscando dados da API…</p>
+</div>
+
+{# Banner de erro (oculto por padrão, exibido pelo JS em caso de falha) #}
+<div id="zh-error-banner" class="alert alert-danger d-none d-flex align-items-center gap-2 mb-4" role="alert">
+  <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+  <span></span>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+LINHA 1 — CARDS DE RESUMO (5 cards em grid responsivo)
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="row g-3 mb-4" id="zh-cards-row">
+
+  {# Card 1: Total de VMDKs zombie (todas as varreduras) #}
+  <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill">
+    <div class="zh-card h-100 p-3">
+      <div class="d-flex align-items-start justify-content-between mb-2">
+        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+          Total VMDKs
+        </span>
+        {# Ícone temático de caveira — representa arquivos "mortos" #}
+        <i class="bi bi-bug-fill text-zombie-red" style="font-size:1.1rem;" aria-hidden="true"></i>
+      </div>
+      <div class="fs-3 fw-bold text-zombie-red" id="zh-card-total-vmdks">—</div>
+      <small class="text-muted-zh">acumulado histórico</small>
+    </div>
+  </div>
+
+  {# Card 2: Espaço recuperável em GB #}
+  <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill">
+    <div class="zh-card h-100 p-3">
+      <div class="d-flex align-items-start justify-content-between mb-2">
+        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+          Espaço recuperável
+        </span>
+        <i class="bi bi-device-hdd-fill text-zombie-yellow" style="font-size:1.1rem;" aria-hidden="true"></i>
+      </div>
+      <div class="fs-3 fw-bold text-zombie-yellow" id="zh-card-total-gb">—</div>
+      <small class="text-muted-zh">soma de todos os VMDKs</small>
+    </div>
+  </div>
+
+  {# Card 3: Aprovações pendentes — clicável, destaque em vermelho se > 0 #}
+  <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill" id="zh-pending-card-wrapper">
+    <a href="/approvals" class="text-decoration-none">
+      <div class="zh-card h-100 p-3 zh-card-hoverable">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+            Aprovações pendentes
+          </span>
+          {# Ícone de relógio — aguardando ação do analista #}
+          <i class="bi bi-clock-history" style="font-size:1.1rem;color:var(--zh-accent-yellow);" aria-hidden="true"></i>
+        </div>
+        <div class="fs-3 fw-bold" id="zh-card-pending" style="color:var(--zh-accent-yellow);">—</div>
+        <small class="text-muted-zh">tokens aguardando execução</small>
+      </div>
+    </a>
+  </div>
+
+  {# Card 4: Última varredura — timestamp dinâmico #}
+  <div class="col-6 col-sm-6 col-xl-auto flex-xl-fill">
+    <div class="zh-card h-100 p-3">
+      <div class="d-flex align-items-start justify-content-between mb-2">
+        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+          Última varredura
+        </span>
+        <i class="bi bi-calendar-check-fill text-zombie-green" style="font-size:1.1rem;" aria-hidden="true"></i>
+      </div>
+      <div class="fs-6 fw-semibold text-zombie-green" id="zh-card-last-scan">—</div>
+      <small class="text-muted-zh">data/hora de conclusão</small>
+    </div>
+  </div>
+
+  {# Card 5: vCenters monitorados #}
+  <div class="col-6 col-sm-6 col-xl-auto flex-xl-fill">
+    <div class="zh-card h-100 p-3">
+      <div class="d-flex align-items-start justify-content-between mb-2">
+        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+          vCenters
+        </span>
+        <i class="bi bi-hdd-network-fill text-zombie-blue" style="font-size:1.1rem;" aria-hidden="true"></i>
+      </div>
+      <div class="fs-3 fw-bold text-zombie-blue" id="zh-card-vcenter-count">—</div>
+      <small class="text-muted-zh">instâncias monitoradas</small>
+    </div>
+  </div>
+
+</div>{# fim cards row #}
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+LINHA 2 — GRÁFICOS
+Donut (esquerda) | Barras horizontais (centro) | Linha de tendência (direita)
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="row g-3 mb-4">
+
+  {# Gráfico 1 — Rosca: distribuição por tipo_zombie #}
+  <div class="col-12 col-lg-4">
+    <div class="zh-card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span>
+          <i class="bi bi-pie-chart-fill me-2 text-zombie-red" aria-hidden="true"></i>
+          Distribuição por Tipo
+        </span>
+        {# Legenda de tipos como referência rápida #}
+        <a href="/scan/results" class="btn btn-link btn-sm text-muted-zh p-0 text-decoration-none"
+          style="font-size:.75rem;">Ver todos →</a>
+      </div>
+      <div class="card-body d-flex flex-column align-items-center" style="padding:20px 16px;">
+        {# Container com altura fixa — Chart.js respeita o tamanho do wrapper #}
+        <div style="position:relative;width:100%;max-width:320px;height:280px;">
+          <canvas id="zh-chart-donut" aria-label="Distribuição de VMDKs por tipo zombie" role="img"></canvas>
+        </div>
+
+        {# Legenda manual com cores semânticas e contadores (preenchida pelo JS via legenda nativa do Chart.js) #}
+        <div class="mt-3 w-100" id="zh-donut-legend-extra" style="font-size:.78rem;">
+          {# Placeholder — Chart.js renderiza legenda native abaixo do canvas #}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Gráfico 2 — Barras horizontais: Top 5 vCenters por GB zombie #}
+  <div class="col-12 col-lg-4">
+    <div class="zh-card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span>
+          <i class="bi bi-bar-chart-fill me-2 text-zombie-blue" aria-hidden="true"></i>
+          Top 5 vCenters — GB Zombie
+        </span>
+        <span class="text-muted-zh" style="font-size:.72rem;">Maior volume</span>
+      </div>
+      <div class="card-body" style="padding:20px 16px;">
+        <div style="position:relative;width:100%;height:280px;">
+          <canvas id="zh-chart-bars" aria-label="Top 5 vCenters com mais GB zombie" role="img"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Gráfico 3 — Linha: Histórico das últimas 10 varreduras #}
+  <div class="col-12 col-lg-4">
+    <div class="zh-card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span>
+          <i class="bi bi-graph-up-arrow me-2 text-zombie-green" aria-hidden="true"></i>
+          Histórico de Varreduras
+        </span>
+        <span class="text-muted-zh" style="font-size:.72rem;">Últimas 10</span>
+      </div>
+      <div class="card-body" style="padding:20px 16px;">
+        <div style="position:relative;width:100%;height:280px;">
+          <canvas id="zh-chart-trend" aria-label="Histórico de GB e VMDKs detectados nas últimas 10 varreduras"
+            role="img"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>{# fim gráficos row #}
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+LINHA 3 — TABELA DE ALERTAS RECENTES
+Últimos 10 VMDKs detectados, com actions inline
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="row g-3">
+  <div class="col-12">
+    <div class="zh-card">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+
+        <span class="d-flex align-items-center gap-2">
+          <i class="bi bi-exclamation-triangle-fill text-zombie-yellow" aria-hidden="true"></i>
+          <span>VMDKs Detectados Recentemente</span>
+          {# Badge com total de registros carregados (preenchido pelo DataTables) #}
+        </span>
+
+        <div class="d-flex align-items-center gap-2">
+          {# Filtro rápido por tipo (cliente, sem reload) — controlado pelo JS #}
+          <select id="zh-filter-type" class="form-select form-select-sm"
+            style="width:auto;min-width:155px;background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);font-size:.8rem;"
+            title="Filtrar por tipo zombie">
+            <option value="">Todos os tipos</option>
+            <option value="ORPHANED">Orphaned</option>
+            <option value="SNAPSHOT_ORPHAN">Snapshot Orphan</option>
+            <option value="BROKEN_CHAIN">Broken Chain</option>
+            <option value="UNREGISTERED_DIR">Unregistered Dir</option>
+            <option value="POSSIBLE_FALSE_POSITIVE">False Positive</option>
+          </select>
+
+          {# Link para resultados completos #}
+          <a href="/scan/results" class="btn btn-sm btn-outline-secondary" style="font-size:.8rem;white-space:nowrap;">
+            <i class="bi bi-table me-1"></i>Ver todos
+          </a>
+
+          {# Botão de iniciar nova varredura #}
+          <button id="zh-btn-new-scan" class="btn btn-sm btn-outline-danger" style="font-size:.8rem;white-space:nowrap;"
+            title="Iniciar nova varredura imediatamente" type="button">
+            <i class="bi bi-play-fill me-1"></i>Nova varredura
+          </button>
+        </div>
+
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          {#
+          DataTables inicializa sobre esta <table> em dashboard.js.
+            thead define a estrutura; dados são injetados via JS.
+            #}
+            <table id="zh-table-recent" class="table table-dark table-hover table-sm mb-0 align-middle"
+              style="border-color:var(--zh-border);font-size:.85rem;">
+              <thead style="background-color:var(--zh-bg-sidebar);border-bottom:1px solid var(--zh-border);">
+                <tr>
+                  <th style="padding:12px 14px;">VMDK Path</th>
+                  <th style="padding:12px 14px;">vCenter</th>
+                  <th style="padding:12px 14px;" class="text-end">Tamanho</th>
+                  <th style="padding:12px 14px;">Tipo</th>
+                  <th style="padding:12px 14px;">Detectado em</th>
+                  <th style="padding:12px 14px;" class="text-end">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="zh-table-body">
+                {# DataTables preenche este corpo via JS — não adicionar <tr> aqui #}
+              </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>{# fim tabela row #}
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+MODAL — Nova Varredura
+Acionado pelo botão "Nova varredura" na tabela.
+Permite selecionar vCenters e datacenters antes de disparar.
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="modal fade" id="zh-modal-scan" tabindex="-1" aria-labelledby="zh-modal-scan-label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+      <div class="modal-header" style="border-color:var(--zh-border);">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="zh-modal-scan-label">
+          <i class="bi bi-play-circle-fill text-zombie-red"></i>
+          Iniciar Nova Varredura
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+
+        {# vCenters — checkboxes carregados via JS #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.85rem;">
+            <i class="bi bi-hdd-network me-1 text-zombie-blue"></i>
+            vCenters a varrer
+          </label>
+          <div id="zh-scan-vcenter-list" class="d-flex flex-column gap-2">
+            {# Placeholder — preenchido por JS ao abrir o modal #}
+            <span class="text-muted-zh small">Carregando vCenters…</span>
+          </div>
+        </div>
+
+        {# Datacenters — opcional, filtra escopo #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.85rem;">
+            <i class="bi bi-building me-1 text-muted-zh"></i>
+            Datacenters (opcional — deixe vazio para todos)
+          </label>
+          <input type="text" id="zh-scan-dc-filter" class="form-control form-control-sm"
+            placeholder="Ex.: DC-PROD, DC-HML  (separados por vírgula)"
+            style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
+          <div class="form-text text-muted-zh">Deixe em branco para varrer todos os datacenters</div>
+        </div>
+
+        {# Aviso de readonly #}
+        {% if readonly_mode %}
+        <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-0" style="font-size:.82rem;">
+          <i class="bi bi-lock-fill flex-shrink-0"></i>
+          <span>
+            A varredura <strong>apenas lê</strong> o vCenter — nenhuma alteração é feita.
+            READONLY_MODE=true está ativo.
+          </span>
+        </div>
+        {% endif %}
+
+      </div>
+      <div class="modal-footer" style="border-color:var(--zh-border);">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-danger d-flex align-items-center gap-2" id="zh-btn-confirm-scan">
+          <span class="spinner-border spinner-border-sm d-none" id="zh-scan-spinner" role="status"></span>
+          <i class="bi bi-play-fill" id="zh-scan-icon"></i>
+          <span id="zh-scan-btn-text">Iniciar Varredura</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}{# fim block content #}
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+SCRIPTS — carregados após os scripts do base.html
+════════════════════════════════════════════════════════════════════════════ #}
+{% block scripts %}
+
+{# CSS adicional inline para o dashboard #}
+<style>
+  /* Destaque vermelho no card de aprovações quando há pendências */
+  .zh-card-alert {
+    outline: 1px solid rgba(248, 81, 73, 0.4);
+    box-shadow: 0 0 12px rgba(248, 81, 73, 0.1);
+  }
+
+  /* Efeito hover em cards clicáveis */
+  .zh-card-hoverable {
+    transition: background-color 0.15s ease, outline 0.15s ease;
+  }
+
+  .zh-card-hoverable:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    outline: 1px solid var(--zh-border);
+  }
+
+  /* Ajuste visual do DataTables no tema escuro */
+  .dataTables_wrapper .dataTables_filter input,
+  .dataTables_wrapper .dataTables_length select {
+    background-color: var(--zh-bg-sidebar) !important;
+    border-color: var(--zh-border) !important;
+    color: #e6edf3 !important;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: .82rem;
+  }
+
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    font-size: .8rem !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button:not(.disabled):hover {
+    background: rgba(88, 166, 255, 0.15) !important;
+    color: var(--zh-accent-blue) !important;
+    border-color: var(--zh-border) !important;
+    border-radius: 6px;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: rgba(88, 166, 255, 0.2) !important;
+    color: var(--zh-accent-blue) !important;
+    border-color: transparent !important;
+    border-radius: 6px;
+  }
+
+  /* Linha de tabela hover sem override do Bootstrap */
+  #zh-table-recent tbody tr:hover td {
+    background-color: rgba(88, 166, 255, 0.05);
+  }
+</style>
+
+{# Script do dashboard (carregado de /static/js/dashboard.js) #}
+<script src="/static/js/dashboard.js?v=6"></script>
+
+{# Script inline — funcionalidades específicas desta página #}
+<script>
+  "use strict";
+
+  // ── Filtro de tipo na tabela ───────────────────────────────────────────────
+  // Aplica filtro por coluna "Tipo" sempre que o <select> mudar
+  document.getElementById("zh-filter-type")?.addEventListener("change", function () {
+    if (!window.dataTable && typeof $ !== "undefined") return;
+    // DataTables expõe instância via jQuery — buscamos via API global
+    const dt = $("#zh-table-recent").DataTable();
+    // Coluna 3 = Tipo (0-based)
+    dt.column(3).search(this.value, false, false).draw();
+  });
+
+  // ── Modal de nova varredura ───────────────────────────────────────────────
+  const modalScan = document.getElementById("zh-modal-scan");
+  const btnNewScan = document.getElementById("zh-btn-new-scan");
+  const btnConfirmScan = document.getElementById("zh-btn-confirm-scan");
+  const scanSpinner = document.getElementById("zh-scan-spinner");
+  const scanIcon = document.getElementById("zh-scan-icon");
+  const scanBtnText = document.getElementById("zh-scan-btn-text");
+  const vcenterList = document.getElementById("zh-scan-vcenter-list");
+
+  // Abre modal e carrega lista de vCenters disponíveis
+  btnNewScan?.addEventListener("click", async () => {
+    const bsModal = new bootstrap.Modal(modalScan);
+    bsModal.show();
+
+    // Carrega vCenters cadastrados via API
+    try {
+      const resp = await fetch("/api/v1/vcenters", {
+        headers: {
+          Accept: "application/json",
+          "X-API-Key": window.ZH_API_KEY || ""
+        }
+      });
+      if (!resp.ok) throw new Error("Erro ao carregar vCenters");
+      const vcenters = await resp.json();
+
+      if (!vcenters.length) {
+        vcenterList.innerHTML =
+          `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Nenhum vCenter cadastrado.</span>`;
+        return;
+      }
+
+      vcenterList.innerHTML = vcenters.map((vc) => `
+        <div class="form-check">
+          <input
+            class="form-check-input zh-vc-check"
+            type="checkbox"
+            value="${vc.id}"
+            id="vc-check-${vc.id}"
+            checked
+          />
+          <label class="form-check-label d-flex align-items-center gap-2" for="vc-check-${vc.id}" style="font-size:.85rem;">
+            <span class="zh-vcenter-dot ${vc.connected ? 'connected' : 'disconnected'}"></span>
+            ${vc.name} <span class="text-muted-zh">(${vc.host})</span>
+          </label>
+        </div>
+      `).join("");
+
+    } catch (err) {
+      vcenterList.innerHTML =
+        `<span class="text-zombie-red small"><i class="bi bi-x-circle me-1"></i>${err.message}</span>`;
+    }
+  });
+
+  // Dispara a varredura via POST /api/v1/scan/start
+  btnConfirmScan?.addEventListener("click", async () => {
+    // Coleta vCenters selecionados
+    const checked = [...document.querySelectorAll(".zh-vc-check:checked")].map((el) => el.value);
+    if (!checked.length) {
+      alert("Selecione ao menos um vCenter para varrer.");
+      return;
+    }
+
+    // Coleta datacenters opcionais
+    const dcRaw = document.getElementById("zh-scan-dc-filter")?.value.trim();
+    const dcList = dcRaw ? dcRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+
+    // Estado visual do botão
+    scanSpinner?.classList.remove("d-none");
+    scanIcon?.classList.add("d-none");
+    if (scanBtnText) scanBtnText.textContent = "Iniciando…";
+    if (btnConfirmScan) btnConfirmScan.disabled = true;
+
+    try {
+      const resp = await fetch("/api/v1/scan/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY"
+        },
+        body: JSON.stringify({ vcenter_ids: checked, datacenters: dcList }),
+      });
+
+      const text = await resp.text();
+      let result;
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch (parseErr) {
+        if (resp.status === 401) {
+          throw new Error("Não autenticado. Verifique se a API Key está configurada no servidor (config / .env) e recarregue a página.");
+        }
+        throw new Error("Resposta inválida do servidor (não-JSON). Status: " + resp.status + ".");
+      }
+      if (!resp.ok) throw new Error(result.detail ?? "Erro ao iniciar varredura");
+
+      // Fecha modal e redireciona para página de resultados do job
+      bootstrap.Modal.getInstance(modalScan)?.hide();
+      window.location.href = `/scan/results/${result.job_id}`;
+
+    } catch (err) {
+      // Exibe erro sem fechar o modal
+      const existing = modalScan.querySelector(".zh-scan-error");
+      if (existing) existing.remove();
+      const errDiv = document.createElement("div");
+      errDiv.className = "alert alert-danger mt-3 mb-0 py-2 zh-scan-error d-flex gap-2 align-items-center";
+      errDiv.style.fontSize = ".82rem";
+      errDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${err.message}`;
+      modalScan.querySelector(".modal-body")?.appendChild(errDiv);
+
+    } finally {
+      scanSpinner?.classList.add("d-none");
+      scanIcon?.classList.remove("d-none");
+      if (scanBtnText) scanBtnText.textContent = "Iniciar Varredura";
+      if (btnConfirmScan) btnConfirmScan.disabled = false;
+    }
+  });
+</script>
+
+{% endblock %}{# fim block scripts #}

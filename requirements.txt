@@ -1,0 +1,33 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Autenticação JWT
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Configuração via .env
+pydantic-settings==2.7.0
+pydantic==2.10.5
+python-dotenv==1.0.1
+
+# Criptografia simétrica (Fernet para senhas de vCenter)
+cryptography==44.0.1
+
+# VMware SDK
+pyVmomi==8.0.3.0.1
+
+# Banco de dados
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+
+# Utilitários HTTP
+httpx==0.28.1
+python-multipart==0.0.20
+
+# Agendamento de tarefas (opcional - scan periódico)
+apscheduler==3.10.4
+
+# Interface Web Flask (standalone — alternativa ao FastAPI main.py)
+flask==3.1.0
+requests==2.32.3

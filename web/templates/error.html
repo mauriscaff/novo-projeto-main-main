@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{#
+  error.html — Página de erro genérica do ZombieHunter
+  =====================================================
+  Usada pelos handlers error_404 e error_500 em web/app.py.
+
+  Variáveis Jinja2 obrigatórias:
+    error_code  int    — código HTTP (ex.: 404, 500)
+    error_msg   str    — descrição amigável do erro
+#}
+
+{% block title %}Erro {{ error_code }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center"
+     style="min-height: calc(100vh - 160px);">
+  <div class="text-center" style="max-width: 500px;">
+
+    {# Ícone grande #}
+    <div class="mb-4">
+      {% if error_code == 404 %}
+        <i class="bi bi-search" style="font-size:5rem; color: #6ea8fe; opacity:.6;"></i>
+      {% elif error_code == 500 %}
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:5rem; color:#ea868f; opacity:.7;"></i>
+      {% else %}
+        <i class="bi bi-slash-circle" style="font-size:5rem; color:#ffa94d; opacity:.7;"></i>
+      {% endif %}
+    </div>
+
+    {# Código de erro #}
+    <h1 class="fw-bold mb-1"
+        style="font-size: 5rem; letter-spacing:-.02em;
+               color: {% if error_code == 404 %}#6ea8fe{% elif error_code == 500 %}#ea868f{% else %}#ffa94d{% endif %};">
+      {{ error_code }}
+    </h1>
+
+    {# Mensagem #}
+    <p class="fs-5 text-body-secondary mb-1">{{ error_msg }}</p>
+
+    {% if error_code == 404 %}
+      <p class="text-muted-zh small mb-4">
+        A página ou recurso que você tentou acessar não foi encontrado.
+      </p>
+    {% elif error_code == 500 %}
+      <p class="text-muted-zh small mb-4">
+        Ocorreu um erro interno no servidor. Verifique os logs em
+        <code>web/logs/scheduler.log</code> e o console da aplicação.
+      </p>
+    {% else %}
+      <p class="text-muted-zh small mb-4">
+        Algo inesperado aconteceu.
+      </p>
+    {% endif %}
+
+    {# Ações de navegação #}
+    <div class="d-flex gap-2 justify-content-center flex-wrap">
+      <a href="/" class="btn btn-primary btn-sm">
+        <i class="bi bi-house me-1"></i>Ir para o Dashboard
+      </a>
+      <button onclick="history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Voltar
+      </button>
+      {% if error_code == 500 %}
+        <a href="/health" class="btn btn-outline-info btn-sm" target="_blank">
+          <i class="bi bi-heart-pulse me-1"></i>Ver /health
+        </a>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

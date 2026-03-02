@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{#
+  vcenters.html — Gerenciamento de vCenters do ZombieHunter
+  ==========================================================
+  Permite cadastrar, editar, remover e testar conectividade de vCenters.
+  Toda a lógica client-side vive em vcenters.js.
+
+  Endpoints consumidos:
+    GET    /api/v1/vcenters
+    POST   /api/v1/vcenters
+    PATCH  /api/v1/vcenters/{id}
+    DELETE /api/v1/vcenters/{id}
+    POST   /api/v1/vcenters/{id}/test
+    GET    /api/v1/vcenters/pool-status
+
+  Variáveis Jinja2 injetadas via _base_ctx():
+    readonly_mode, vcenter_status, app_version, last_scan_at,
+    pending_approvals, flash_messages
+#}
+
+{% block title %}vCenters{% endblock %}
+
+{% block content %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   CABEÇALHO DA PÁGINA
+────────────────────────────────────────────────────────────────────────────── #}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h5 class="mb-0 fw-semibold">
+      <i class="bi bi-server text-zombie-blue me-2"></i>Gerenciar vCenters
+    </h5>
+    <p class="text-muted-zh small mb-0 mt-1">
+      <span id="zh-vc-count">—</span> vCenter(s) cadastrado(s) &nbsp;·&nbsp;
+      Status atualizado automaticamente a cada 60 segundos.
+    </p>
+  </div>
+
+  <div class="d-flex gap-2">
+    {# Spinner global de carregamento #}
+    <div id="zh-vc-spinner" class="spinner-border spinner-border-sm text-zombie-blue d-none align-self-center" role="status">
+      <span class="visually-hidden">Carregando…</span>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+      <i class="bi bi-plus-circle me-1"></i>Novo vCenter
+    </button>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   GRID DE CARDS (populado por vcenters.js)
+────────────────────────────────────────────────────────────────────────────── #}
+<div class="row g-3" id="zh-vc-grid">
+  {# Placeholder enquanto os cards carregam #}
+  <div class="col-12 text-center py-5">
+    <div class="spinner-border text-zombie-blue" role="status">
+      <span class="visually-hidden">Carregando vCenters…</span>
+    </div>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   MODAL — Cadastrar / Editar vCenter
+────────────────────────────────────────────────────────────────────────────── #}
+<div class="modal fade" id="zh-modal-vcenter" tabindex="-1" data-bs-backdrop="static"
+     aria-labelledby="zh-modal-vcenter-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark-2 border-dark-3">
+
+      <div class="modal-header border-dark-3">
+        <h5 class="modal-title fw-semibold" id="zh-modal-vcenter-title">Novo vCenter</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <form id="zh-vc-form" novalidate>
+        <div class="modal-body">
+
+          {# Alerta de feedback (erros / sucesso de teste) #}
+          <div id="zh-form-feedback" class="d-none small" role="alert"></div>
+
+          {# Aviso de senha em modo edição #}
+          <div id="zh-pass-note" class="alert alert-warning py-2 small d-none mb-3">
+            <i class="bi bi-key me-1"></i>
+            A senha atual está cifrada no banco. Deixe o campo <strong>Senha</strong> vazio
+            para mantê-la sem alteração.
+          </div>
+
+          <div class="row g-3">
+
+            <!-- Nome (identificador interno) -->
+            <div class="col-12">
+              <label class="form-label small text-muted-zh mb-1" for="zh-field-name">
+                Nome / Identificador <span class="text-danger-zh">*</span>
+              </label>
+              <input type="text" id="zh-field-name" name="name"
+                     class="form-control bg-dark border-dark-3 text-body"
+                     placeholder="ex: vc-prod-01"
+                     required maxlength="128"
+                     autocomplete="off">
+              <div class="form-text text-muted-zh">
+                Identificador único interno. Usado para referenciar o vCenter na API.
+              </div>
+            </div>
+
+            <!-- Host -->
+            <div class="col-12 col-md-8">
+              <label class="form-label small text-muted-zh mb-1" for="zh-field-host">
+                Hostname / IP <span class="text-danger-zh">*</span>
+              </label>
+              <input type="text" id="zh-field-host" name="host"
+                     class="form-control bg-dark border-dark-3 text-body font-monospace"
+                     placeholder="vcenter.empresa.com.br"
+                     required maxlength="256"
+                     autocomplete="off">
+            </div>
+
+            <!-- Porta -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small text-muted-zh mb-1" for="zh-field-port">
+                Porta <span class="text-danger-zh">*</span>
+              </label>
+              <input type="number" id="zh-field-port" name="port"
+                     class="form-control bg-dark border-dark-3 text-body font-monospace"
+                     value="443" min="1" max="65535" required>
+            </div>
+
+            <!-- Usuário -->
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-muted-zh mb-1" for="zh-field-username">
+                Usuário <span class="text-danger-zh">*</span>
+              </label>
+              <input type="text" id="zh-field-username" name="username"
+                     class="form-control bg-dark border-dark-3 text-body"
+                     placeholder="administrator@vsphere.local"
+                     required maxlength="128"
+                     autocomplete="username">
+            </div>
+
+            <!-- Senha -->
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-muted-zh mb-1" for="zh-field-password">
+                Senha <span class="text-danger-zh" id="zh-pass-required-star">*</span>
+              </label>
+              <div class="input-group">
+                <input type="password" id="zh-field-password" name="password"
+                       class="form-control bg-dark border-dark-3 text-body"
+                       placeholder="Senha de acesso"
+                       autocomplete="current-password">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="_togglePassVis()"
+                        id="zh-pass-eye-btn"
+                        tabindex="-1"
+                        title="Mostrar/ocultar senha">
+                  <i class="bi bi-eye" id="zh-pass-eye-ico"></i>
+                </button>
+              </div>
+              <div class="form-text text-muted-zh small">
+                Armazenada cifrada com Fernet (AES-128 + HMAC-SHA256). Nunca exposta pela API.
+              </div>
+            </div>
+
+            <!-- Ignorar SSL -->
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="zh-field-ssl"
+                       name="disable_ssl_verify" checked>
+                <label class="form-check-label text-muted-zh small" for="zh-field-ssl">
+                  Ignorar certificado SSL inválido
+                  <span class="zh-audit-badge zh-badge-yellow ms-1">recomendado em labs</span>
+                </label>
+              </div>
+              <div class="form-text text-muted-zh small" style="margin-left:2.5rem;">
+                Desmarque em produção quando o vCenter possuir certificado válido e verificável.
+              </div>
+            </div>
+
+          </div>{# /row #}
+        </div>{# /modal-body #}
+
+        <div class="modal-footer border-dark-3 d-flex justify-content-between">
+          <!-- Testar antes de salvar -->
+          <button type="button" id="zh-btn-test-form" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-plug me-1"></i>Testar conexão
+          </button>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+              Cancelar
+            </button>
+            <button type="submit" id="zh-btn-save" class="btn btn-sm btn-primary">
+              <i class="bi bi-floppy me-1"></i>Salvar
+            </button>
+          </div>
+        </div>
+      </form>
+
+    </div>{# /modal-content #}
+  </div>{# /modal-dialog #}
+</div>{# /modal-vcenter #}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   MODAL — Confirmação de remoção
+────────────────────────────────────────────────────────────────────────────── #}
+<div class="modal fade" id="zh-modal-delete" tabindex="-1" data-bs-backdrop="static"
+     aria-labelledby="zh-modal-delete-label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
+    <div class="modal-content bg-dark-2 border-dark-3">
+
+      <div class="modal-header border-dark-3">
+        <h5 class="modal-title fw-semibold text-danger-zh" id="zh-modal-delete-label">
+          <i class="bi bi-trash3 me-2"></i>Confirmar remoção
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="d-flex align-items-start gap-3">
+          <i class="bi bi-exclamation-triangle-fill text-danger-zh fs-3 flex-shrink-0"></i>
+          <div>
+            <p class="mb-2">Você está prestes a remover o vCenter:</p>
+            <p class="fw-semibold text-danger-zh font-monospace mb-2" id="zh-delete-name"></p>
+            <p class="text-muted-zh small mb-0">
+              O vCenter será desconectado do pool e removido do banco de dados.
+              Agendamentos e resultados históricos <strong>não</strong> serão apagados.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer border-dark-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button type="button" id="zh-btn-confirm-delete" class="btn btn-sm btn-danger">
+          <i class="bi bi-trash3 me-1"></i>Confirmar remoção
+        </button>
+      </div>
+
+    </div>{# /modal-content #}
+  </div>
+</div>{# /modal-delete #}
+
+{# Container de toasts #}
+<div id="zh-toast-container"
+     class="toast-container position-fixed bottom-0 end-0 p-3"
+     style="z-index:1100;"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  /* Cores semânticas dos status dots */
+  .zh-vc-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background-color .3s, box-shadow .3s;
+  }
+  .zh-dot-online  {
+    background: #20c997;
+    box-shadow: 0 0 6px 2px rgba(32,201,151,.55);
+  }
+  .zh-dot-offline {
+    background: #dc3545;
+    box-shadow: 0 0 6px 2px rgba(220,53,69,.55);
+  }
+  .zh-dot-unknown {
+    background: #6c757d;
+    box-shadow: none;
+  }
+
+  /* Badges reutilizados do audit.html (definidos aqui também) */
+  .zh-audit-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    white-space: nowrap;
+  }
+  .zh-badge-yellow { background: rgba(255,193,7,.15); color: #ffd43b; border: 1px solid rgba(255,193,7,.35); }
+  .zh-badge-red    { background: rgba(220,53,69,.2);  color: #ea868f; border: 1px solid rgba(220,53,69,.4); }
+  .zh-badge-gray   { background: rgba(108,117,125,.2);color: #9aa5b1; border: 1px solid rgba(108,117,125,.4);}
+
+  /* Cores de apoio */
+  .text-zombie-blue  { color: #6ea8fe !important; }
+  .text-muted-zh     { color: #8b97a5 !important; }
+  .text-success-zh   { color: #75b798 !important; }
+  .text-danger-zh    { color: #ea868f !important; }
+  .bg-dark-2         { background-color: #1e2228 !important; }
+  .border-dark-3     { border-color: #30363d !important; }
+  .font-monospace    { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+
+  /* Hover nos cards */
+  #zh-vc-grid .card {
+    transition: border-color .2s, box-shadow .2s;
+  }
+  #zh-vc-grid .card:hover {
+    border-color: rgba(110,168,254,.3) !important;
+    box-shadow: 0 0 0 1px rgba(110,168,254,.15);
+  }
+</style>
+
+<script>
+  /* Alterna visibilidade da senha no formulário */
+  function _togglePassVis() {
+    const field = document.getElementById("zh-field-password");
+    const ico   = document.getElementById("zh-pass-eye-ico");
+    if (!field) return;
+    const isPass = field.type === "password";
+    field.type   = isPass ? "text" : "password";
+    if (ico) ico.className = isPass ? "bi bi-eye-slash" : "bi bi-eye";
+  }
+</script>
+
+<script src="{{ url_for('static', path='js/vcenters.js') }}"></script>
+{% endblock %}

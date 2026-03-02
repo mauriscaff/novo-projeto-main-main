@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+{#
+  approvals.html — Gerenciamento de Aprovações de Ações sobre VMDKs
+  =================================================================
+  PÁGINA CRÍTICA — Ações aqui têm efeito REAL no storage VMware.
+
+  Toda a lógica é gerenciada por approvals.js:
+    - Carrega tokens por status via GET /api/v1/approvals
+    - Executa dry-run via GET /api/v1/approvals/{token}/dryrun
+    - Confirma execução via POST /api/v1/approvals/{token}/execute
+    - Cancela via DELETE /api/v1/approvals/{token}
+    - Exibe audit log via GET /api/v1/approvals/audit-log
+
+  Variáveis Jinja2:
+    readonly_mode  bool  — injetada em window.ZH_READONLY_MODE pelo bloco scripts
+#}
+
+{% block title %}Aprovações{% endblock %}
+
+{% block content %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   BANNER DE AVISO — FIXO, NÃO PODE SER FECHADO
+   Este banner é a salvaguarda visual mais importante da página.
+   Nunca adicione um botão de fechar a este elemento.
+───────────────────────────────────────────────────────────────────────────── #}
+<div
+  id="zh-critical-banner"
+  class="d-flex align-items-start gap-3 rounded-2 p-3 mb-4"
+  style="background:rgba(248,81,73,.1);border:2px solid rgba(248,81,73,.45);border-left-width:6px;"
+  role="alert"
+  aria-live="polite"
+>
+  {# Ícone de atenção em destaque #}
+  <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1" style="font-size:1.6rem;color:#f85149;"></i>
+
+  <div class="flex-grow-1">
+    <div class="fw-bold mb-1" style="font-size:.95rem;color:#f85149;letter-spacing:.3px;">
+      ATENÇÃO: Esta página controla ações com efeito real no storage VMware
+    </div>
+    <ul class="mb-0 ps-3" style="font-size:.84rem;color:#e6edf3;line-height:1.7;">
+      <li>
+        <strong>Sempre execute o DRY-RUN</strong> antes de confirmar qualquer ação —
+        ele mostra exatamente o que será feito sem alterar nada.
+      </li>
+      <li>
+        Ações de <span style="color:#f85149;font-weight:600;">DELETE</span> são
+        <strong>irreversíveis</strong>. Ações de
+        <span style="color:#d29922;font-weight:600;">QUARANTINE</span> movem o
+        arquivo para uma pasta segura e podem ser desfeitas.
+      </li>
+      <li>
+        <strong>Toda ação é registrada</strong> no Audit Log imutável com seu nome,
+        timestamp e justificativa, independentemente do resultado.
+      </li>
+    </ul>
+  </div>
+
+  {# Indicador do modo atual (readonly ou write habilitado) #}
+  <div class="flex-shrink-0 text-end">
+    {% if readonly_mode %}
+      <span class="d-flex align-items-center gap-1 px-2 py-1 rounded-2"
+        style="background:rgba(63,185,80,.15);border:1px solid rgba(63,185,80,.4);color:#3fb950;font-size:.75rem;font-weight:700;">
+        <i class="bi bi-lock-fill"></i> READ-ONLY ATIVO
+      </span>
+      <div class="text-muted-zh mt-1" style="font-size:.68rem;">Execuções bloqueadas</div>
+    {% else %}
+      <span class="d-flex align-items-center gap-1 px-2 py-1 rounded-2"
+        style="background:rgba(248,81,73,.15);border:1px solid rgba(248,81,73,.4);color:#f85149;font-size:.75rem;font-weight:700;">
+        <i class="bi bi-unlock-fill"></i> WRITE HABILITADO
+      </span>
+      <div class="text-muted-zh mt-1" style="font-size:.68rem;">Ações destrutivas permitidas</div>
+    {% endif %}
+  </div>
+
+</div>
+
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   CABEÇALHO + ESTATÍSTICAS RÁPIDAS
+───────────────────────────────────────────────────────────────────────────── #}
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h4 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-shield-plus text-zombie-red" aria-hidden="true"></i>
+      Aprovações de Ações
+    </h4>
+    <small class="text-muted-zh">
+      Gerencie e execute ações aprovadas sobre VMDKs zombie detectados
+    </small>
+  </div>
+
+  {# Botão de atualização manual #}
+  <button
+    class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+    onclick="loadTab(window._activeTabName ?? 'pending')"
+    title="Atualizar lista"
+    type="button"
+  >
+    <i class="bi bi-arrow-clockwise"></i>
+    Atualizar
+  </button>
+</div>
+
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   ABAS DE NAVEGAÇÃO
+───────────────────────────────────────────────────────────────────────────── #}
+<ul class="nav nav-tabs mb-0" role="tablist"
+  style="border-bottom:1px solid var(--zh-border);">
+
+  {# Aba 1 — Pendentes #}
+  <li class="nav-item" role="presentation">
+    <button
+      class="nav-link active d-flex align-items-center gap-2"
+      id="tab-btn-pending"
+      data-bs-toggle="tab"
+      data-bs-target="#zh-tab-pending"
+      data-zh-tab="pending"
+      type="button"
+      role="tab"
+      aria-selected="true"
+      style="font-size:.875rem;"
+    >
+      <i class="bi bi-clock-history"></i>
+      Pendentes
+      {# Badge de contagem — atualizado pelo JS #}
+      <span
+        id="zh-tab-count-pending"
+        class="badge text-bg-danger d-none"
+        style="font-size:.65rem;"
+      >0</span>
+    </button>
+  </li>
+
+  {# Aba 2 — Executadas #}
+  <li class="nav-item" role="presentation">
+    <button
+      class="nav-link d-flex align-items-center gap-2"
+      id="tab-btn-executed"
+      data-bs-toggle="tab"
+      data-bs-target="#zh-tab-executed"
+      data-zh-tab="executed"
+      type="button"
+      role="tab"
+      aria-selected="false"
+      style="font-size:.875rem;"
+    >
+      <i class="bi bi-check2-all"></i>
+      Executadas
+      <span
+        id="zh-tab-count-executed"
+        class="badge text-bg-secondary d-none"
+        style="font-size:.65rem;"
+      >0</span>
+    </button>
+  </li>
+
+  {# Aba 3 — Canceladas / Expiradas #}
+  <li class="nav-item" role="presentation">
+    <button
+      class="nav-link d-flex align-items-center gap-2"
+      id="tab-btn-cancelled"
+      data-bs-toggle="tab"
+      data-bs-target="#zh-tab-cancelled"
+      data-zh-tab="cancelled"
+      type="button"
+      role="tab"
+      aria-selected="false"
+      style="font-size:.875rem;"
+    >
+      <i class="bi bi-x-circle"></i>
+      Canceladas / Expiradas
+      <span
+        id="zh-tab-count-cancelled"
+        class="badge text-bg-secondary d-none"
+        style="font-size:.65rem;"
+      >0</span>
+    </button>
+  </li>
+
+  {# Aba 4 — Audit Log #}
+  <li class="nav-item ms-auto" role="presentation">
+    <button
+      class="nav-link d-flex align-items-center gap-2"
+      id="tab-btn-audit"
+      data-bs-toggle="tab"
+      data-bs-target="#zh-tab-audit"
+      data-zh-tab="audit"
+      type="button"
+      role="tab"
+      aria-selected="false"
+      style="font-size:.875rem;"
+    >
+      <i class="bi bi-journal-text"></i>
+      Audit Log
+    </button>
+  </li>
+
+</ul>
+
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   CONTEÚDO DAS ABAS
+───────────────────────────────────────────────────────────────────────────── #}
+<div class="tab-content pt-4">
+
+  {# ── Aba Pendentes ────────────────────────────────────────────────────── #}
+  <div class="tab-pane fade show active" id="zh-tab-pending" role="tabpanel">
+    {# Preenchido pelo JS com cards de aprovação #}
+    <div id="zh-tab-pending">
+      <div class="text-center py-5">
+        <div class="spinner-border text-zombie-blue mb-3" style="width:2rem;height:2rem;"></div>
+        <p class="text-muted-zh mb-0">Carregando aprovações pendentes…</p>
+      </div>
+    </div>
+  </div>
+
+  {# ── Aba Executadas ───────────────────────────────────────────────────── #}
+  <div class="tab-pane fade" id="zh-tab-executed" role="tabpanel">
+    <div id="zh-tab-executed">
+      <div class="text-center py-5">
+        <div class="spinner-border text-zombie-blue mb-3" style="width:2rem;height:2rem;"></div>
+        <p class="text-muted-zh mb-0">Carregando…</p>
+      </div>
+    </div>
+  </div>
+
+  {# ── Aba Canceladas / Expiradas ───────────────────────────────────────── #}
+  <div class="tab-pane fade" id="zh-tab-cancelled" role="tabpanel">
+    <div id="zh-tab-cancelled">
+      <div class="text-center py-5">
+        <div class="spinner-border text-zombie-blue mb-3" style="width:2rem;height:2rem;"></div>
+        <p class="text-muted-zh mb-0">Carregando…</p>
+      </div>
+    </div>
+  </div>
+
+  {# ── Aba Audit Log ────────────────────────────────────────────────────── #}
+  <div class="tab-pane fade" id="zh-tab-audit" role="tabpanel">
+    <div class="zh-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-journal-text text-zombie-blue"></i>
+        Audit Log — Histórico Imutável
+        <span class="text-muted-zh ms-1" style="font-size:.75rem;">
+          (últimas 100 entradas)
+        </span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-dark table-hover table-sm mb-0 align-middle"
+            style="font-size:.82rem;border-color:var(--zh-border);">
+            <thead style="background-color:var(--zh-bg-sidebar);border-bottom:2px solid var(--zh-border);">
+              <tr>
+                <th style="padding:10px 14px;white-space:nowrap;">Timestamp</th>
+                <th style="padding:10px 14px;">Analista</th>
+                <th style="padding:10px 14px;">Ação</th>
+                <th style="padding:10px 14px;">VMDK Path</th>
+                <th style="padding:10px 14px;text-align:center;">Dry-run</th>
+                <th style="padding:10px 14px;">Status</th>
+                <th style="padding:10px 14px;">Detalhe</th>
+              </tr>
+            </thead>
+            <tbody id="zh-audit-table-body">
+              {# Preenchido pelo JS via loadAuditLog() #}
+              <tr>
+                <td colspan="7" class="text-center py-3 text-muted-zh">
+                  Selecione esta aba para carregar o histórico.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>{# fim tab-content #}
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   MODAL 1 — DRY-RUN
+   Exibe resultado da simulação. Analista valida aqui antes de confirmar.
+════════════════════════════════════════════════════════════════════════════ #}
+<div
+  class="modal fade"
+  id="zh-modal-dryrun"
+  tabindex="-1"
+  aria-labelledby="dryrun-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+
+      <div class="modal-header" style="border-color:var(--zh-border);">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="dryrun-modal-label">
+          <i class="bi bi-search text-zombie-yellow"></i>
+          Resultado do DRY-RUN
+          <span class="badge text-bg-warning ms-1" style="font-size:.7rem;">SIMULAÇÃO — NADA FOI ALTERADO</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      {# Conteúdo dinâmico — preenchido pelo JS #}
+      <div class="modal-body" id="dry-modal-result" style="font-size:.875rem;">
+        <div class="text-center py-4">
+          <div class="spinner-border text-zombie-yellow mb-3" style="width:2rem;height:2rem;"></div>
+          <p class="text-muted-zh">Consultando vCenter…</p>
+        </div>
+      </div>
+
+      <div class="modal-footer d-flex justify-content-between" style="border-color:var(--zh-border);">
+        <div class="text-muted-zh" style="font-size:.75rem;">
+          <i class="bi bi-info-circle me-1"></i>
+          Clique em "Confirmar Execução" apenas se os dados acima estiverem corretos.
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+            Fechar
+          </button>
+          {# Este botão aparece somente quando is_safe_to_proceed=true #}
+          <button
+            id="dry-modal-confirm"
+            type="button"
+            class="btn btn-sm btn-danger d-none d-flex align-items-center gap-2"
+          >
+            <i class="bi bi-play-fill"></i>
+            Confirmar Execução
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   MODAL 2 — CONFIRMAÇÃO FINAL DE EXECUÇÃO
+   Última barreira antes da ação real. Exige checkbox explícito + analista.
+════════════════════════════════════════════════════════════════════════════ #}
+<div
+  class="modal fade"
+  id="zh-modal-execute"
+  tabindex="-1"
+  aria-labelledby="execute-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+
+      <div class="modal-header" style="border-color:var(--zh-border);">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="execute-modal-label">
+          <i class="bi bi-exclamation-triangle-fill text-zombie-red"></i>
+          Confirmação Final de Execução
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+
+        {# Aviso de alto impacto #}
+        <div class="d-flex gap-3 p-3 rounded-2 mb-4"
+          style="background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.4);">
+          <i class="bi bi-radiation flex-shrink-0 mt-1" style="font-size:1.5rem;color:#f85149;"></i>
+          <div>
+            <div class="fw-bold mb-1" style="color:#f85149;">Esta ação será executada no vCenter agora.</div>
+            <div class="text-muted-zh" style="font-size:.82rem;">
+              Após confirmar, não é possível desfazer uma ação de DELETE.
+              Certifique-se de ter revisado o resultado do DRY-RUN.
+            </div>
+          </div>
+        </div>
+
+        {# Resumo da ação #}
+        <div class="zh-card p-3 mb-4" style="background-color:var(--zh-bg-sidebar);">
+          <div class="row g-2" style="font-size:.83rem;">
+            <div class="col-12">
+              <div class="text-muted-zh mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Ação</div>
+              <div id="exec-confirm-action"></div>
+            </div>
+            <div class="col-12">
+              <div class="text-muted-zh mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">VMDK</div>
+              <code id="exec-confirm-path" style="font-size:.78rem;word-break:break-all;color:#e6edf3;"></code>
+            </div>
+            <div class="col-6">
+              <div class="text-muted-zh mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Espaço a liberar</div>
+              <span class="text-zombie-yellow fw-bold" id="exec-confirm-gb"></span>
+            </div>
+            <div class="col-6">
+              <div class="text-muted-zh mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Arquivos afetados</div>
+              <span class="text-zombie-blue fw-bold" id="exec-confirm-files"></span>
+            </div>
+          </div>
+        </div>
+
+        {# Checkbox de confirmação explícita — obrigatório #}
+        <div class="form-check p-3 rounded-2 mb-3"
+          style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.25);">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="exec-confirm-check"
+            style="border-color:#f85149;"
+          />
+          <label class="form-check-label" for="exec-confirm-check" style="font-size:.84rem;">
+            <strong>Confirmo que revisei o resultado do DRY-RUN</strong> e estou ciente de que
+            esta ação <strong>não pode ser desfeita</strong> em caso de DELETE.
+          </label>
+        </div>
+
+        <div id="exec-modal-error" class="alert alert-danger d-none py-2" style="font-size:.82rem;" role="alert"></div>
+
+      </div>
+
+      <div class="modal-footer" style="border-color:var(--zh-border);">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button
+          id="exec-btn-submit"
+          type="button"
+          class="btn btn-sm btn-danger d-flex align-items-center gap-2"
+          disabled
+        >
+          <i class="bi bi-play-fill"></i>
+          Confirmar Execução
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   MODAL 3 — CANCELAMENTO DE TOKEN
+════════════════════════════════════════════════════════════════════════════ #}
+<div
+  class="modal fade"
+  id="zh-modal-cancel"
+  tabindex="-1"
+  aria-labelledby="cancel-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+
+      <div class="modal-header" style="border-color:var(--zh-border);">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="cancel-modal-label">
+          <i class="bi bi-x-circle text-muted-zh"></i>
+          Cancelar ApprovalToken
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size:.875rem;">
+          Você está cancelando o token de aprovação para:
+        </p>
+        <div class="zh-card p-3 mb-3" style="background-color:var(--zh-bg-sidebar);">
+          <code id="cancel-modal-path" style="font-size:.8rem;word-break:break-all;color:#e6edf3;"></code>
+        </div>
+        <p class="text-muted-zh mb-0" style="font-size:.82rem;">
+          O token será marcado como <strong>cancelado</strong> e um novo token precisará
+          ser emitido caso a ação ainda seja necessária.
+          O cancelamento será registrado no Audit Log.
+        </p>
+        <div id="cancel-modal-error" class="alert alert-danger d-none mt-3 py-2" style="font-size:.82rem;" role="alert"></div>
+      </div>
+
+      <div class="modal-footer" style="border-color:var(--zh-border);">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+          Voltar
+        </button>
+        <button
+          id="cancel-btn-submit"
+          type="button"
+          class="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
+        >
+          <i class="bi bi-x-circle"></i>
+          Confirmar Cancelamento
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{# ── Container de toasts de feedback (canto inferior direito) ─────────────── #}
+<div
+  id="zh-toast-container"
+  class="position-fixed d-flex flex-column align-items-end"
+  style="bottom:20px;right:20px;z-index:1090;"
+  aria-live="polite"
+  aria-atomic="true"
+></div>
+
+{% endblock %}{# fim block content #}
+
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   SCRIPTS
+════════════════════════════════════════════════════════════════════════════ #}
+{% block scripts %}
+<style>
+  /* ── Cards de aprovação ───────────────────────────────────────────────── */
+  .zh-approval-card {
+    background-color: var(--zh-bg-card);
+    border: 1px solid var(--zh-border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: border-color .2s ease;
+  }
+  .zh-approval-card:hover {
+    border-color: rgba(88,166,255,.3);
+  }
+  .zh-approval-card.zh-card-expired {
+    opacity: .6;
+    border-left-color: #6e7681 !important;
+  }
+
+  /* Badge de ação (QUARANTINE / DELETE) */
+  .zh-action-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .4px;
+  }
+
+  /* Células de informação dentro dos cards */
+  .zh-info-cell {
+    background: var(--zh-bg-sidebar);
+    border: 1px solid var(--zh-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .zh-info-label {
+    display: block;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--zh-text-muted);
+    margin-bottom: 2px;
+  }
+  .zh-info-value {
+    display: block;
+    font-size: .83rem;
+    color: #e6edf3;
+    word-break: break-word;
+  }
+
+  /* Bloco de informações do VMDK no card */
+  .zh-vmdk-info {
+    background: var(--zh-bg-sidebar);
+    border: 1px solid var(--zh-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  /* Lista de arquivos no modal de dry-run */
+  .zh-file-list {
+    max-height: 180px;
+    overflow-y: auto;
+    background: var(--zh-bg-sidebar);
+    border: 1px solid var(--zh-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--zh-border) transparent;
+  }
+
+  /* Countdown — animação de pulso quando < 1h */
+  .zh-countdown[data-urgent="true"] {
+    animation: zh-pulse-red 1s ease-in-out infinite;
+  }
+  @keyframes zh-pulse-red {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .6; }
+  }
+
+  /* Nav tabs no tema escuro */
+  .nav-tabs .nav-link {
+    color: var(--zh-text-muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 10px 16px;
+    transition: color .15s, border-color .15s;
+  }
+  .nav-tabs .nav-link:hover {
+    color: #e6edf3;
+    border-bottom-color: var(--zh-border);
+  }
+  .nav-tabs .nav-link.active {
+    color: var(--zh-accent-blue);
+    background: transparent;
+    border-bottom-color: var(--zh-accent-blue);
+    font-weight: 600;
+  }
+
+  /* Tabela de audit log — hover */
+  #zh-audit-table-body tr:hover td {
+    background-color: rgba(88,166,255,.04);
+  }
+</style>
+
+{# Injeta readonly_mode como variável JS global #}
+<script>
+  window.ZH_READONLY_MODE = {{ 'true' if readonly_mode else 'false' }};
+</script>
+
+{# Script principal da página #}
+<script src="/static/js/approvals.js?v={{ api_version }}"></script>
+
+{# Sincroniza tab Bootstrap com carregamento de dados #}
+<script>
+  "use strict";
+
+  // Quando uma aba Bootstrap é mostrada, carrega seus dados
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
+    btn.addEventListener("shown.bs.tab", () => {
+      const tab = btn.dataset.zhTab;
+      window._activeTabName = tab;
+      if (tab === "audit") {
+        loadAuditLog();
+      } else {
+        loadTab(tab);
+      }
+    });
+  });
+
+  // Marca countdown como urgente quando < 1h (pulso vermelho)
+  setInterval(() => {
+    document.querySelectorAll(".zh-countdown[data-expires]").forEach((el) => {
+      const remaining = new Date(el.dataset.expires).getTime() - Date.now();
+      el.dataset.urgent = remaining < 3_600_000 ? "true" : "false";
+    });
+  }, 5000);
+</script>
+{% endblock %}
