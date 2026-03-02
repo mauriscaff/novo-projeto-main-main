@@ -1297,6 +1297,7 @@ def _scan_datacenter_sync(
     stale_snapshot_days: int = 15,
     min_file_size_mb: int = 50,
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    extra_inventories: "list[_InventorySnapshot] | None" = None,
 ) -> tuple[list[ZombieVmdkResult], list[DatastoreScanMetric]]:
     """
     Núcleo síncrono da varredura. Deve ser invocado via run_in_executor para
@@ -1315,6 +1316,10 @@ def _scan_datacenter_sync(
         progress_callback: função opcional chamada em cada etapa significativa.
             Assinatura: callback(level, message, extra_data)
             level: "info" | "warning" | "error" | "success"
+        extra_inventories: lista opcional de _InventorySnapshot de outros vCenters
+            cadastrados no sistema. Se um VMDK candidato for encontrado em qualquer
+            desses inventários, ele é marcado como POSSIBLE_FALSE_POSITIVE
+            (Broadcom KB 383876 — datastores compartilhados entre vCenters).
     """
     def _cb(level: str, msg: str, **extra: Any) -> None:
         """Emite progresso via logger E via callback externo."""
@@ -1528,6 +1533,36 @@ def _scan_datacenter_sync(
                     vmdk_folder=vmdk_folder,
                     vmdk_filename=vmdk_filename,
                 )
+
+                # READ-ONLY: cross-vCenter check — no write operations
+                # Se extra_inventories fornecido, verifica se o candidato está em
+                # uso por algum outro vCenter cadastrado no sistema (KB 383876).
+                if extra_inventories:
+                    norm_candidate = _normalize(zombie.path)
+                    for ext_inv in extra_inventories:
+                        if norm_candidate in ext_inv.vmdk_paths:
+                            logger.info(
+                                "Cross-vCenter FP: '%s' encontrado em vCenter '%s'",
+                                zombie.path, ext_inv.vcenter_host,
+                            )
+                            zombie = replace(
+                                zombie,
+                                tipo_zombie=ZombieType.POSSIBLE_FALSE_POSITIVE,
+                                false_positive_reason=(
+                                    f"VMDK referenciado em inventário de outro vCenter "
+                                    f"cadastrado no sistema ({ext_inv.vcenter_host})"
+                                ),
+                                confidence_score=max(
+                                    5,
+                                    zombie.confidence_score - 50,
+                                ),
+                                evidence_log=zombie.evidence_log + [
+                                    f"OVERRIDE: encontrado em inventário de {ext_inv.vcenter_host} "
+                                    f"→ POSSIBLE_FALSE_POSITIVE (KB 383876)"
+                                ],
+                            )
+                            break  # basta um match para classificar como FP
+
                 results.append(zombie)
 
         found_here = len(results) - ds_zombies_before
@@ -1628,6 +1663,7 @@ async def scan_datacenter(
     stale_snapshot_days: int = 15,
     min_file_size_mb: int = 50,
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    extra_inventories: "list[_InventorySnapshot] | None" = None,
 ) -> tuple[list[ZombieVmdkResult], list[DatastoreScanMetric]]:
     """
     Executa a varredura completa de VMDKs zombie em um Datacenter do vCenter.
@@ -1635,12 +1671,21 @@ async def scan_datacenter(
     Todas as chamadas pyVmomi (bloqueantes) são executadas em ThreadPoolExecutor
     para não bloquear o event loop do FastAPI.
 
+    Para ambientes com datastores compartilhados entre múltiplos vCenters,
+    fornecer extra_inventories com os snapshots de inventário dos demais vCenters
+    para evitar falsos positivos (Broadcom KB 383876). Cada entrada em
+    extra_inventories é um _InventorySnapshot obtido via _collect_inventory()
+    conectado ao vCenter correspondente.
+
     Args:
         service_instance:    vim.ServiceInstance conectado ao vCenter.
         datacenter_name:     Nome exato do Datacenter no inventário do vCenter.
         orphan_days:         Dias mínimos sem referência para VMDK normal (padrão: 60).
         stale_snapshot_days: Dias mínimos para snapshot orphan ser reportado (padrão: 15).
         min_file_size_mb:    Tamanho mínimo para reportar (exceto BROKEN_CHAIN, padrão: 50).
+        extra_inventories:   Snapshots de inventário de outros vCenters cadastrados.
+                             VMDKs encontrados nesses inventários são marcados como
+                             POSSIBLE_FALSE_POSITIVE (KB 383876).
 
     Returns:
         (lista de ZombieVmdkResult, lista de DatastoreScanMetric por datastore).
@@ -1660,5 +1705,6 @@ async def scan_datacenter(
         stale_snapshot_days,
         min_file_size_mb,
         progress_callback,
+        extra_inventories,
     )
     return await loop.run_in_executor(None, fn)
