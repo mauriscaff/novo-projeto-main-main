@@ -452,7 +452,26 @@ def api_scan_results():
     sort_dir  = request.args.get("sort_dir", "desc")
 
     with _db() as db:
+        # Se nenhum job_id fornecido, usa o job concluído mais recente
+        # para evitar exibir registros de múltiplas varreduras combinadas.
+        if not job_id:
+            job_id = db.execute(
+                select(ZombieScanJob.job_id)
+                .where(ZombieScanJob.status == "completed")
+                .order_by(ZombieScanJob.started_at.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+            if job_id is None:
+                # Fallback: qualquer job mais recente
+                job_id = db.execute(
+                    select(ZombieScanJob.job_id)
+                    .order_by(ZombieScanJob.started_at.desc())
+                    .limit(1)
+                ).scalar_one_or_none()
+
         q = select(ZombieVmdkRecord)
+        if job_id:
+            q = q.where(ZombieVmdkRecord.job_id == job_id)
 
         if tipo:
             q = q.where(ZombieVmdkRecord.tipo_zombie == tipo.upper())
@@ -461,8 +480,7 @@ def api_scan_results():
                 ZombieVmdkRecord.vcenter_host.ilike(f"%{vcenter}%"),
                 ZombieVmdkRecord.vcenter_name.ilike(f"%{vcenter}%"),
             ))
-        if job_id:
-            q = q.where(ZombieVmdkRecord.job_id == job_id)
+
         if min_gb is not None:
             q = q.where(ZombieVmdkRecord.tamanho_gb >= min_gb)
         if scan_date:
