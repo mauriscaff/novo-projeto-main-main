@@ -259,6 +259,11 @@ class ZombieVmdkResult:
     """Trilha de auditoria: cada checagem que o arquivo passou/falhou em _classify_vmdk.
     Populado em ordem de execução; vazio quando evidence_log não foi solicitado."""
 
+    rule_evidence: dict = field(default_factory=dict)
+    """Evidência estruturada por regra produzida em _classify_vmdk.
+    Inclui orphan_days_check, min_size_check, inventory_check, content_library_check,
+    shared_datastore_check e classification_reason."""
+
 
 @dataclass
 class DatastoreScanMetric:
@@ -1144,6 +1149,16 @@ def _classify_vmdk(
         return (None, "tamanho", evlog)
 
     # Rejeitar arquivos modificados dentro do período de graça
+    # ── Estrutura rule_evidence — preenchida incrementalmente ─────────────────
+    # Valores default; serão sobrescritos conforme as checagens avançam
+    _age_days: int | None = None
+    _age_threshold: int = orphan_days
+    _size_mb: float | None = None
+    _inv_reason: str = "not found in any VM/template"
+    _cl_passed: bool = True
+    _shared_passed: bool = True
+    _shared_with: list[str] = []
+
     if entry.modification is not None:
         mod_utc = _utc(entry.modification)
         if mod_utc:
@@ -1153,7 +1168,9 @@ def _classify_vmdk(
                 if ("-000" in name_lower or "snap" in name_lower or "snapshot" in name_lower)
                 else orphan_days
             )
-            age_days = (now - mod_utc).days
+            _age_days = (now - mod_utc).days
+            _age_threshold = threshold_days
+            age_days = _age_days
             if age_days < threshold_days:
                 size_gb = (entry.size_bytes or 0) / (1024**3)
                 log_fn = logger.warning if size_gb > 100 else logger.debug
@@ -1174,6 +1191,7 @@ def _classify_vmdk(
         evlog.append("PASS: data de modificação desconhecida (sem filtro de recência)")
 
     if entry.size_bytes is not None:
+        _size_mb = entry.size_bytes / (1024 * 1024)
         size_gb_log = entry.size_bytes / (1024 ** 3)
         evlog.append(f"PASS: tamanho {size_gb_log:.2f} GB ≥ min_file_size_mb({min_file_size_mb})")
 
@@ -1183,12 +1201,14 @@ def _classify_vmdk(
     # Comparar cada VMDK encontrado com os caminhos registrados
     if norm_path in inventory.vmdk_paths:
         _skip(entry, "inventario")
+        _inv_reason = "found in VM/template inventory (active disk)"
         evlog.append("SKIP: encontrado em inventory.vmdk_paths (VM/template ativo)")
         return (None, "inventario", evlog)
     evlog.append("PASS: não está em inventory.vmdk_paths")
 
     if norm_path in inventory.fcd_paths:
         _skip(entry, "fcd")
+        _inv_reason = "found in FCD/IVD managed storage"
         evlog.append("SKIP: encontrado em inventory.fcd_paths (FCD/IVD gerenciado)")
         return (None, "fcd", evlog)
     evlog.append("PASS: não está em inventory.fcd_paths")
@@ -1196,6 +1216,7 @@ def _classify_vmdk(
     folder_norm = _normalize(entry.folder)
     if _is_content_library_path(folder_norm, norm_path, inventory.content_library_paths):
         _skip(entry, "content_library")
+        _cl_passed = False
         evlog.append("SKIP: pasta pertence à Content Library (EX-6)")
         return (None, "content_library", evlog)
     evlog.append("PASS: não está em content_library")
@@ -1208,6 +1229,8 @@ def _classify_vmdk(
 
     # EX-3: datastore compartilhado → POSSIBLE_FALSE_POSITIVE (Broadcom KB 383876)
     is_shared_datastore = datastore_name in shared_datastores
+    _shared_passed = not is_shared_datastore
+    _shared_with = list(shared_datastores) if is_shared_datastore else []
     false_positive_reason_val: str | None = None
 
     # Inferência de motivo e tipo remapeado para banco de dados legado
@@ -1247,6 +1270,35 @@ def _classify_vmdk(
     )
     evlog.append(f"CLASSIFIED: {mapped_tipo.value} | score={score}")
 
+    # ── Montar rule_evidence estruturado ──────────────────────────────────────
+    _orphan_check_passed = _age_days is None or _age_days >= _age_threshold
+    rule_evidence: dict = {
+        "orphan_days_check": {
+            "passed": _orphan_check_passed,
+            "value": _age_days,
+            "threshold": _age_threshold,
+        },
+        "min_size_check": {
+            "passed": _size_mb is None or _size_mb >= min_file_size_mb,
+            "value_mb": round(_size_mb, 2) if _size_mb is not None else None,
+            "threshold_mb": min_file_size_mb,
+        },
+        "inventory_check": {
+            "passed": True,  # chegou aqui apenas se não estava no inventário
+            "reason": _inv_reason,
+        },
+        "content_library_check": {
+            "passed": _cl_passed,
+        },
+        "shared_datastore_check": {
+            "passed": _shared_passed,
+            "shared_with": _shared_with,
+        },
+        "classification_reason": (
+            f"{mapped_tipo.value}: {reason}"
+        ),
+    }
+
     # Construir e retornar ScanResult com os órfãos detectados
     return ZombieVmdkResult(
         path=entry.full_path,
@@ -1271,6 +1323,7 @@ def _classify_vmdk(
         datastore_type=ds_type,
         confidence_score=score,
         evidence_log=evlog,
+        rule_evidence=rule_evidence,
     )
 
 def _find_datacenter(content: Any, name: str) -> Any:

@@ -162,8 +162,11 @@ class ZombieResultItem(BaseModel):
     datastore_name: str = ""
     vmdk_folder: str = ""
     vmdk_filename: str = ""
+    # Evidência estruturada por regra (None para registros anteriores à feature)
+    rule_evidence: dict | None = None
 
     model_config = {"from_attributes": True}
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

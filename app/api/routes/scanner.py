@@ -137,6 +137,7 @@ def _record_to_item(
         datastore_name=getattr(r, "datastore_name", None) or "",
         vmdk_folder=getattr(r, "vmdk_folder", None) or "",
         vmdk_filename=getattr(r, "vmdk_filename", None) or "",
+        rule_evidence=getattr(r, "rule_evidence", None),
     )
 
 

@@ -112,3 +112,8 @@ class ZombieVmdkRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+    # Evidência estruturada por regra (preenchida pelo scanner, sobrevive sem migração se NULL)
+    rule_evidence: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    """Resultado por cheque: orphan_days_check, min_size_check, inventory_check,
+    content_library_check, shared_datastore_check, classification_reason."""

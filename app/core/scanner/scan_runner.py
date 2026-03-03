@@ -352,6 +352,7 @@ async def run_zombie_scan(
                             datastore_name=getattr(r, "datastore_name", "") or "",
                             vmdk_folder=getattr(r, "vmdk_folder", "") or "",
                             vmdk_filename=getattr(r, "vmdk_filename", "") or "",
+                            rule_evidence=getattr(r, "rule_evidence", None) or None,
                         )
                     )
                 await db.commit()
