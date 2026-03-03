@@ -331,12 +331,29 @@ def api_health():
 @app.get("/api/v1/dashboard")
 def api_dashboard():
     with _db() as db:
-        # Totalizadores históricos
+        # Resolve o job mais recente para todos os totalizadores
+        latest_job_id = db.execute(
+            select(ZombieScanJob.job_id)
+            .where(ZombieScanJob.status == "completed")
+            .order_by(ZombieScanJob.started_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if latest_job_id is None:
+            latest_job_id = db.execute(
+                select(ZombieScanJob.job_id)
+                .order_by(ZombieScanJob.started_at.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+
+        # Filtro base — sempre o job mais recente
+        _jf = (ZombieVmdkRecord.job_id == latest_job_id) if latest_job_id else True
+
+        # Totalizadores do job atual (não acumulado histórico)
         row = db.execute(
             select(
                 func.count(ZombieVmdkRecord.id),
                 func.coalesce(func.sum(ZombieVmdkRecord.tamanho_gb), 0.0),
-            )
+            ).where(_jf)
         ).one()
         total_zombies = row[0]
         total_gb      = round(float(row[1]), 3)
@@ -362,25 +379,26 @@ def api_dashboard():
             select(func.count()).select_from(VCenter).where(VCenter.is_active.is_(True))
         ).scalar_one() or 0
 
-        # Breakdown por tipo de zombie
+        # Breakdown por tipo de zombie (apenas job atual)
         type_rows = db.execute(
             select(
                 ZombieVmdkRecord.tipo_zombie,
                 func.count(ZombieVmdkRecord.id),
                 func.coalesce(func.sum(ZombieVmdkRecord.tamanho_gb), 0.0),
-            ).group_by(ZombieVmdkRecord.tipo_zombie)
+            ).where(_jf).group_by(ZombieVmdkRecord.tipo_zombie)
         ).all()
         by_type = [
             {"tipo_zombie": r[0], "count": r[1], "size_gb": round(float(r[2]), 3)}
             for r in type_rows
         ]
 
-        # Top 5 vCenters por GB recuperável
+        # Top 5 vCenters por GB recuperável (apenas job atual)
         vc_rows = db.execute(
             select(
                 func.coalesce(ZombieVmdkRecord.vcenter_name, ZombieVmdkRecord.vcenter_host),
                 func.coalesce(func.sum(ZombieVmdkRecord.tamanho_gb), 0.0),
             )
+            .where(_jf)
             .group_by(func.coalesce(ZombieVmdkRecord.vcenter_name, ZombieVmdkRecord.vcenter_host))
             .order_by(func.sum(ZombieVmdkRecord.tamanho_gb).desc())
             .limit(5)
@@ -390,12 +408,13 @@ def api_dashboard():
             for r in vc_rows
         ]
 
-        # Tendência das últimas 10 varreduras
+        # Tendência das últimas 10 varreduras (histórico correto — usa total_size_gb do job)
         trend_rows = db.execute(
             select(
                 ZombieScanJob.job_id,
                 ZombieScanJob.finished_at,
                 ZombieScanJob.total_size_gb,
+                ZombieScanJob.total_vmdks,
             )
             .where(ZombieScanJob.status == "completed")
             .order_by(ZombieScanJob.finished_at.desc())
@@ -406,15 +425,17 @@ def api_dashboard():
                 "job_id":    r[0],
                 "scan_date": _dt_iso(r[1]),
                 "total_gb":  round(float(r[2] or 0.0), 3),
+                "total_vmdks": r[3] or 0,
             }
             for r in reversed(trend_rows)
         ]
 
-        # Últimos 10 VMDKs (tabela de alertas recentes)
+        # Últimos 10 VMDKs do job atual
         recent_alerts = [
             _vmdk_to_dict(r)
             for r in db.execute(
                 select(ZombieVmdkRecord)
+                .where(_jf)
                 .order_by(ZombieVmdkRecord.created_at.desc())
                 .limit(10)
             ).scalars().all()
@@ -431,6 +452,7 @@ def api_dashboard():
         "trend":             trend,
         "recent_alerts":     recent_alerts,
     })
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
