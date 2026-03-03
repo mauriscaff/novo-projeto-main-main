@@ -328,33 +328,35 @@ async def run_zombie_scan(
 
             async with AsyncSessionLocal() as db:
                 for r in results:
-                    db.add(
-                        ZombieVmdkRecord(
-                            job_id=job_id,
-                            path=r.path,
-                            datastore=r.datastore,
-                            folder=r.folder,
-                            datastore_type=r.datastore_type,
-                            tamanho_gb=r.tamanho_gb,
-                            ultima_modificacao=r.ultima_modificacao,
-                            tipo_zombie=r.tipo_zombie.value,
-                            vcenter_host=r.vcenter_host,
-                            vcenter_name=vc_name,
-                            datacenter=r.datacenter,
-                            detection_rules=r.detection_rules,
-                            likely_causes=r.likely_causes,
-                            false_positive_reason=r.false_positive_reason,
-                            confidence_score=r.confidence_score,
-                            vcenter_deeplink_ui=getattr(r, "vcenter_deeplink_ui", "") or "",
-                            vcenter_deeplink_folder=getattr(r, "vcenter_deeplink_folder", "") or "",
-                            vcenter_deeplink_folder_dir=getattr(r, "vcenter_deeplink_folder_dir", "") or "",
-                            datacenter_path=getattr(r, "datacenter_path", "") or "",
-                            datastore_name=getattr(r, "datastore_name", "") or "",
-                            vmdk_folder=getattr(r, "vmdk_folder", "") or "",
-                            vmdk_filename=getattr(r, "vmdk_filename", "") or "",
-                            rule_evidence=getattr(r, "rule_evidence", None) or None,
-                        )
+                    rec = ZombieVmdkRecord(
+                        job_id=job_id,
+                        path=r.path,
+                        datastore=r.datastore,
+                        folder=r.folder,
+                        datastore_type=r.datastore_type,
+                        tamanho_gb=r.tamanho_gb,
+                        ultima_modificacao=r.ultima_modificacao,
+                        tipo_zombie=r.tipo_zombie.value,
+                        vcenter_host=r.vcenter_host,
+                        vcenter_name=vc_name,
+                        datacenter=r.datacenter,
+                        detection_rules=r.detection_rules,
+                        likely_causes=r.likely_causes,
+                        false_positive_reason=r.false_positive_reason,
+                        confidence_score=r.confidence_score,
+                        vcenter_deeplink_ui=getattr(r, "vcenter_deeplink_ui", "") or "",
+                        vcenter_deeplink_folder=getattr(r, "vcenter_deeplink_folder", "") or "",
+                        vcenter_deeplink_folder_dir=getattr(r, "vcenter_deeplink_folder_dir", "") or "",
+                        datacenter_path=getattr(r, "datacenter_path", "") or "",
+                        datastore_name=getattr(r, "datastore_name", "") or "",
+                        vmdk_folder=getattr(r, "vmdk_folder", "") or "",
+                        vmdk_filename=getattr(r, "vmdk_filename", "") or "",
                     )
+                    # rule_evidence é definido após construção pois o __init__
+                    # gerado pelo SQLAlchemy pode não incluir colunas adicionadas
+                    # após a compilação inicial do mapper.
+                    rec.rule_evidence = getattr(r, "rule_evidence", None) or None
+                    db.add(rec)
                 await db.commit()
 
             logger.info(
