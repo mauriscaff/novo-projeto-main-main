@@ -902,4 +902,195 @@ SCRIPTS
       e.target.closest("tr")?.classList.toggle("selected-row", e.target.checked);
     });
 </script>
+
+{# ── Deeplink Datastore Browser + Copy Path ──────────────────────────────── #}
+<style>
+  .zh-path-cell {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .zh-path-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .zh-path-text.selectable {
+    user-select: all;
+    -webkit-user-select: all;
+    white-space: normal;
+    word-break: break-all;
+  }
+
+  .zh-btn-folder,
+  .zh-btn-copy {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid var(--zh-border);
+    background: transparent;
+    color: var(--zh-text-muted);
+    cursor: pointer;
+    font-size: .75rem;
+    transition: color .15s, background .15s, border-color .15s;
+    text-decoration: none;
+    line-height: 1;
+  }
+
+  .zh-btn-folder:hover {
+    color: var(--zh-accent-blue);
+    border-color: var(--zh-accent-blue);
+    background: rgba(88, 166, 255, .08);
+  }
+
+  .zh-btn-folder.disabled {
+    opacity: .3;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .zh-btn-copy:hover {
+    color: var(--zh-accent-green);
+    border-color: var(--zh-accent-green);
+    background: rgba(63, 185, 80, .08);
+  }
+
+  .zh-btn-copy.copied {
+    color: var(--zh-accent-green);
+    border-color: var(--zh-accent-green);
+  }
+</style>
+
+<script>
+  "use strict";
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  function _zhEsc(s) {
+    return s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Lê um dado da linha DataTables a partir de um <tr>
+  function _zhRowData(tr) {
+    try {
+      const tbl = document.getElementById('zh-table-results');
+      if (!tbl || !window.$) return null;
+      return $(tbl).DataTable().row(tr).data();
+    } catch (_) { return null; }
+  }
+
+  // ── Augmenta células "VMDK Path" (coluna index 3) após cada draw ──────────────
+  function _zhAugmentPathCells() {
+    const tbody = document.querySelector('#zh-table-results tbody');
+    if (!tbody) return;
+
+    tbody.querySelectorAll('tr').forEach(tr => {
+      // Evita duplicar botões em linhas já processadas
+      if (tr.dataset.zhPathAug) return;
+      const cells = tr.querySelectorAll('td');
+      if (cells.length < 4) return;
+
+      const pathCell = cells[3]; // 0=checkbox, 1=vCenter, 2=datastore, 3=path
+      const existingSpan = pathCell.querySelector('span');
+      if (!existingSpan) return;
+
+      const data = _zhRowData(tr);
+
+      // Path completo (preferência: dado row.path; fallback: title do span)
+      const fullPath = (data && data.path) ? data.path : (existingSpan.title || existingSpan.textContent);
+      const folderUrl = data && (data.vcenter_deeplink_folder_dir || data.vcenter_deeplink_ui || '');
+      const hasFolder = !!(folderUrl && folderUrl.length > 4);
+
+      // Substitui conteúdo da célula com layout de 3 elementos
+      const pathShort = fullPath.length > 55 ? fullPath.slice(0, 52) + '…' : fullPath;
+
+      pathCell.innerHTML = `
+      <div class="zh-path-cell">
+        <span class="zh-path-text font-monospace" style="font-size:.78rem;"
+          title="${_zhEsc(fullPath)}">${_zhEsc(pathShort)}</span>
+        ${hasFolder
+          ? `<a class="zh-btn-folder" href="${_zhEsc(folderUrl)}" target="_blank" rel="noopener noreferrer"
+               title="Abrir pasta no vCenter Datastore Browser" aria-label="Abrir no vCenter">
+               <i class="bi bi-folder2-open"></i>
+             </a>`
+          : `<span class="zh-btn-folder disabled" title="URL do vCenter não disponível" aria-label="URL não disponível">
+               <i class="bi bi-folder-x"></i>
+             </span>`
+        }
+        <button class="zh-btn-copy" data-copy-path="${_zhEsc(fullPath)}"
+          title="Copiar caminho completo" aria-label="Copiar caminho VMDK">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>`;
+
+      tr.dataset.zhPathAug = '1';
+    });
+
+    // Wira botões de cópia recém-criados
+    _zhBindCopyBtns();
+  }
+
+  function _zhBindCopyBtns() {
+    document.querySelectorAll('.zh-btn-copy[data-copy-path]:not([data-zh-wired])').forEach(btn => {
+      btn.dataset.zhWired = '1';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const path = btn.dataset.copyPath || '';
+        navigator.clipboard.writeText(path).then(() => {
+          const icon = btn.querySelector('i');
+          btn.classList.add('copied');
+          if (icon) { icon.className = 'bi bi-check-lg'; }
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            if (icon) { icon.className = 'bi bi-clipboard'; }
+          }, 2000);
+        }).catch(() => {
+          // Fallback para browsers sem permissão clipboard
+          const ta = document.createElement('textarea');
+          ta.value = path;
+          ta.style.cssText = 'position:fixed;opacity:0;';
+          document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy');
+          document.body.removeChild(ta);
+        });
+      });
+    });
+  }
+
+  // ── Observa redesenhos da tabela DataTables ───────────────────────────────────
+  // drawCallback em scan_results.js já existe; usamos MutationObserver como
+  // hook não-invasivo para detectar quando o tbody é preenchido/redesenhado.
+  const _zhPathObserver = new MutationObserver(() => {
+    _zhAugmentPathCells();
+  });
+  const _zhTbody = document.querySelector('#zh-table-results tbody');
+  if (_zhTbody) {
+    _zhPathObserver.observe(_zhTbody, { childList: true, subtree: false });
+  }
+
+  // Também aumenta células quando o modal de detalhes é aberto
+  // (preenche os campos de deeplink que já existem no modal HTML)
+  document.getElementById('zh-modal-details')?.addEventListener('show.bs.modal', () => {
+    // O scan_results.js já preenche det-btn-vsphere-ui e det-btn-folder via openDetails()
+    // Apenas garantimos que o det-btn-folder-dir (pasta) também seja visível se disponível
+    setTimeout(() => {
+      const data = window._zhCurrentDetailData;
+      if (!data) return;
+      const btnFolderDir = document.getElementById('det-btn-folder-dir');
+      if (btnFolderDir && data.vcenter_deeplink_folder_dir) {
+        btnFolderDir.href = data.vcenter_deeplink_folder_dir;
+        btnFolderDir.classList.remove('d-none');
+      }
+    }, 50);
+  });
+</script>
+
 {% endblock %}
