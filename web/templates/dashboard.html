@@ -717,41 +717,42 @@ SCRIPTS — carregados após os scripts do base.html
       }
     }, 1500);
   });
+</script>
 
-  {# Script inline  funcionalidades específicas desta página #}
-  <script>
-    "use strict";
+{# Script inline funcionalidades específicas desta página #}
+<script>
+  "use strict";
 
   // ── Filtro de tipo na tabela ───────────────────────────────────────────────
   // Aplica filtro por coluna "Tipo" sempre que o <select> mudar
-      document.getElementById("zh-filter-type")?.addEventListener("change", function () {
+  document.getElementById("zh-filter-type")?.addEventListener("change", function () {
     if (!window.dataTable && typeof $ !== "undefined") return;
-      // DataTables expõe instância via jQuery — buscamos via API global
-      const dt = $("#zh-table-recent").DataTable();
-      // Coluna 3 = Tipo (0-based)
-      dt.column(3).search(this.value, false, false).draw();
+    // DataTables expõe instância via jQuery — buscamos via API global
+    const dt = $("#zh-table-recent").DataTable();
+    // Coluna 3 = Tipo (0-based)
+    dt.column(3).search(this.value, false, false).draw();
   });
 
-      // ── Modal de nova varredura ───────────────────────────────────────────────
-      const modalScan = document.getElementById("zh-modal-scan");
-      const btnNewScan = document.getElementById("zh-btn-new-scan");
-      const btnConfirmScan = document.getElementById("zh-btn-confirm-scan");
-      const scanSpinner = document.getElementById("zh-scan-spinner");
-      const scanIcon = document.getElementById("zh-scan-icon");
-      const scanBtnText = document.getElementById("zh-scan-btn-text");
-      const vcenterList = document.getElementById("zh-scan-vcenter-list");
+  // ── Modal de nova varredura ───────────────────────────────────────────────
+  const modalScan = document.getElementById("zh-modal-scan");
+  const btnNewScan = document.getElementById("zh-btn-new-scan");
+  const btnConfirmScan = document.getElementById("zh-btn-confirm-scan");
+  const scanSpinner = document.getElementById("zh-scan-spinner");
+  const scanIcon = document.getElementById("zh-scan-icon");
+  const scanBtnText = document.getElementById("zh-scan-btn-text");
+  const vcenterList = document.getElementById("zh-scan-vcenter-list");
 
   // Abre modal e carrega lista de vCenters disponíveis
   btnNewScan?.addEventListener("click", async () => {
     const bsModal = new bootstrap.Modal(modalScan);
-      bsModal.show();
+    bsModal.show();
 
-      // Carrega vCenters cadastrados via API
-      try {
+    // Carrega vCenters cadastrados via API
+    try {
       const resp = await fetch("/api/v1/vcenters", {
         headers: {
-        Accept: "application/json",
-      "X-API-Key": window.ZH_API_KEY || ""
+          Accept: "application/json",
+          "X-API-Key": window.ZH_API_KEY || ""
         }
       });
       if (!resp.ok) throw new Error("Erro ao carregar vCenters");
@@ -759,8 +760,8 @@ SCRIPTS — carregados após os scripts do base.html
 
       if (!vcenters.length) {
         vcenterList.innerHTML =
-        `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Nenhum vCenter cadastrado.</span>`;
-      return;
+          `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Nenhum vCenter cadastrado.</span>`;
+        return;
       }
 
       vcenterList.innerHTML = vcenters.map((vc) => `
@@ -780,7 +781,7 @@ SCRIPTS — carregados após os scripts do base.html
       `).join("");
 
     } catch (err) {
-        vcenterList.innerHTML =
+      vcenterList.innerHTML =
         `<span class="text-zombie-red small"><i class="bi bi-x-circle me-1"></i>${err.message}</span>`;
     }
   });
@@ -789,30 +790,30 @@ SCRIPTS — carregados após os scripts do base.html
   btnConfirmScan?.addEventListener("click", async () => {
     // Coleta vCenters selecionados
     const checked = [...document.querySelectorAll(".zh-vc-check:checked")].map((el) => el.value);
-      if (!checked.length) {
-        alert("Selecione ao menos um vCenter para varrer.");
+    if (!checked.length) {
+      alert("Selecione ao menos um vCenter para varrer.");
       return;
     }
 
-      // Coleta datacenters opcionais
-      const dcRaw = document.getElementById("zh-scan-dc-filter")?.value.trim();
+    // Coleta datacenters opcionais
+    const dcRaw = document.getElementById("zh-scan-dc-filter")?.value.trim();
     const dcList = dcRaw ? dcRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
-      // Estado visual do botão
-      scanSpinner?.classList.remove("d-none");
-      scanIcon?.classList.add("d-none");
-      if (scanBtnText) scanBtnText.textContent = "Iniciando…";
-      if (btnConfirmScan) btnConfirmScan.disabled = true;
+    // Estado visual do botão
+    scanSpinner?.classList.remove("d-none");
+    scanIcon?.classList.add("d-none");
+    if (scanBtnText) scanBtnText.textContent = "Iniciando…";
+    if (btnConfirmScan) btnConfirmScan.disabled = true;
 
-      try {
+    try {
       const resp = await fetch("/api/v1/scan/start", {
         method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      Accept: "application/json",
-      "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY"
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY"
         },
-      body: JSON.stringify({vcenter_ids: checked, datacenters: dcList }),
+        body: JSON.stringify({ vcenter_ids: checked, datacenters: dcList }),
       });
 
       const text = await resp.text();
@@ -823,7 +824,7 @@ SCRIPTS — carregados após os scripts do base.html
         if (resp.status === 401) {
           throw new Error("Não autenticado. Verifique se a API Key está configurada no servidor (config / .env) e recarregue a página.");
         }
-      throw new Error("Resposta inválida do servidor (não-JSON). Status: " + resp.status + ".");
+        throw new Error("Resposta inválida do servidor (não-JSON). Status: " + resp.status + ".");
       }
       if (!resp.ok) throw new Error(result.detail ?? "Erro ao iniciar varredura");
 
