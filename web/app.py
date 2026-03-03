@@ -482,6 +482,10 @@ def api_scan_results():
             select(func.count()).select_from(q.subquery())
         ).scalar_one() or 0
 
+        # Soma total de GB dos registros filtrados (para o card "Total recuperável")
+        size_q = select(func.sum(ZombieVmdkRecord.tamanho_gb)).select_from(q.subquery())
+        total_size_gb = round(float(db.execute(size_q).scalar_one() or 0.0), 3)
+
         _cols = {
             "tamanho_gb":         ZombieVmdkRecord.tamanho_gb,
             "ultima_modificacao": ZombieVmdkRecord.ultima_modificacao,
@@ -515,6 +519,7 @@ def api_scan_results():
         "items":        data,
         "data":         data,   # alias mantido para compatibilidade
         "total":        total,
+        "total_size_gb": total_size_gb,
         "recordsTotal":    total,
         "recordsFiltered": total,
         "pages":        max(1, -(-total // per_page)),
