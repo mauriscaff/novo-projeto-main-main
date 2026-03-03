@@ -90,8 +90,21 @@ block scripts — Scripts JS adicionais no final do
         filter: drop-shadow(0 0 6px rgba(248, 81, 73, 0.5));
       }
 
-      /* Badge READ-ONLY — sempre visível, nunca esconder */
+      /* Badge READ-ONLY (verde) — modo seguro padrão */
       .zh-readonly-badge {
+        background-color: rgba(63, 185, 80, 0.15);
+        color: var(--zh-accent-green);
+        border: 1px solid rgba(63, 185, 80, 0.4);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      /* Badge OPERACIONAL (vermelho pulsante) — ações destrutivas ativas */
+      .zh-operational-badge {
         background-color: rgba(248, 81, 73, 0.15);
         color: var(--zh-accent-red);
         border: 1px solid rgba(248, 81, 73, 0.4);
@@ -100,8 +113,8 @@ block scripts — Scripts JS adicionais no final do
         letter-spacing: 0.5px;
         padding: 4px 10px;
         border-radius: 6px;
-        animation: zh-pulse-red 2.5s ease-in-out infinite;
         white-space: nowrap;
+        animation: zh-pulse-red 2.5s ease-in-out infinite;
       }
 
       @keyframes zh-pulse-red {
@@ -435,17 +448,15 @@ block scripts — Scripts JS adicionais no final do
     -->
       <div class="d-flex align-items-center gap-2 flex-shrink-0">
         {% if readonly_mode %}
-        <!-- Modo padrão seguro: operações destrutivas bloqueadas -->
-        <span class="zh-readonly-badge"
-          title="READONLY_MODE=true no .env — nenhuma operação destrutiva pode ser executada">
-          <i class="bi bi-lock-fill me-1" aria-hidden="true"></i>READ-ONLY MODE
+        <!-- Modo seguro: operações destrutivas bloqueadas — badge VERDE -->
+        <span class="zh-readonly-badge" title="READONLY_MODE=true — nenhuma operação destrutiva pode ser executada">
+          &#128274; READ-ONLY MODE &mdash; Nenhuma ação destrutiva permitida
         </span>
         {% else %}
-        <!-- Modo escrita habilitado — aviso especial de atenção -->
-        <span class="zh-readonly-badge"
-          style="background-color: rgba(210,153,34,0.15); color: #d29922; border-color: rgba(210,153,34,0.4); animation: none;"
+        <!-- Modo operacional — badge VERMELHO PULSANTE de atenção máxima -->
+        <span class="zh-operational-badge"
           title="READONLY_MODE=false — ações destrutivas HABILITADAS com ApprovalToken">
-          <i class="bi bi-unlock-fill me-1" aria-hidden="true"></i>WRITE ENABLED
+          &#9888;&#65039; MODO OPERACIONAL &mdash; Ações destrutivas ATIVAS
         </span>
         {% endif %}
       </div>
