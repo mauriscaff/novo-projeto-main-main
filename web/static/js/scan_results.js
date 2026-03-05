@@ -418,6 +418,7 @@ function _buildAjaxParams(d) {
   const fModBefore = document.getElementById("f-modified-before")?.value;
   const fDate = document.getElementById("f-date")?.value;
   const fJob = document.getElementById("f-job-id")?.value;
+  const fLatest = document.getElementById("f-latest-only")?.checked;
 
   if (fVc) params.vcenter = fVc;
   if (fTipo) params.tipo = fTipo;
@@ -428,6 +429,7 @@ function _buildAjaxParams(d) {
   if (fModBefore) params.modified_before = fModBefore;
   if (fDate) params.scan_date = fDate;
   if (fJob) params.job_id = fJob;
+  if (fLatest) params.latest_only = true;
 
   _updateActiveFiltersBadge(params);
   return params;
@@ -464,7 +466,7 @@ async function _populateVcenterFilter() {
     const list = await resp.json();
     list.forEach((vc) => {
       const opt = document.createElement("option");
-      opt.value = vc.id;
+      opt.value = vc.name;  // Backend usa LIKE em vcenter_name/vcenter_host
       opt.textContent = vc.name;
       sel.appendChild(opt);
     });

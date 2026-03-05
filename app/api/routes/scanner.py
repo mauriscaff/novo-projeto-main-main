@@ -92,6 +92,7 @@ def _job_to_schema(job: ZombieScanJob) -> dict:
         "job_id": job.job_id,
         "vcenter_ids": job.vcenter_ids or [],
         "datacenters": job.datacenters,
+        "datastores": getattr(job, "datastores", None),
         "status": job.status,
         "started_at": job.started_at,
         "finished_at": job.finished_at,
@@ -143,6 +144,51 @@ def _record_to_item(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# GET /datastores — lista datastores conhecidos para seleção no frontend
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@router.get(
+    "/datastores",
+    summary="Listar datastores conhecidos",
+    description="""
+Retorna a lista distinta de datastores que aparecem nos resultados
+de varreduras anteriores, agrupados por vCenter.
+
+Usado pelo frontend para popular o seletor de datastores no modal
+de nova varredura.
+    """,
+)
+async def list_known_datastores(
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> list[dict]:
+    stmt = (
+        select(
+            ZombieVmdkRecord.datastore,
+            ZombieVmdkRecord.vcenter_name,
+            ZombieVmdkRecord.vcenter_host,
+        )
+        .distinct()
+        .order_by(ZombieVmdkRecord.datastore)
+    )
+    rows = (await db.execute(stmt)).all()
+    seen: set[str] = set()
+    result: list[dict] = []
+    for row in rows:
+        ds_name = row.datastore
+        if ds_name in seen:
+            continue
+        seen.add(ds_name)
+        result.append({
+            "name": ds_name,
+            "vcenter_name": row.vcenter_name or "",
+            "vcenter_host": row.vcenter_host or "",
+        })
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # POST /start
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -158,6 +204,8 @@ Dispara uma varredura assíncrona de VMDKs zombie em múltiplos vCenters.
 - `vcenter_ids`: lista de IDs inteiros ou nomes de vCenters cadastrados.
 - `datacenters`: lista de nomes de Datacenters a varrer. Se omitido, todos os
   Datacenters de cada vCenter são varridos.
+- `datastores`: lista de Datastores (LUNs) a varrer. Se omitido, todos os
+  Datastores serão varridos.
 
 Retorna imediatamente com `job_id` e `status: running`.
 Acompanhe o progresso via `GET /scan/jobs/{job_id}`.
@@ -187,6 +235,7 @@ async def start_scan(
         job_id=job_id,
         vcenter_ids=list(body.vcenter_ids),
         datacenters=body.datacenters,
+        datastores=body.datastores,
         status="pending",
     )
     db.add(job)
@@ -198,6 +247,7 @@ async def start_scan(
         job_id,
         list(body.vcenter_ids),
         body.datacenters,
+        body.datastores,
     )
 
     return ScanStartResponse(**_job_to_schema(job))
@@ -401,6 +451,7 @@ Parâmetros de ordenação aceitos (aliases do frontend):
 )
 async def list_all_results(
     job_id: Annotated[str | None, Query(description="Filtrar por job_id específico")] = None,
+    latest_only: Annotated[bool, Query(description="Se true, filtra apenas pelo job mais recente concluído")] = False,
     tipo: Annotated[str | None, Query()] = None,
     deletable_only: Annotated[
         bool,
@@ -444,6 +495,19 @@ async def list_all_results(
         stmt = stmt.where(ZombieVmdkRecord.job_id == job_id)
         count_stmt = count_stmt.where(ZombieVmdkRecord.job_id == job_id)
         size_stmt = size_stmt.where(ZombieVmdkRecord.job_id == job_id)
+    elif latest_only:
+        from app.models.zombie_scan import ZombieScanJob
+        latest_job_q = await db.execute(
+            select(ZombieScanJob.job_id)
+            .where(ZombieScanJob.status == "completed")
+            .order_by(ZombieScanJob.finished_at.desc())
+            .limit(1)
+        )
+        latest_job_id = latest_job_q.scalar_one_or_none()
+        if latest_job_id:
+            stmt = stmt.where(ZombieVmdkRecord.job_id == latest_job_id)
+            count_stmt = count_stmt.where(ZombieVmdkRecord.job_id == latest_job_id)
+            size_stmt = size_stmt.where(ZombieVmdkRecord.job_id == latest_job_id)
 
     if tipo:
         valid_tipos = {t.value for t in ZombieType}

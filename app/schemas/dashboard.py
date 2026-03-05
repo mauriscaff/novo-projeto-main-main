@@ -77,3 +77,32 @@ class DashboardResponse(BaseModel):
     """Número de vCenters ativos no inventário."""
     recent_vmdks: list[RecentVmdkEntry] = []
     """Últimos VMDKs detectados (para a tabela 'VMDKs detectados recentemente')."""
+
+
+class TypeBreakdownStorage(BaseModel):
+    count: int
+    gb: float
+
+
+class DatastoreStorageBreakdown(BaseModel):
+    datastore_name: str
+    vcenter: str
+    total_gb: float
+    total_tb: float
+    zombie_count: int
+    by_type: dict[str, TypeBreakdownStorage]
+    percentage_of_total: float
+
+
+class VCenterStorageBreakdown(BaseModel):
+    vcenter: str
+    total_gb: float
+    zombie_count: int
+
+
+class RecoverableStorageResponse(BaseModel):
+    total_recoverable_gb: float
+    total_recoverable_tb: float
+    by_datastore: list[DatastoreStorageBreakdown]
+    by_vcenter: list[VCenterStorageBreakdown]
+    last_scan_at: datetime | None

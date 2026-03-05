@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.scanner.zombie_detector import DatastoreScanMetric, scan_datacenter
+from app.core.scanner.zombie_detector import DatastoreScanMetric, scan_datacenter, build_global_vmdk_inventory
 from app.core.vcenter.client import list_datacenters_async
 from app.core.vcenter.connection import VCenterNotRegisteredError, vcenter_pool
 from app.core.vcenter.connection_manager import connection_manager
@@ -140,7 +140,8 @@ async def resolve_vcenter(db: AsyncSession, ref: int | str) -> VCenter | None:
 async def run_zombie_scan(
     job_id: str,
     vcenter_refs: list[int | str],
-    requested_datacenters: list[str] | None,
+    target_datacenters: list[str] | None = None,
+    target_datastores: list[str] | None = None,
 ) -> None:
     """
     Executa a varredura zombie para múltiplos vCenters/Datacenters e persiste
@@ -194,8 +195,8 @@ async def run_zombie_scan(
                 errors.append(f"vCenter '{vc.name}': falha na conexão — {exc}")
                 continue
 
-            if requested_datacenters:
-                dc_names = requested_datacenters
+            if target_datacenters:
+                dc_names = target_datacenters
             else:
                 try:
                     dc_names = await list_datacenters_async(si)
@@ -229,6 +230,29 @@ async def run_zombie_scan(
         len(scan_pairs),
         [(name, dc) for _, name, _, dc in scan_pairs],
     )
+
+    # ── Coleta de Inventário Global (Cross-vCenter) ───────────────────────────
+    logger.info("[job:%s] Iniciando coleta de inventário global Cross-vCenter...", job_id)
+    global_vmdk_paths = frozenset()
+    
+    # Extrair service_instances únicos dos pares para o inventário global
+    unique_vc_ids = {vc_id for vc_id, _, _, _ in scan_pairs}
+    service_instances = []
+    for vc_id in unique_vc_ids:
+        try:
+            si = vcenter_pool.get_service_instance(vc_id)
+            service_instances.append(si)
+        except Exception as exc:
+            logger.warning("[job:%s] Não foi possível acessar SI do vCenter ID=%s para inventário global: %s", job_id, vc_id, exc)
+
+    if service_instances:
+        loop = asyncio.get_running_loop()
+        global_vmdk_paths = await loop.run_in_executor(
+            None, build_global_vmdk_inventory, service_instances
+        )
+        logger.info("[job:%s] Inventário Global concluído: %d VMDKs únicos em uso através de %d vCenters.", 
+                    job_id, len(global_vmdk_paths), len(service_instances))
+
 
     # ── Carrega whitelist (caminhos excluídos de varreduras futuras) ──────────
     whitelist_paths: frozenset[str] = frozenset()
@@ -278,6 +302,8 @@ async def run_zombie_scan(
                     stale_snapshot_days=settings.stale_snapshot_days,
                     min_file_size_mb=settings.min_file_size_mb,
                     progress_callback=cb,
+                    global_vmdk_paths=global_vmdk_paths,
+                    target_datastores=target_datastores, # Pass the new parameter
                 )
             except Exception as exc:
                 exc_str = str(exc)
@@ -296,6 +322,8 @@ async def run_zombie_scan(
                             stale_snapshot_days=settings.stale_snapshot_days,
                             min_file_size_mb=settings.min_file_size_mb,
                             progress_callback=cb,
+                            global_vmdk_paths=global_vmdk_paths,
+                            target_datastores=target_datastores, # Pass the new parameter
                         )
                     except Exception as exc2:
                         msg = f"{vc_name}/{dc_name}: reconexão falhou — {exc2}"

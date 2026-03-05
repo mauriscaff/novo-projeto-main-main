@@ -90,6 +90,7 @@ function _initCharts() {
 document.addEventListener("DOMContentLoaded", () => {
   _initCharts();
   _initTable();
+  _initStorageTable();
   loadDashboard();
 
   // Atualização periódica automática
@@ -126,11 +127,23 @@ async function loadDashboard(forceSpinner = false) {
       cache: "no-store",
     });
 
+    const storageResp = await fetch(API_URL + "/recoverable-storage", {
+      headers: {
+        "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",
+        "Accept": "application/json",
+      },
+      cache: "no-store",
+    });
+
     if (!resp.ok) {
-      throw new Error(`API retornou HTTP ${resp.status}: ${resp.statusText}`);
+      throw new Error(`API Dashboard retornou HTTP ${resp.status}: ${resp.statusText}`);
+    }
+    if (!storageResp.ok) {
+      console.warn(`API Storage retornou HTTP ${storageResp.status}`);
     }
 
     const data = await resp.json();
+    const storageData = storageResp.ok ? await storageResp.json() : null;
     lastData = data;
 
     // Normaliza formato da API Flask para o esperado pelos gráficos
@@ -167,6 +180,9 @@ async function loadDashboard(forceSpinner = false) {
     _renderTrend(trend);
     // Flask retorna recent_alerts; FastAPI retornava recent_vmdks
     _renderTable(data.recent_alerts ?? data.recent_vmdks ?? []);
+    if (storageData) {
+      _renderStorageTab(storageData);
+    }
     _renderLastUpdated();
     _setLoadingState(false);
     _setErrorState(null);
@@ -585,6 +601,330 @@ function _renderTable(rows) {
     dataTable.rows.add(rows);
   }
   dataTable.draw(false); // false = mantém página atual
+}
+
+// ── Aba Storage Recuperável ───────────────────────────────────────────────────
+
+let storageTable = null;
+
+function _initStorageTable() {
+  if (!document.getElementById("zh-table-storage")) return;
+
+  storageTable = $("#zh-table-storage").DataTable({
+    data: [],
+    columns: [
+      {
+        data: "datastore_name",
+        render: (d) => `<span class="fw-semibold text-zombie-blue">${_escHtml(d)}</span>`,
+      },
+      {
+        data: "vcenter",
+        render: (d) => `<span class="text-muted-zh">${_escHtml(d)}</span>`,
+      },
+      {
+        data: "total_gb",
+        render: (d) => `<span class="text-end d-block fw-semibold">${_fmtGb(d)}</span>`,
+      },
+      {
+        data: "total_tb",
+        render: (d) => `<span class="text-end d-block font-monospace" style="font-size: .8rem;">${(d || 0).toFixed(2)}</span>`,
+      },
+      {
+        data: "zombie_count",
+        render: (d) => `<span class="text-end d-block">${_fmt(d)}</span>`,
+      },
+      {
+        data: "percentage_of_total",
+        render: (d) => {
+          const pct = parseFloat(d || 0).toFixed(1);
+          return `
+            <div class="d-flex align-items-center justify-content-start gap-2">
+              <span style="font-size:.8rem; min-width:35px;" class="text-end">${pct}%</span>
+              <div class="progress" style="width:60px;height:4px;background-color:#30363d;">
+                <div class="progress-bar bg-zombie-yellow" role="progressbar" style="width:${pct}%;"></div>
+              </div>
+            </div>`;
+        }
+      },
+      // Breakdowns por tipo (GB)
+      {
+        data: "by_type",
+        className: "text-end",
+        render: (d) => {
+          const v = d?.ORPHANED?.gb || 0;
+          return v > 0 ? `<span class="fw-semibold" style="color:var(--zh-accent-red);">${v.toFixed(1)}</span>` : '<span class="text-muted-zh" style="opacity:0.3;">0</span>';
+        }
+      },
+      {
+        data: "by_type",
+        className: "text-end",
+        render: (d) => {
+          const v = d?.SNAPSHOT_ORPHAN?.gb || 0;
+          return v > 0 ? `<span class="fw-semibold" style="color:var(--zh-accent-yellow);">${v.toFixed(1)}</span>` : '<span class="text-muted-zh" style="opacity:0.3;">0</span>';
+        }
+      },
+      {
+        data: "by_type",
+        className: "text-end",
+        render: (d) => {
+          const v = d?.UNREGISTERED_DIR?.gb || 0;
+          return v > 0 ? `<span class="fw-semibold" style="color:var(--zh-accent-purple);">${v.toFixed(1)}</span>` : '<span class="text-muted-zh" style="opacity:0.3;">0</span>';
+        }
+      },
+      {
+        data: "by_type",
+        className: "text-end",
+        render: (d) => {
+          const bc = d?.BROKEN_CHAIN?.gb || 0;
+          const fp = d?.POSSIBLE_FALSE_POSITIVE?.gb || 0;
+          const v = bc + fp;
+          return v > 0 ? `<span class="fw-semibold" style="color:var(--zh-accent-green);">${v.toFixed(1)}</span>` : '<span class="text-muted-zh" style="opacity:0.3;">0</span>';
+        }
+      }
+    ],
+    // Destaque visual (rowCallback) para linhas com mais de 500GB
+    rowCallback: function (row, data) {
+      if (data.total_gb > 500) {
+        $(row).addClass('table-danger').css('opacity', '0.9'); // Usando classe Bootstrap ou custom
+        // ou via style direto (melhor contraste no dark tema):
+        $(row).find('td').css('background-color', 'rgba(248, 81, 73, 0.15)');
+      } else if (data.total_gb > 200) {
+        $(row).find('td').css('background-color', 'rgba(210, 153, 34, 0.1)'); // yellow warning
+      }
+    },
+    footerCallback: function (row, data, start, end, display) {
+      const api = this.api();
+
+      // Funções helper para somar
+      const intVal = function (i) {
+        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+      };
+
+      // Só soma a página atual
+      const totObj = data.reduce((acc, curr) => {
+        acc.gb += curr.total_gb || 0;
+        acc.tb += curr.total_tb || 0;
+        acc.cnt += curr.zombie_count || 0;
+        acc.orph += curr.by_type?.ORPHANED?.gb || 0;
+        acc.snap += curr.by_type?.SNAPSHOT_ORPHAN?.gb || 0;
+        acc.unreg += curr.by_type?.UNREGISTERED_DIR?.gb || 0;
+        acc.oth += (curr.by_type?.BROKEN_CHAIN?.gb || 0) + (curr.by_type?.POSSIBLE_FALSE_POSITIVE?.gb || 0);
+        return acc;
+      }, { gb: 0, tb: 0, cnt: 0, orph: 0, snap: 0, unreg: 0, oth: 0 });
+
+
+      // Update footer elements
+      $('#zh-st-tot-gb').html(_fmtGb(totObj.gb));
+      $('#zh-st-tot-tb').html(totObj.tb.toFixed(2));
+      $('#zh-st-tot-vmdks').html(_fmt(totObj.cnt));
+      $('#zh-st-tot-orph').html(totObj.orph.toFixed(1));
+      $('#zh-st-tot-snap').html(totObj.snap.toFixed(1));
+      $('#zh-st-tot-unreg').html(totObj.unreg.toFixed(1));
+      $('#zh-st-tot-oth').html(totObj.oth.toFixed(1));
+    },
+    order: [[2, "desc"]], // Ordena por Total GB desc
+    pageLength: 10,
+    lengthMenu: [10, 25, 50],
+    searching: true,
+    info: true,
+    responsive: true,
+    language: dataTable?.context[0].oLanguage, // Reaproveita language do dataTable principal
+    dom:
+      "<'row align-items-center mb-2'"
+      + "<'col-sm-6'l>"
+      + "<'col-sm-6 d-flex justify-content-end'f>"
+      + ">"
+      + "<'row'<'col-12'tr>>"
+      + "<'row mt-2'"
+      + "<'col-sm-5 text-muted-zh small'i>"
+      + "<'col-sm-7 d-flex justify-content-end'p>"
+      + ">",
+  });
+}
+
+function _renderStorageTab(data) {
+  _setCard("zh-storage-total-tb", data.total_recoverable_tb?.toFixed(2) ?? "—");
+  _setCard("zh-storage-ds-count", _fmt(data.by_datastore?.length ?? 0));
+
+  // Resume os tipos com base nos by_datastore
+  const summaryByType = {};
+  (data.by_datastore || []).forEach(ds => {
+    Object.entries(ds.by_type || {}).forEach(([t, d]) => {
+      if (!summaryByType[t]) summaryByType[t] = { count: 0, gb: 0 };
+      summaryByType[t].count += d.count;
+      summaryByType[t].gb += d.gb;
+    });
+  });
+
+  const typeSummaryEl = document.getElementById("zh-storage-type-summary");
+  if (typeSummaryEl) {
+    let ht = '';
+    // Filtra e ordena
+    const typeEntries = Object.entries(summaryByType).filter(x => x[1].count > 0).sort((a, b) => b[1].gb - a[1].gb);
+    if (typeEntries.length > 0) {
+      ht = typeEntries.map(([t, tData]) => {
+        const meta = ZOMBIE_META[t] ?? { label: t, color: "#6e7681" };
+        return `
+          <div class="d-flex flex-column" style="min-width:60px;">
+            <span style="color:${meta.color};font-size:.7rem;font-weight:600;text-transform:uppercase;">${meta.label}</span>
+            <span class="fs-5 fw-bold" style="line-height:1.2;">${_fmtGb(tData.gb)}</span>
+            <span class="text-muted-zh" style="font-size:.75rem;">${tData.count} arquiv.</span>
+          </div>`;
+      }).join('');
+    } else {
+      ht = '<span class="text-muted-zh small">Nenhum dado por tipo.</span>';
+    }
+    typeSummaryEl.innerHTML = ht;
+  }
+
+  // Tabela
+  if (storageTable && data.by_datastore) {
+    storageTable.clear();
+    storageTable.rows.add(data.by_datastore);
+    storageTable.draw(false);
+  }
+
+  // Gráfico do TOP 10 Datastores
+  _renderStorageDatastoresChart(data.by_datastore || []);
+
+  // Cards de vCenter
+  _renderVCenterCards(data.by_vcenter || []);
+}
+
+function _renderStorageDatastoresChart(byDatastore) {
+  const ctx = document.getElementById("zh-chart-storage-datastores");
+  if (!ctx || byDatastore.length === 0) return;
+
+  const top10 = [...byDatastore].sort((a, b) => b.total_gb - a.total_gb).slice(0, 10);
+  const labels = top10.map(d => _truncate(d.datastore_name, 20));
+
+  // Preparando datasets agrupados
+  const orphanedData = top10.map(d => d.by_type?.ORPHANED?.gb || 0);
+  const snapshotData = top10.map(d => d.by_type?.SNAPSHOT_ORPHAN?.gb || 0);
+  const unregData = top10.map(d => d.by_type?.UNREGISTERED_DIR?.gb || 0);
+  const brokenData = top10.map(d => d.by_type?.BROKEN_CHAIN?.gb || 0);
+  const falsePosData = top10.map(d => d.by_type?.POSSIBLE_FALSE_POSITIVE?.gb || 0);
+
+  const datasets = [
+    {
+      label: ZOMBIE_META.ORPHANED.label,
+      data: orphanedData,
+      backgroundColor: ZOMBIE_META.ORPHANED.color,
+    },
+    {
+      label: ZOMBIE_META.SNAPSHOT_ORPHAN.label,
+      data: snapshotData,
+      backgroundColor: ZOMBIE_META.SNAPSHOT_ORPHAN.color,
+    },
+    {
+      label: ZOMBIE_META.UNREGISTERED_DIR.label,
+      data: unregData,
+      backgroundColor: ZOMBIE_META.UNREGISTERED_DIR.color,
+    },
+    {
+      label: ZOMBIE_META.BROKEN_CHAIN.label,
+      data: brokenData,
+      backgroundColor: ZOMBIE_META.BROKEN_CHAIN.color,
+    },
+    {
+      label: ZOMBIE_META.POSSIBLE_FALSE_POSITIVE.label,
+      data: falsePosData,
+      backgroundColor: ZOMBIE_META.POSSIBLE_FALSE_POSITIVE.color,
+    }
+  ].filter(ds => ds.data.some(v => v > 0)); // Remove datasets vazios
+
+  if (charts.storageDatastores) {
+    charts.storageDatastores.data.labels = labels;
+    charts.storageDatastores.data.datasets = datasets;
+    charts.storageDatastores.update();
+    return;
+  }
+
+  charts.storageDatastores = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { usePointStyle: true, font: { size: 12 } }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: ${_fmtGb(ctx.raw)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false }
+        },
+        y: {
+          stacked: true,
+          grid: { color: "#30363d" },
+          ticks: { callback: v => v + ' GB' }
+        }
+      }
+    }
+  });
+}
+
+function _renderVCenterCards(byVcenter) {
+  const container = document.getElementById("zh-vcenter-cards-container");
+  if (!container) return;
+
+  if (byVcenter.length === 0) {
+    container.innerHTML = `<div class="col-12 text-muted-zh small">Nenhum dado de vCenter disponível.</div>`;
+    return;
+  }
+
+  let html = '';
+  byVcenter.forEach(vc => {
+    // Top 3 datastores do vCenter
+    const topDs = (vc.top_datastores || []).slice(0, 3).map(ds => `
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="text-muted-zh text-truncate" style="font-size:.75rem; max-width:140px;" title="${_escHtml(ds.datastore_name)}">
+          <i class="bi bi-hdd-fill me-1"></i>${_escHtml(ds.datastore_name)}
+        </span>
+        <span class="fw-semibold" style="font-size:.8rem;">${_fmtGb(ds.total_gb)}</span>
+      </div>
+    `).join('');
+
+    html += `
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="zh-vc-card h-100 p-3">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <div class="fw-bold fs-6 mb-1 text-truncate" style="max-width:220px;" title="${_escHtml(vc.vcenter)}">
+              <i class="bi bi-hdd-network-fill text-zombie-blue me-2"></i>${_escHtml(vc.vcenter)}
+            </div>
+            <span class="badge bg-secondary opacity-75" style="font-size:.65rem;">
+              ${_fmt(vc.zombie_count)} problemas
+            </span>
+          </div>
+          <div class="text-end">
+            <div class="fs-4 fw-bold text-zombie-green">${(vc.total_tb || 0).toFixed(2)} TB</div>
+            <div class="text-muted-zh" style="font-size:.7rem;">Potencial Liberável</div>
+          </div>
+        </div>
+        
+        <div class="mt-3 pt-3" style="border-top:1px dashed var(--zh-border);">
+          <div class="text-muted-zh mb-2" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Top Datastores Alvo</div>
+          ${topDs || '<span class="text-muted-zh small">Nenhum datastore reportado.</span>'}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
 }
 
 // ── Helpers de UI ─────────────────────────────────────────────────────────────

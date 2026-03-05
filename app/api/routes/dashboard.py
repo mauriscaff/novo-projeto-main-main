@@ -24,7 +24,11 @@ from app.schemas.dashboard import (
     RecentVmdkEntry,
     TrendEntry,
     TypeBreakdownEntry,
+    TypeBreakdownStorage,
     VCenterBreakdown,
+    VCenterStorageBreakdown,
+    DatastoreStorageBreakdown,
+    RecoverableStorageResponse,
 )
 
 router = APIRouter()
@@ -51,8 +55,51 @@ async def get_dashboard(
     _: dict = Depends(get_current_user),
 ) -> DashboardResponse:
 
-    # ── Totais all-time (zombie_vmdk_records) deduplicados por path ───────────
-    # Subquery para pegar o tamanho de cada VMDK único (agrupando por path)
+    # ── Identificar o LATEST JOB por vcenter_name usando a tabela de records ──
+    from sqlalchemy import or_, and_
+
+    latest_job_per_vc_subq = (
+        select(
+            ZombieVmdkRecord.vcenter_name,
+            func.max(ZombieScanJob.finished_at).label("max_finished"),
+        )
+        .join(ZombieScanJob, ZombieScanJob.job_id == ZombieVmdkRecord.job_id)
+        .where(ZombieScanJob.status == "completed")
+        .group_by(ZombieVmdkRecord.vcenter_name)
+        .subquery()
+    )
+
+    target_jobs_q = await db.execute(
+        select(
+            ZombieVmdkRecord.vcenter_name,
+            ZombieVmdkRecord.job_id,
+        )
+        .join(ZombieScanJob, ZombieScanJob.job_id == ZombieVmdkRecord.job_id)
+        .join(
+            latest_job_per_vc_subq,
+            (ZombieVmdkRecord.vcenter_name == latest_job_per_vc_subq.c.vcenter_name)
+            & (ZombieScanJob.finished_at == latest_job_per_vc_subq.c.max_finished),
+        )
+        .group_by(ZombieVmdkRecord.vcenter_name)
+    )
+    vc_job_map = {row.vcenter_name: row.job_id for row in target_jobs_q.all()}
+
+    # Constrói filtro compound: (vc_name = X AND job_id = J1) OR ...
+    if vc_job_map:
+        vc_job_filters = or_(
+            *[
+                and_(
+                    ZombieVmdkRecord.vcenter_name == vc_name,
+                    ZombieVmdkRecord.job_id == jid,
+                )
+                for vc_name, jid in vc_job_map.items()
+            ]
+        )
+    else:
+        # Sem nenhum job → filtro impossível
+        vc_job_filters = ZombieVmdkRecord.job_id == "no-jobs-yet"
+
+    # ── Totais deduplicados usando apenas os LATEST JOBS por vCenter ───────
     unique_vmdks_subq = (
         select(
             ZombieVmdkRecord.path,
@@ -60,6 +107,7 @@ async def get_dashboard(
             ZombieVmdkRecord.tipo_zombie,
             func.max(ZombieVmdkRecord.tamanho_gb).label("tamanho_gb")
         )
+        .where(vc_job_filters)
         .group_by(
             ZombieVmdkRecord.path, 
             ZombieVmdkRecord.vcenter_name, 
@@ -207,4 +255,205 @@ async def get_dashboard(
         pending_approvals=pending_approvals,
         vcenter_count=vcenter_count,
         recent_vmdks=recent_vmdks,
+    )
+
+
+@router.get(
+    "/recoverable-storage",
+    response_model=RecoverableStorageResponse,
+    summary="Dashboard de Storage Recuperável",
+    description="Retorna métricas de storage recuperável do último scan completo por vCenter",
+)
+async def get_recoverable_storage(
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> RecoverableStorageResponse:
+    # Busca o job mais recente completed (para last_scan_at)
+    latest_job_q = await db.execute(
+        select(ZombieScanJob)
+        .where(ZombieScanJob.status == "completed")
+        .order_by(ZombieScanJob.finished_at.desc())
+        .limit(1)
+    )
+    latest_job = latest_job_q.scalar_one_or_none()
+    
+    if not latest_job:
+        return RecoverableStorageResponse(
+            total_recoverable_gb=0.0,
+            total_recoverable_tb=0.0,
+            by_datastore=[],
+            by_vcenter=[],
+            last_scan_at=None
+        )
+
+    # ── Estratégia: pegar o último job_id COMPLETED por vcenter_name ──────
+    # Usando a própria tabela de records para descobrir qual job é o mais
+    # recente para cada vCenter, evitando o problema de jobs multi-vCenter
+    # sobrepondo dados de jobs mais novos de um só vCenter.
+    latest_job_per_vc_subq = (
+        select(
+            ZombieVmdkRecord.vcenter_name,
+            func.max(ZombieScanJob.finished_at).label("max_finished"),
+        )
+        .join(ZombieScanJob, ZombieScanJob.job_id == ZombieVmdkRecord.job_id)
+        .where(ZombieScanJob.status == "completed")
+        .group_by(ZombieVmdkRecord.vcenter_name)
+        .subquery()
+    )
+
+    # Agora pegar o job_id correspondente a cada (vcenter_name, max_finished)
+    target_jobs_q = await db.execute(
+        select(
+            ZombieVmdkRecord.vcenter_name,
+            ZombieVmdkRecord.job_id,
+        )
+        .join(ZombieScanJob, ZombieScanJob.job_id == ZombieVmdkRecord.job_id)
+        .join(
+            latest_job_per_vc_subq,
+            (ZombieVmdkRecord.vcenter_name == latest_job_per_vc_subq.c.vcenter_name)
+            & (ZombieScanJob.finished_at == latest_job_per_vc_subq.c.max_finished),
+        )
+        .group_by(ZombieVmdkRecord.vcenter_name)
+    )
+    # Map: vcenter_name -> job_id
+    vc_job_map = {row.vcenter_name: row.job_id for row in target_jobs_q.all()}
+
+    if not vc_job_map:
+        return RecoverableStorageResponse(
+            total_recoverable_gb=0.0,
+            total_recoverable_tb=0.0,
+            by_datastore=[],
+            by_vcenter=[],
+            last_scan_at=latest_job.finished_at,
+        )
+
+    # ── Buscar registros filtrando por (vcenter_name, job_id) correto ────
+    # Constrói filtro OR: (vc_name = X AND job_id = J1) OR (vc_name = Y AND job_id = J2) ...
+    from sqlalchemy import or_, and_
+    vc_job_filters = [
+        and_(
+            ZombieVmdkRecord.vcenter_name == vc_name,
+            ZombieVmdkRecord.job_id == jid,
+        )
+        for vc_name, jid in vc_job_map.items()
+    ]
+
+    whitelist_subq = select(VmdkWhitelist.path).scalar_subquery()
+
+    records_query = await db.execute(
+        select(
+            ZombieVmdkRecord.datastore,
+            ZombieVmdkRecord.vcenter_host,
+            ZombieVmdkRecord.tipo_zombie,
+            ZombieVmdkRecord.tamanho_gb
+        )
+        .where(or_(*vc_job_filters))
+        .where(ZombieVmdkRecord.path.not_in(whitelist_subq))
+    )
+    records = records_query.all()
+    
+    # Agregar os dados via Python dictionary
+    # by Datastore grouping
+    ds_map = {}
+    # by vCenter grouping
+    vc_map = {}
+    
+    total_gb = 0.0
+    
+    for row in records:
+        ds_name = row.datastore or "Unknown"
+        vc_host = row.vcenter_host or "Unknown"
+        tipo = row.tipo_zombie
+        size_gb = float(row.tamanho_gb or 0.0)
+        
+        # Ignora tipos lixo ou que explicitamente dizem pra não entrar,
+        # MAS a instrução diz "Itens com status WHITELIST não entram no cálculo". 
+        # WHITELIST é um status possível dentro do tipo_zombie? Sim, o código do pipeline às vezes salva como WHITELIST.
+        if tipo == "WHITELIST":
+            continue
+            
+        total_gb += size_gb
+        
+        # Accumulate by vcenter
+        if vc_host not in vc_map:
+            vc_map[vc_host] = {"total_gb": 0.0, "zombie_count": 0}
+            
+        vc_map[vc_host]["total_gb"] += size_gb
+        vc_map[vc_host]["zombie_count"] += 1
+        
+        # Accumulate by datastore
+        key = f"{vc_host}_{ds_name}"
+        if key not in ds_map:
+            ds_map[key] = {
+                "datastore_name": ds_name,
+                "vcenter": vc_host,
+                "total_gb": 0.0,
+                "zombie_count": 0,
+                "by_type": {}
+            }
+            
+        # Garante que os 5 tipos existam no by_type (ORPHANED, BROKEN_CHAIN, SNAPSHOT_ORPHAN, UNREGISTERED_DIR, POSSIBLE_FALSE_POSITIVE)
+        if tipo not in ds_map[key]["by_type"]:
+            ds_map[key]["by_type"][tipo] = {"count": 0, "gb": 0.0}
+            
+        ds_map[key]["total_gb"] += size_gb
+        ds_map[key]["zombie_count"] += 1
+        ds_map[key]["by_type"][tipo]["count"] += 1
+        ds_map[key]["by_type"][tipo]["gb"] += size_gb
+
+    # Format output arrays
+    output_vcenter = []
+    for vc, data in sorted(vc_map.items()): # Sort a-z
+        output_vcenter.append(
+            VCenterStorageBreakdown(
+                vcenter=vc,
+                total_gb=round(data["total_gb"], 2),
+                zombie_count=data["zombie_count"]
+            )
+        )
+        
+    output_datastore = []
+    for ds_data in ds_map.values():
+        t_gb = ds_data["total_gb"]
+        
+        # Garante que as propriedades padrão existam com zero caso não detectadas nesse DB
+        types_break = {}
+        for fixed_t in ["ORPHANED", "BROKEN_CHAIN", "SNAPSHOT_ORPHAN", "UNREGISTERED_DIR", "POSSIBLE_FALSE_POSITIVE"]:
+             td = ds_data["by_type"].get(fixed_t, {"count": 0, "gb": 0.0})
+             types_break[fixed_t] = TypeBreakdownStorage(
+                 count=td["count"],
+                 gb=round(td["gb"], 2)
+             )
+             
+        # Se houver outro tipo bizarro, soma no final listado tbm
+        for t, td in ds_data["by_type"].items():
+            if t not in types_break:
+                 types_break[t] = TypeBreakdownStorage(
+                     count=td["count"],
+                     gb=round(td["gb"], 2)
+                 )
+
+        percent = (t_gb / total_gb * 100) if total_gb > 0 else 0.0
+
+        output_datastore.append(
+            DatastoreStorageBreakdown(
+                datastore_name=ds_data["datastore_name"],
+                vcenter=ds_data["vcenter"],
+                total_gb=round(t_gb, 2),
+                total_tb=round(t_gb / 1024, 2),
+                zombie_count=ds_data["zombie_count"],
+                by_type=types_break,
+                percentage_of_total=round(percent, 1)
+            )
+        )
+        
+    # Sort output_datastore from largest gb to lowest
+    output_datastore.sort(key=lambda x: x.total_gb, reverse=True)
+
+    return RecoverableStorageResponse(
+        total_recoverable_gb=round(total_gb, 2),
+        total_recoverable_tb=round(total_gb / 1024, 2),
+        by_datastore=output_datastore,
+        by_vcenter=output_vcenter,
+        last_scan_at=latest_job.finished_at if latest_job else None
     )

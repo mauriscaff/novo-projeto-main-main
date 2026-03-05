@@ -349,15 +349,19 @@ class _InventorySnapshot:
 
 
 def _normalize(path: str) -> str:
-    """Normaliza caminhos para comparação case-insensitive com barras uniformes e sem espaços múltiplos."""
-    norm = path.strip().lower().replace("\\", "/")
+    """Normaliza caminhos para comparação case-insensitive com barras uniformes, sem espaços múltiplos, e decodifica URL encoding (ex: %20 para espaço)."""
+    if not path:
+        return ""
+    # vSphere API algumas vezes retorna caminhos encodados na configuração do hardware
+    decoded = urllib.parse.unquote(path)
+    norm = decoded.strip().lower().replace("\\", "/")
     return re.sub(r'\s+', ' ', norm)
 
 
 def _bytes_to_gb(size: int | None) -> float | None:
     if size is None:
         return None
-    return round(size / (1024 ** 3), 3)
+    return round(float(size) / (1024 ** 3), 3)
 
 
 def _utc(dt: datetime | None) -> datetime | None:
@@ -375,13 +379,13 @@ def _extract_folder(ds_path: str) -> str:
       '[ds] folder/sub/vm.vmx'  →  '[ds] folder/sub/'
       '[ds] vm.vmx'             →  '[ds] '
     """
-    norm = _normalize(ds_path)
+    norm: str = _normalize(ds_path)
     slash_idx = norm.rfind("/")
     if slash_idx >= 0:
-        return norm[: slash_idx + 1]
+        return str(norm[: slash_idx + 1])
     bracket_idx = norm.rfind("] ")
     if bracket_idx >= 0:
-        return norm[: bracket_idx + 2]
+        return str(norm[: bracket_idx + 2])
     return norm
 
 
@@ -622,6 +626,49 @@ def _collect_content_library_paths(content: Any) -> frozenset[str]:
     return frozenset(paths)
 
 
+def build_global_vmdk_inventory(service_instances: list[Any]) -> frozenset[str]:
+    """
+    Constrói um inventário global (apenas caminhos de VMDKs normalizados) cruzando todos os vCenters ativos.
+    Isso previne falsos positivos para VMs registradas em um vCenter mas cujos discos residem
+    num datastore compartilhado escaneado por outro vCenter.
+    """
+    global_vmdk_paths = set()
+    for si in service_instances:
+        try:
+            content = si.RetrieveContent()
+            vm_view = content.viewManager.CreateContainerView(
+                content.rootFolder, [vim.VirtualMachine], True
+            )
+            try:
+                for vm in vm_view.view:
+                    if not vm.config:
+                        continue
+                    
+                    for device in vm.config.hardware.device:
+                        if not isinstance(device, vim.vm.device.VirtualDisk):
+                            continue
+                        backing = device.backing
+                        if hasattr(backing, "fileName") and backing.fileName:
+                            global_vmdk_paths.add(_normalize(backing.fileName))
+
+                            parent = getattr(backing, "parent", None)
+                            while parent and hasattr(parent, "fileName"):
+                                if parent.fileName:
+                                    global_vmdk_paths.add(_normalize(parent.fileName))
+                                parent = getattr(parent, "parent", None)
+
+                    if vm.snapshot:
+                        _collect_snapshot_vmdk_paths(
+                            vm.snapshot.rootSnapshotList, global_vmdk_paths
+                        )
+            finally:
+                vm_view.Destroy()
+        except Exception as exc:
+            logger.error("Falha ao coletar inventário global de um vCenter: %s", exc)
+            
+    return frozenset(global_vmdk_paths)
+
+
 def _collect_fcd_paths(content: Any, datastores: list[Any]) -> frozenset[str]:
     """
     Coleta caminhos de First Class Disks (FCDs/IVDs) — EX-7.
@@ -681,13 +728,15 @@ def _collect_snapshot_vmdk_paths(
     Isso impede que VMDKs de snapshot legítimos sejam classificados como
     zombie mesmo quando a VM usa um delta como disco atual.
     """
-    for snap_tree in snapshot_list or []:
+    if snapshot_list is None:
+        return
+    for snap_tree in snapshot_list:
         try:
             snap = snap_tree.snapshot
             if snap and snap.config and snap.config.hardware:
                 for device in snap.config.hardware.device:
-                    if isinstance(device, vim.vm.device.VirtualDisk):
-                        backing = device.backing
+                    if hasattr(device, "backing") and isinstance(device, vim.vm.device.VirtualDisk):
+                        backing = getattr(device, "backing", None)
                         if hasattr(backing, "fileName") and backing.fileName:
                             vmdk_paths.add(_normalize(backing.fileName))
         except Exception as exc:
@@ -876,8 +925,14 @@ def _browse_datastore(
         ) from exc
 
     for folder_result in task.info.result:
-        folder = folder_result.folderPath  # ex.: '[ds] vm-folder/'
-
+        # VMware DatastoreBrowser sometimes returns an incorrect datastore name
+        # in the folderPath (e.g. [STA_LUN] instead of [STB_LUN]) when using extents or SDRS.
+        # We enforce the correct datastore name we are actually iterating on.
+        raw_folder = folder_result.folderPath  # ex.: '[wrong_ds] vm-folder/'
+        if "] " in raw_folder:
+            folder = f"[{ds.name}] {raw_folder.split('] ', 1)[1]}"
+        else:
+            folder = raw_folder
         if folder not in folder_files:
             folder_files[folder] = set()
 
@@ -1043,13 +1098,14 @@ def _has_broken_chain(
          vm-000001.vmdk → extent esperado: vm-000001-delta.vmdk
     """
     # Caso 1: VMDK monolítico (dados embutidos) — sem -flat separado
+    size_bytes = entry.size_bytes
     if (
-        entry.size_bytes is not None
-        and entry.size_bytes > _MONOLITHIC_THRESHOLD_BYTES
+        size_bytes is not None
+        and size_bytes > _MONOLITHIC_THRESHOLD_BYTES
     ):
         logger.debug(
             "VMDK monolítico (%.1f MB) — sem -flat esperado: %s",
-            entry.size_bytes / (1024 * 1024),
+            size_bytes / (1024 * 1024),
             entry.full_path,
         )
         return False  # Não é broken chain; avança para ORPHANED/UNREGISTERED_DIR
@@ -1075,10 +1131,10 @@ def _has_broken_chain(
 
     # Snapshot descriptor: vm-000001.vmdk → vm-000001-delta.vmdk
     if _SNAPSHOT_DESCRIPTOR_RE.search(name_lower):
-        expected_extent = name_lower[:-5] + "-delta.vmdk"
+        expected_extent = str(name_lower[:-5] + "-delta.vmdk")
     else:
         # Descriptor padrão: vm.vmdk → vm-flat.vmdk
-        expected_extent = name_lower[:-5] + "-flat.vmdk"
+        expected_extent = str(name_lower[:-5] + "-flat.vmdk")
 
     if expected_extent not in folder_f:
         logger.debug(
@@ -1108,6 +1164,7 @@ def _classify_vmdk(
     orphan_days: int,
     stale_snapshot_days: int,
     min_file_size_mb: int,
+    global_vmdk_paths: set[str] | frozenset[str] = frozenset(),
 ) -> "ZombieVmdkResult | tuple[None, str, list[str]]":
     # READ-ONLY: no write operations
     evlog: list[str] = []  # trilha de auditoria deste arquivo
@@ -1137,14 +1194,15 @@ def _classify_vmdk(
         evlog.append("SKIP: vCLS (vSphere Cluster Services)")
         return (None, "vcls", evlog)
 
+    size_bytes = entry.size_bytes
     if (
-        entry.size_bytes is not None
-        and entry.size_bytes < (min_file_size_mb * 1024 * 1024)
+        size_bytes is not None
+        and size_bytes < (min_file_size_mb * 1024 * 1024)
         and not entry.is_delta_vmdk
         and not entry.is_descriptor_vmdk
     ):
         _skip(entry, "tamanho")
-        size_mb = entry.size_bytes / (1024 * 1024)
+        size_mb = size_bytes / (1024 * 1024)
         evlog.append(f"SKIP: tamanho {size_mb:.1f} MB < min_file_size_mb({min_file_size_mb})")
         return (None, "tamanho", evlog)
 
@@ -1159,8 +1217,9 @@ def _classify_vmdk(
     _shared_passed: bool = True
     _shared_with: list[str] = []
 
-    if entry.modification is not None:
-        mod_utc = _utc(entry.modification)
+    modification = entry.modification
+    if modification is not None:
+        mod_utc = _utc(modification)
         if mod_utc:
             now = datetime.now(timezone.utc)
             threshold_days = (
@@ -1172,7 +1231,7 @@ def _classify_vmdk(
             _age_threshold = threshold_days
             age_days = _age_days
             if age_days < threshold_days:
-                size_gb = (entry.size_bytes or 0) / (1024**3)
+                size_gb = float(size_bytes or 0) / (1024**3)
                 log_fn = logger.warning if size_gb > 100 else logger.debug
                 log_fn(
                     "SKIP (recente %d dias < %d) tamanho=%.1f GB: %s",
@@ -1190,9 +1249,9 @@ def _classify_vmdk(
     else:
         evlog.append("PASS: data de modificação desconhecida (sem filtro de recência)")
 
-    if entry.size_bytes is not None:
-        _size_mb = entry.size_bytes / (1024 * 1024)
-        size_gb_log = entry.size_bytes / (1024 ** 3)
+    if size_bytes is not None:
+        _size_mb = float(size_bytes) / (1024 * 1024)
+        size_gb_log = float(size_bytes) / (1024 ** 3)
         evlog.append(f"PASS: tamanho {size_gb_log:.2f} GB ≥ min_file_size_mb({min_file_size_mb})")
 
     # Normalizar o caminho para comparação
@@ -1205,6 +1264,13 @@ def _classify_vmdk(
         evlog.append("SKIP: encontrado em inventory.vmdk_paths (VM/template ativo)")
         return (None, "inventario", evlog)
     evlog.append("PASS: não está em inventory.vmdk_paths")
+
+    if global_vmdk_paths and norm_path in global_vmdk_paths:
+        _skip(entry, "inventario_global")
+        _inv_reason = "found in GLOBAL across-vcenter VM/template inventory (active disk on another vCenter)"
+        evlog.append("SKIP: encontrado em GLOBAL vmdk_paths (VM ativa em outro vCenter)")
+        return (None, "inventario_global", evlog)
+    evlog.append("PASS: não está em global vmdk_paths")
 
     if norm_path in inventory.fcd_paths:
         _skip(entry, "fcd")
@@ -1350,7 +1416,8 @@ def _scan_datacenter_sync(
     stale_snapshot_days: int = 15,
     min_file_size_mb: int = 50,
     progress_callback: Callable[[str, str, dict], None] | None = None,
-    extra_inventories: "list[_InventorySnapshot] | None" = None,
+    global_vmdk_paths: set[str] | frozenset[str] = frozenset(),
+    target_datastores: list[str] | None = None,
 ) -> tuple[list[ZombieVmdkResult], list[DatastoreScanMetric]]:
     """
     Núcleo síncrono da varredura. Deve ser invocado via run_in_executor para
@@ -1369,10 +1436,9 @@ def _scan_datacenter_sync(
         progress_callback: função opcional chamada em cada etapa significativa.
             Assinatura: callback(level, message, extra_data)
             level: "info" | "warning" | "error" | "success"
-        extra_inventories: lista opcional de _InventorySnapshot de outros vCenters
-            cadastrados no sistema. Se um VMDK candidato for encontrado em qualquer
-            desses inventários, ele é marcado como POSSIBLE_FALSE_POSITIVE
-            (Broadcom KB 383876 — datastores compartilhados entre vCenters).
+        global_vmdk_paths: inventário global contendo os caminhos de todos os VMDKs
+            em uso de todos os vCenters para evitar falsos positivos de `Unregistered Dir`
+            em datastores compartilhados.
     """
     def _cb(level: str, msg: str, **extra: Any) -> None:
         """Emite progresso via logger E via callback externo."""
@@ -1420,6 +1486,10 @@ def _scan_datacenter_sync(
         datastores = list(ds_view.view)
     finally:
         ds_view.Destroy()
+
+    if target_datastores:
+        lower_targets = {t.lower() for t in target_datastores}
+        datastores = [ds for ds in datastores if getattr(ds, "name", "").lower() in lower_targets]
 
     total_ds = len(datastores)
     _cb("info", f"{total_ds} datastores encontrados para varrer.")
@@ -1587,36 +1657,8 @@ def _scan_datacenter_sync(
                     vmdk_filename=vmdk_filename,
                 )
 
-                # READ-ONLY: cross-vCenter check — no write operations
-                # Se extra_inventories fornecido, verifica se o candidato está em
-                # uso por algum outro vCenter cadastrado no sistema (KB 383876).
-                if extra_inventories:
-                    norm_candidate = _normalize(zombie.path)
-                    for ext_inv in extra_inventories:
-                        if norm_candidate in ext_inv.vmdk_paths:
-                            logger.info(
-                                "Cross-vCenter FP: '%s' encontrado em vCenter '%s'",
-                                zombie.path, ext_inv.vcenter_host,
-                            )
-                            zombie = replace(
-                                zombie,
-                                tipo_zombie=ZombieType.POSSIBLE_FALSE_POSITIVE,
-                                false_positive_reason=(
-                                    f"VMDK referenciado em inventário de outro vCenter "
-                                    f"cadastrado no sistema ({ext_inv.vcenter_host})"
-                                ),
-                                confidence_score=max(
-                                    5,
-                                    zombie.confidence_score - 50,
-                                ),
-                                evidence_log=zombie.evidence_log + [
-                                    f"OVERRIDE: encontrado em inventário de {ext_inv.vcenter_host} "
-                                    f"→ POSSIBLE_FALSE_POSITIVE (KB 383876)"
-                                ],
-                            )
-                            break  # basta um match para classificar como FP
-
                 results.append(zombie)
+
 
         found_here = len(results) - ds_zombies_before
         n_analisados = n_total
@@ -1632,11 +1674,11 @@ def _scan_datacenter_sync(
             detail = "nenhum arquivo .vmdk/.vmx encontrado (datastore vazio ou não-VMFS)"
         else:
             parts = []
-            if n_descriptor: parts.append(f"{n_descriptor} descriptor(s)")
-            if n_delta:      parts.append(f"{n_delta} delta(s)")
-            if n_flat:       parts.append(f"{n_flat} flat(s)")
-            if n_ctk:        parts.append(f"{n_ctk} ctk(s)")
-            if n_vmx:        parts.append(f"{n_vmx} vmx(s)")
+            if n_descriptor: parts.append(str(f"{n_descriptor} descriptor(s)"))
+            if n_delta:      parts.append(str(f"{n_delta} delta(s)"))
+            if n_flat:       parts.append(str(f"{n_flat} flat(s)"))
+            if n_ctk:        parts.append(str(f"{n_ctk} ctk(s)"))
+            if n_vmx:        parts.append(str(f"{n_vmx} vmx(s)"))
             detail = ", ".join(parts) if parts else "somente arquivos sem VMDKs relevantes"
 
         if n_descriptor == 0 and n_delta == 0 and n_total > 0:
@@ -1716,7 +1758,8 @@ async def scan_datacenter(
     stale_snapshot_days: int = 15,
     min_file_size_mb: int = 50,
     progress_callback: Callable[[str, str, dict], None] | None = None,
-    extra_inventories: "list[_InventorySnapshot] | None" = None,
+    global_vmdk_paths: set[str] | frozenset[str] = frozenset(),
+    target_datastores: list[str] | None = None,
 ) -> tuple[list[ZombieVmdkResult], list[DatastoreScanMetric]]:
     """
     Executa a varredura completa de VMDKs zombie em um Datacenter do vCenter.
@@ -1736,9 +1779,8 @@ async def scan_datacenter(
         orphan_days:         Dias mínimos sem referência para VMDK normal (padrão: 60).
         stale_snapshot_days: Dias mínimos para snapshot orphan ser reportado (padrão: 15).
         min_file_size_mb:    Tamanho mínimo para reportar (exceto BROKEN_CHAIN, padrão: 50).
-        extra_inventories:   Snapshots de inventário de outros vCenters cadastrados.
-                             VMDKs encontrados nesses inventários são marcados como
-                             POSSIBLE_FALSE_POSITIVE (KB 383876).
+        global_vmdk_paths:   Inventário global de caminhos de VMDKs em uso de todos vCenters.
+                             Impede falsos positivos em armazenamentos interconectados.
 
     Returns:
         (lista de ZombieVmdkResult, lista de DatastoreScanMetric por datastore).
@@ -1749,15 +1791,16 @@ async def scan_datacenter(
         TimeoutError: Tarefa do vCenter excedeu o timeout.
     """
     import functools
-    loop = asyncio.get_event_loop()
-    fn = functools.partial(
-        _scan_datacenter_sync,
-        service_instance,
-        datacenter_name,
-        orphan_days,
-        stale_snapshot_days,
-        min_file_size_mb,
-        progress_callback,
-        extra_inventories,
+    return await asyncio.get_running_loop().run_in_executor(
+        None,
+        lambda: _scan_datacenter_sync(
+            service_instance,
+            datacenter_name,
+            orphan_days,
+            stale_snapshot_days,
+            min_file_size_mb,
+            progress_callback,
+            global_vmdk_paths,
+            target_datastores,
+        ),
     )
-    return await loop.run_in_executor(None, fn)
