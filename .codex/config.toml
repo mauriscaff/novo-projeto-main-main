@@ -1,0 +1,16 @@
+# Project-scoped Codex CLI defaults for this repository.
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+project_doc_max_bytes = 32768
+
+[profiles.conservative]
+sandbox_mode = "read-only"
+approval_policy = "untrusted"
+
+[profiles.development]
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[profiles.ci]
+sandbox_mode = "read-only"
+approval_policy = "never"
