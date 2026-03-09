@@ -19,7 +19,7 @@ def test_session_me_requires_authentication(client):
 def test_session_login_sets_http_only_cookie_and_me_works(client):
     login = client.post(
         "/api/v1/auth/session/login",
-        json={"username": "admin", "password": "admin"},
+        json={"username": "admin", "password": "P@ssw0rd"},
     )
     assert login.status_code == 200
     set_cookie = login.headers.get("set-cookie", "").lower()
@@ -34,7 +34,7 @@ def test_session_login_sets_http_only_cookie_and_me_works(client):
 
 
 def test_readiness_accepts_session_cookie_without_api_key_header(client):
-    client.post("/api/v1/auth/session/login", json={"username": "admin", "password": "admin"})
+    client.post("/api/v1/auth/session/login", json={"username": "admin", "password": "P@ssw0rd"})
     r = client.get("/health/readiness")
     assert r.status_code == 200
     data = r.json()
@@ -42,7 +42,7 @@ def test_readiness_accepts_session_cookie_without_api_key_header(client):
 
 
 def test_session_logout_revokes_cookie_for_next_requests(client):
-    client.post("/api/v1/auth/session/login", json={"username": "admin", "password": "admin"})
+    client.post("/api/v1/auth/session/login", json={"username": "admin", "password": "P@ssw0rd"})
     logout = client.post("/api/v1/auth/session/logout")
     assert logout.status_code == 200
     assert "zh_access_token=" in logout.headers.get("set-cookie", "")

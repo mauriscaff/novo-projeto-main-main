@@ -134,3 +134,45 @@ async def list_datacenters_async(service_instance) -> list[str]:
 
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, _sync, service_instance)
+
+
+async def list_datastores_async(service_instance) -> list[dict]:
+    """
+    Lista datastores visíveis no vCenter com estado de acessibilidade e manutenção.
+    Executa pyVmomi em thread pool para não bloquear o event loop.
+    """
+    import asyncio
+
+    def _sync(si) -> list[dict]:
+        content = si.RetrieveContent()
+        view = content.viewManager.CreateContainerView(
+            content.rootFolder, [vim.Datastore], True
+        )
+        try:
+            rows: list[dict] = []
+            for ds in view.view:
+                name = str(getattr(ds, "name", "") or "").strip()
+                if not name:
+                    continue
+                summary = getattr(ds, "summary", None)
+                maintenance_state = str(getattr(summary, "maintenanceMode", "") or "").strip()
+                normalized_state = maintenance_state.lower()
+                maintenance_mode = bool(
+                    normalized_state
+                    and normalized_state not in {"normal", "none", "false", "0"}
+                )
+                accessible = bool(getattr(summary, "accessible", True))
+                rows.append(
+                    {
+                        "name": name,
+                        "accessible": accessible,
+                        "maintenance_mode": maintenance_mode,
+                        "maintenance_state": maintenance_state,
+                    }
+                )
+            return rows
+        finally:
+            view.Destroy()
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _sync, service_instance)

@@ -95,7 +95,16 @@ async function loadTab(tab, showLoader = true) {
   const container = document.getElementById(`zh-tab-${tab}`);
   if (!container) return;
 
-  if (showLoader) _setLoading(container, true);
+  if (showLoader) {
+    _setLoading(container, true);
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline("#zh-approvals-feedback", {
+        state: "loading",
+        text: "Carregando aprovacoes",
+        detail: "Sincronizando tokens pendentes, executados e expiracao.",
+      });
+    }
+  }
 
   try {
     let tokens = [];
@@ -124,10 +133,26 @@ async function loadTab(tab, showLoader = true) {
 
     _renderCards(container, tokens, tab);
     _updateTabCounter(tab, tokens.length);
+    window.zhFeedback?.clear("#zh-approvals-feedback");
 
   } catch (err) {
     console.error(`[ZH Approvals] Erro ao carregar aba '${tab}':`, err);
     _setError(container, err.message);
+    const info = window.zhFeedback
+      ? window.zhFeedback.toErrorInfo(err, "Falha ao carregar aprovacoes.")
+      : { category: "unknown", message: err?.message || "Falha ao carregar aprovacoes." };
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline("#zh-approvals-feedback", {
+        state: "error",
+        category: info.category,
+        title: "Falha ao carregar aprovacoes",
+        happened: info.message,
+        impact: "A lista da aba selecionada pode ficar incompleta.",
+        nextStep: info.category === "auth"
+          ? "Refaca o login e atualize a aba."
+          : "Tente atualizar novamente em alguns segundos.",
+      });
+    }
   } finally {
     _setLoading(container, false);
   }
@@ -137,7 +162,11 @@ async function _fetchTokens(params = {}) {
   const qs  = new URLSearchParams(params).toString();
   const url = `${API_BASE}/${qs ? "?" + qs : ""}`;
   const resp = await fetch(url, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" } });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  if (!resp.ok) {
+    const err = new Error(`HTTP ${resp.status}`);
+    err.status = resp.status;
+    throw err;
+  }
   return resp.json();
 }
 
@@ -888,6 +917,47 @@ function _initModals() {
 // ── Toast de feedback ─────────────────────────────────────────────────────────
 
 function _showToast(type, message) {
+  if (window.zhFeedback) {
+    const map = {
+      success: {
+        state: "success",
+        title: "Operacao concluida",
+        impact: "A trilha de auditoria foi atualizada.",
+        nextStep: "Revise as abas para confirmar o novo estado.",
+      },
+      info: {
+        state: "success",
+        title: "Atualizacao registrada",
+        impact: "A lista sera sincronizada na proxima atualizacao.",
+        nextStep: "Aguarde alguns segundos ou clique em Atualizar.",
+      },
+      warning: {
+        state: "error",
+        category: "validation",
+        title: "Atencao",
+        impact: "A acao nao foi concluida integralmente.",
+        nextStep: "Revise os dados informados e tente novamente.",
+      },
+      danger: {
+        state: "error",
+        category: "transient",
+        title: "Falha na operacao",
+        impact: "O token pode permanecer no estado anterior.",
+        nextStep: "Verifique conectividade/permissao e tente novamente.",
+      },
+    };
+    const cfg = map[type] || map.info;
+    window.zhFeedback.showToast({
+      state: cfg.state,
+      category: cfg.category,
+      title: cfg.title,
+      happened: message,
+      impact: cfg.impact,
+      nextStep: cfg.nextStep,
+    });
+    return;
+  }
+
   const container = document.getElementById("zh-toast-container");
   if (!container) return;
 
@@ -912,6 +982,14 @@ function _showToast(type, message) {
 
 function _setLoading(container, loading) {
   if (loading) {
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline(container, {
+        state: "loading",
+        text: "Carregando aprovacoes",
+        detail: "Preparando cards e contagem de expiracao.",
+      });
+      return;
+    }
     container.innerHTML = `
       <div class="text-center py-5">
         <div class="spinner-border text-zombie-blue mb-3" style="width:2.2rem;height:2.2rem;"></div>
@@ -921,6 +999,20 @@ function _setLoading(container, loading) {
 }
 
 function _setError(container, msg) {
+  if (window.zhFeedback) {
+    const info = window.zhFeedback.toErrorInfo({ message: String(msg || "") }, "Falha ao carregar aprovacoes.");
+    container.innerHTML = window.zhFeedback.renderAlert({
+      state: "error",
+      category: info.category,
+      title: "Falha ao carregar aprovacoes",
+      happened: info.message,
+      impact: "Cards podem nao refletir o estado real dos tokens.",
+      nextStep: info.category === "auth"
+        ? "Refaca o login e recarregue a aba."
+        : "Tente novamente e valide conectividade com a API.",
+    });
+    return;
+  }
   container.innerHTML = `
     <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
       <i class="bi bi-wifi-off flex-shrink-0"></i>

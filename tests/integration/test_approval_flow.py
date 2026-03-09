@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
-
 
 class TestApprovalEndpoints:
     """Endpoints de aprovacao - comportamento esperado."""

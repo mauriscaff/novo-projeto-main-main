@@ -78,5 +78,5 @@ pytest -q tests/integration/test_api_endpoints.py
 ```
 
 ## Notes
-- Current session login uses demo credentials (`admin/admin`) from existing auth module behavior.
+- Current session login uses demo credentials (`admin/P@ssw0rd`) from existing auth module behavior.
 - For production, integrate real user storage and password hashing before internet exposure.

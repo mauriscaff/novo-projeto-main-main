@@ -49,9 +49,13 @@ def _load_or_create_fallback_key() -> str:
         key_path.write_text(generated, encoding="utf-8")
         try:
             os.chmod(key_path, 0o600)
-        except OSError:
+        except OSError as exc:
             # No Windows, chmod pode nao aplicar como esperado.
-            pass
+            logger.debug(
+                "Nao foi possivel aplicar permissao 600 em '%s': %s",
+                key_path,
+                exc.__class__.__name__,
+            )
         logger.warning(
             "FERNET_KEY ausente/placeholder: fallback local criado em '%s'. "
             "Defina FERNET_KEY explicita em producao.",

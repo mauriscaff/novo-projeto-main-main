@@ -20,7 +20,7 @@ _AUTH_COOKIE_NAME = "zh_access_token"
 # Usuario administrador embutido (apenas para demo).
 # Em producao: persista usuarios no banco com hash bcrypt.
 _DEMO_USER = "admin"
-_DEMO_PASSWORD = "admin"  # noqa: S105
+_DEMO_PASSWORD = "P@ssw0rd"  # noqa: S105
 
 
 def _create_access_token(subject: str) -> str:

@@ -12,6 +12,7 @@ Ao criar ou atualizar um vCenter, o slot correspondente no VCenterConnectionPool
 
 import asyncio
 import concurrent.futures
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -25,6 +26,7 @@ from app.models.vcenter import VCenter
 from app.schemas.vcenter import VCenterCreate, VCenterResponse, VCenterUpdate
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +125,13 @@ async def all_vcenter_pool_status(
             si = vcenter_pool.get_service_instance(vc.id)
             si.RetrieveContent().about
             return str(vc.id), "online"
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "Falha no pool-status para vCenter id=%s name='%s': %s",
+                vc.id,
+                vc.name,
+                exc.__class__.__name__,
+            )
             return str(vc.id), "offline"
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(len(rows), 1)) as pool:

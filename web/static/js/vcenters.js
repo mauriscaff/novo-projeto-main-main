@@ -53,14 +53,41 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadVcenters() {
   _setLoading(true);
+  if (window.zhFeedback) {
+    window.zhFeedback.setInline("#zh-vc-feedback", {
+      state: "loading",
+      text: "Carregando vCenters",
+      detail: "Atualizando conectividade e inventario monitorado.",
+    });
+  }
   try {
     const resp = await fetch(VC_API, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" } });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) {
+      const err = new Error(`HTTP ${resp.status}`);
+      err.status = resp.status;
+      throw err;
+    }
     vcenters = await resp.json();
     _renderCards();
     _setText("zh-vc-count", vcenters.length);
+    window.zhFeedback?.clear("#zh-vc-feedback");
   } catch (err) {
-    _showToast("danger", `Erro ao carregar vCenters: ${err.message}`);
+    const info = window.zhFeedback
+      ? window.zhFeedback.toErrorInfo(err, "Falha ao carregar lista de vCenters.")
+      : { category: "unknown", message: err?.message || "Falha ao carregar lista de vCenters." };
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline("#zh-vc-feedback", {
+        state: "error",
+        category: info.category,
+        title: "Falha ao carregar vCenters",
+        happened: info.message,
+        impact: "A grade pode ficar vazia ou desatualizada.",
+        nextStep: info.category === "auth"
+          ? "Refaca o login para consultar os vCenters."
+          : "Verifique rede/API e clique novamente em atualizar.",
+      });
+    }
+    _showToast("danger", `Erro ao carregar vCenters: ${info.message}`);
   } finally {
     _setLoading(false);
   }
@@ -469,6 +496,21 @@ document.addEventListener("DOMContentLoaded", () => {
 function _showFormError(msg) {
   const el = document.getElementById("zh-form-feedback");
   if (!el) return;
+  if (window.zhFeedback) {
+    const info = window.zhFeedback.toErrorInfo({ message: String(msg || "") }, "Falha ao validar dados do vCenter.");
+    el.classList.remove("d-none");
+    el.innerHTML = window.zhFeedback.renderAlert({
+      state: "error",
+      category: info.category,
+      title: "Falha ao salvar vCenter",
+      happened: info.message,
+      impact: "Nenhuma alteracao foi persistida.",
+      nextStep: info.category === "validation"
+        ? "Revise os campos obrigatorios e tente novamente."
+        : "Valide conectividade/permissoes e repita a operacao.",
+    });
+    return;
+  }
   el.className  = "alert alert-danger py-2 mt-2 small";
   el.textContent = msg;
   el.classList.remove("d-none");
@@ -477,6 +519,18 @@ function _showFormError(msg) {
 function _showFormSuccess(msg) {
   const el = document.getElementById("zh-form-feedback");
   if (!el) return;
+  if (window.zhFeedback) {
+    el.classList.remove("d-none");
+    el.innerHTML = window.zhFeedback.renderAlert({
+      state: "success",
+      category: "success",
+      title: "Validacao concluida",
+      happened: msg,
+      impact: "A conexao com o vCenter foi validada com sucesso.",
+      nextStep: "Agora voce pode salvar o cadastro com seguranca.",
+    });
+    return;
+  }
   el.className  = "alert alert-success py-2 mt-2 small";
   el.textContent = msg;
   el.classList.remove("d-none");
@@ -488,6 +542,49 @@ function _clearFormError() {
 }
 
 function _showToast(type, msg) {
+  if (window.zhFeedback) {
+    const map = {
+      success: {
+        state: "success",
+        category: "success",
+        title: "Operacao concluida",
+        impact: "A configuracao de vCenters foi atualizada.",
+        nextStep: "Valide o status de conectividade dos cards.",
+      },
+      danger: {
+        state: "error",
+        category: "transient",
+        title: "Falha na operacao",
+        impact: "A mudanca solicitada pode nao ter sido aplicada.",
+        nextStep: "Verifique a API e tente novamente.",
+      },
+      warning: {
+        state: "error",
+        category: "validation",
+        title: "Atencao",
+        impact: "Os dados enviados nao passaram na validacao.",
+        nextStep: "Revise campos e repita o envio.",
+      },
+      info: {
+        state: "success",
+        category: "success",
+        title: "Informacao",
+        impact: "A tela foi atualizada com o status mais recente.",
+        nextStep: "Continue com a proxima acao desejada.",
+      },
+    };
+    const cfg = map[type] || map.info;
+    window.zhFeedback.showToast({
+      state: cfg.state,
+      category: cfg.category,
+      title: cfg.title,
+      happened: msg,
+      impact: cfg.impact,
+      nextStep: cfg.nextStep,
+    });
+    return;
+  }
+
   const container = document.getElementById("zh-toast-container");
   if (!container) { alert(msg); return; }
   const id = `toast-${Date.now()}`;

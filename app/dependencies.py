@@ -52,6 +52,9 @@ async def get_current_user(
       - API Key no header X-API-Key
     """
     # Tentativa 1: API Key estática
+    if not settings.auth_enabled:
+        return {"sub": "auth-disabled", "method": "auth_disabled"}
+
     if api_key and secrets.compare_digest(api_key, settings.api_key):
         return {"sub": "api-key-user", "method": "api_key"}
 
@@ -68,8 +71,13 @@ async def get_current_user(
             if sub:
                 method = "jwt" if bearer else "jwt_cookie"
                 return {"sub": sub, "method": method}
-        except JWTError:
-            pass
+        except JWTError as exc:
+            auth_method = "bearer" if bearer else "cookie"
+            logger.warning(
+                "Falha ao validar JWT (%s): %s",
+                auth_method,
+                exc.__class__.__name__,
+            )
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

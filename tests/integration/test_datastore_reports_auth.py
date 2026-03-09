@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import os
-
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
-
 from fastapi.testclient import TestClient
 
 import main as main_module

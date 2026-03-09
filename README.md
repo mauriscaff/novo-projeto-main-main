@@ -48,10 +48,44 @@ Principais funções:
    pip install -r requirements.txt
    ```
 
+   Para desenvolvimento/testes com versões reprodutíveis:
+
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
 4. **Configurar variáveis de ambiente**:
 
    - Copiar o arquivo de exemplo: `copy .env.example .env` (Windows) ou `cp .env.example .env` (Linux/macOS)
    - Editar `.env` (ou `.env.local`) e preencher os valores reais (segredos, vCenter, etc.). **Nunca** versionar `.env` ou `.env.local`.
+
+---
+
+## Reprodutibilidade (Dev e CI)
+
+- `requirements.txt`: runtime de produção pinado.
+- `requirements-dev.txt`: faixas de versão das ferramentas de teste (fácil atualização).
+- `requirements-dev-constraints.txt`: lock usado em dev/CI para reduzir variação de resolução.
+
+Instalação recomendada (local e CI):
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Exemplo de execução em CI:
+
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+Fluxo de atualização controlada:
+1. Ajustar ranges em `requirements-dev.txt`.
+2. Rodar suíte de testes completa.
+3. Atualizar pins em `requirements-dev-constraints.txt` no mesmo PR.
+4. Registrar no changelog/descrição do PR impacto esperado.
 
 ---
 
@@ -66,6 +100,7 @@ As variáveis abaixo são lidas do `.env` ou `.env.local`. Valores sensíveis de
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas para CORS (separadas por vírgula) | `http://localhost:8000` |
 | `SECRET_KEY` | Chave para assinatura JWT | Gerar com `openssl rand -hex 32` |
 | `API_KEY` | Chave estática (alternativa ao JWT) | Definir valor seguro |
+| `AUTH_ENABLED` | Habilita autenticação da API (`true`/`false`) | `false` |
 | `DATABASE_URL` | URL do banco (SQLite por padrão) | `sqlite+aiosqlite:///ABSOLUTE_PATH/vmdk_scanner.db` |
 | `DEFAULT_VCENTER_*` | vCenter padrão (opcional; cadastro via API) | Host, user, password, port, disable_ssl_verify |
 | `FERNET_KEY` | Chave Fernet para criptografia de senhas de vCenter | Gerar com `Fernet.generate_key()` |

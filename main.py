@@ -140,6 +140,7 @@ async def _base_ctx(request: Request) -> dict:
 
     return {
         "request":          request,
+        "auth_enabled":     settings.auth_enabled,
         "readonly_mode":    settings.readonly_mode,
         "vcenter_status":   vcenter_status,
         "api_version":      settings.app_version,
@@ -219,6 +220,13 @@ async def web_settings(request: Request):
 
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict:
+    """
+    Liveness publico (minimo e seguro).
+
+    Contrato atual preservado:
+      - Mantem campo `service` para compatibilidade legada.
+      - Nao inclui detalhes operacionais (DB/scheduler/vcenters).
+    """
     return {
         "status": "ok",
         "service": settings.app_name,
@@ -277,4 +285,7 @@ async def _build_readiness_report() -> dict:
 
 @app.get("/health/readiness", tags=["Health"])
 async def readiness_check(_: dict = Depends(get_current_user)) -> dict:
+    """
+    Readiness autenticado com detalhes operacionais para diagnostico.
+    """
     return await _build_readiness_report()

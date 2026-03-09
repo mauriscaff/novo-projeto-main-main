@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
   _initCharts();
   _initTable();
   _initStorageTable();
+  _bindUiHooks();
   loadDashboard();
 
   // Atualização periódica automática
@@ -104,6 +105,30 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+function _bindUiHooks() {
+  const emptyRunScanBtn = document.getElementById("zh-empty-run-scan");
+  if (emptyRunScanBtn) {
+    emptyRunScanBtn.addEventListener("click", () => {
+      document.getElementById("zh-btn-new-scan")?.click();
+    });
+  }
+
+  document.querySelectorAll("#zh-dashboard-ops-accordion .accordion-collapse").forEach((el) => {
+    el.addEventListener("shown.bs.collapse", () => {
+      _resizeAllCharts();
+    });
+  });
+}
+
+function _resizeAllCharts() {
+  Object.values(charts).forEach((chart) => {
+    if (chart && typeof chart.resize === "function") {
+      chart.resize();
+      chart.update("none");
+    }
+  });
+}
 
 // ── Carregamento principal ────────────────────────────────────────────────────
 
@@ -120,18 +145,17 @@ async function loadDashboard(forceSpinner = false) {
   try {
     const resp = await fetch(API_URL, {
       headers: {
-        "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",
         "Accept": "application/json",
-
       },
+      credentials: "same-origin",
       cache: "no-store",
     });
 
     const storageResp = await fetch(API_URL + "/recoverable-storage", {
       headers: {
-        "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",
         "Accept": "application/json",
       },
+      credentials: "same-origin",
       cache: "no-store",
     });
 
@@ -186,6 +210,7 @@ async function loadDashboard(forceSpinner = false) {
     _renderLastUpdated();
     _setLoadingState(false);
     _setErrorState(null);
+    document.dispatchEvent(new CustomEvent("zh-dashboard-loaded", { detail: data }));
 
   } catch (err) {
     console.error("[ZombieHunter Dashboard] Erro ao carregar dados:", err);
@@ -197,15 +222,25 @@ async function loadDashboard(forceSpinner = false) {
 // ── Cards de resumo ───────────────────────────────────────────────────────────
 
 /**
- * Preenche os 5 cards superiores com os totais do dashboard.
+ * Preenche os cards de resumo com os totais do dashboard.
  * @param {Object} data Resposta da API /dashboard
  */
 function _renderCards(data) {
+  const totalVmdks = Number(data.total_zombies ?? data.total_vmdks_all_time ?? 0);
+  const totalGb = Number(data.total_size_gb ?? data.total_size_all_time_gb ?? 0);
+
   // Flask: total_zombies / total_size_gb; FastAPI: total_vmdks_all_time / total_size_all_time_gb
-  _setCard("zh-card-total-vmdks", _fmt(data.total_zombies ?? data.total_vmdks_all_time));
-  _setCard("zh-card-total-gb", _fmtGb(data.total_size_gb ?? data.total_size_all_time_gb));
+  _setCard("zh-card-total-vmdks", _fmt(totalVmdks));
+  _setCard("zh-card-total-gb", _fmtGb(totalGb));
   _setCard("zh-card-pending", _fmt(data.pending_approvals ?? 0));
   _setCard("zh-card-vcenter-count", _fmt(data.vcenter_count ?? 0));
+  const failedVcenters = _getFailedVcenters(data);
+  _setCard("zh-card-vcenter-failed", _fmt(failedVcenters));
+  _setCard(
+    "zh-card-vcenter-failed-sub",
+    failedVcenters > 0 ? "requer atencao imediata" : "sem falhas de conectividade"
+  );
+  _renderEmptyState(data, totalVmdks, totalGb, failedVcenters);
 
   // Timestamp da última varredura com formatação local
   const lastScanEl = document.getElementById("zh-card-last-scan");
@@ -226,6 +261,44 @@ function _renderCards(data) {
     const count = data.pending_approvals ?? 0;
     pendingCard.classList.toggle("zh-card-alert", count > 0);
   }
+}
+
+function _getFailedVcenters(data) {
+  const explicitFailed = Number(data.vcenters_failed ?? data.failed_vcenters ?? 0);
+  if (!Number.isNaN(explicitFailed) && explicitFailed > 0) {
+    return explicitFailed;
+  }
+
+  const statuses = Array.isArray(window.ZH_VCENTER_STATUS) ? window.ZH_VCENTER_STATUS : [];
+  if (statuses.length) {
+    return statuses.filter((vc) => vc && vc.connected === false).length;
+  }
+
+  const expectedCount = Number(data.vcenter_count ?? 0);
+  const seenInDashboard = Array.isArray(data.by_vcenter) ? data.by_vcenter.length : 0;
+  return Math.max(0, expectedCount - seenInDashboard);
+}
+
+function _renderEmptyState(data, totalVmdks, totalGb, failedVcenters) {
+  const wrapper = document.getElementById("zh-empty-state");
+  if (!wrapper) return;
+
+  const hasRecentRows = Array.isArray(data.recent_alerts ?? data.recent_vmdks)
+    && (data.recent_alerts ?? data.recent_vmdks).length > 0;
+  const hasMetrics = totalVmdks > 0 || totalGb > 0 || Boolean(data.last_scan_at) || hasRecentRows;
+  wrapper.classList.toggle("d-none", hasMetrics);
+
+  const msgEl = document.getElementById("zh-empty-state-msg");
+  if (!msgEl) return;
+  if (Number(data.vcenter_count ?? 0) === 0) {
+    msgEl.textContent = "Nenhum vCenter ativo encontrado. Cadastre um vCenter e execute uma varredura.";
+    return;
+  }
+  if (failedVcenters > 0) {
+    msgEl.textContent = "Ha falhas de conectividade em vCenters. Corrija a conexao e execute uma varredura agora.";
+    return;
+  }
+  msgEl.textContent = "Execute uma varredura para preencher os indicadores operacionais.";
 }
 
 function _setCard(id, value) {
@@ -878,8 +951,9 @@ function _renderStorageDatastoresChart(byDatastore) {
 }
 
 function _renderVCenterCards(byVcenter) {
-  const container = document.getElementById("zh-vcenter-cards-container");
+  const container = document.getElementById("zh-vcenter-cards-row");
   if (!container) return;
+  document.getElementById("zh-vcenter-loading")?.remove();
 
   if (byVcenter.length === 0) {
     container.innerHTML = `<div class="col-12 text-muted-zh small">Nenhum dado de vCenter disponível.</div>`;
@@ -986,7 +1060,16 @@ function _renderLastUpdated() {
  */
 function _setLoadingState(loading) {
   const overlay = document.getElementById("zh-loading-overlay");
-  if (overlay) overlay.classList.toggle("d-none", !loading);
+  if (overlay) {
+    if (loading && window.zhFeedback) {
+      window.zhFeedback.setInline(overlay, {
+        state: "loading",
+        text: "Carregando dashboard",
+        detail: "Atualizando indicadores criticos e graficos.",
+      });
+    }
+    overlay.classList.toggle("d-none", !loading);
+  }
 
   const btnRefresh = document.getElementById("zh-btn-refresh");
   if (btnRefresh) {
@@ -1003,10 +1086,36 @@ function _setErrorState(msg) {
   const el = document.getElementById("zh-error-banner");
   if (!el) return;
   if (msg) {
-    el.textContent = `Erro ao carregar dados: ${msg}`;
+    const info = window.zhFeedback
+      ? window.zhFeedback.toErrorInfo({ message: String(msg || "") }, "Falha ao carregar dashboard.")
+      : { category: "unknown", message: String(msg || "Falha ao carregar dashboard.") };
+
+    const nextByCategory = {
+      auth: "Valide a sessao de usuario e tente atualizar novamente.",
+      validation: "Revise os parametros da requisicao e tente novamente.",
+      transient: "Verifique rede/API e clique em Atualizar em alguns segundos.",
+      unknown: "Tente atualizar novamente. Se persistir, verifique logs da API.",
+    };
+
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline(el, {
+        state: "error",
+        category: info.category,
+        title: "Falha ao carregar dashboard",
+        happened: info.message,
+        impact: "Os KPIs e graficos podem estar desatualizados.",
+        nextStep: nextByCategory[info.category] || nextByCategory.unknown,
+      });
+    } else {
+      el.textContent = `Erro ao carregar dados: ${info.message}`;
+    }
     el.classList.remove("d-none");
   } else {
-    el.classList.add("d-none");
+    if (window.zhFeedback) {
+      window.zhFeedback.clear(el);
+    } else {
+      el.classList.add("d-none");
+    }
   }
 }
 

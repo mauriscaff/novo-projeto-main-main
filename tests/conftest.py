@@ -8,23 +8,18 @@ para rodar testes sem conexão real com VMware.
 from __future__ import annotations
 
 import os
-import sys
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_zombiehunter.db"
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
 os.environ.setdefault("READONLY_MODE", "true")
+os.environ.setdefault("AUTH_ENABLED", "true")
 
 from app.core.scanner.zombie_detector import (
     _FileEntry,

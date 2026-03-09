@@ -34,9 +34,13 @@ from app.core.datastore_report import KNOWN_ZOMBIE_TYPES, aggregate_datastore_ro
 from app.core.executive_report import build_datastore_executive_report_markdown
 from app.core.scanner.scan_runner import resolve_vcenter, run_zombie_scan, get_scan_progress
 from app.core.scanner.zombie_detector import TIPOS_EXCLUIVEIS, ZombieType, _CAUSES_BY_TYPE
+from app.core.vcenter.client import list_datastores_async
+from app.core.vcenter.connection import vcenter_pool
+from app.core.vcenter.connection_manager import connection_manager
 from app.dependencies import get_current_user, get_db
 from app.models.audit_log import AuditLog
 from app.models.datastore_snapshot import DatastoreDecomSnapshot
+from app.models.vcenter import VCenter
 from app.models.vmdk_whitelist import VmdkWhitelist
 from app.models.zombie_scan import ZombieScanJob, ZombieVmdkRecord
 from app.schemas.datastore_snapshot import (
@@ -118,6 +122,41 @@ def _get_client_ip(request: Request) -> str | None:
     if fwd:
         return fwd.split(",")[0].strip()
     return request.client.host if request.client else None
+
+
+def _parse_filter_datetime(
+    value: str | None,
+    *,
+    param_name: str,
+    end_of_day: bool,
+) -> datetime | None:
+    if not value:
+        return None
+    suffix = "T23:59:59.999999+00:00" if end_of_day else "T00:00:00+00:00"
+    try:
+        return datetime.fromisoformat(value + suffix)
+    except ValueError:
+        safe_value = value[:64]
+        logger.warning(
+            "Filtro de data ignorado: parametro '%s' invalido (valor='%s').",
+            param_name,
+            safe_value,
+        )
+        return None
+
+
+def _parse_filter_scan_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        safe_value = value[:64]
+        logger.warning(
+            "Filtro de data ignorado: parametro 'scan_date' invalido (valor='%s').",
+            safe_value,
+        )
+        return None
 
 
 async def _audit_datastore_report(
@@ -278,9 +317,75 @@ de nova varredura.
     """,
 )
 async def list_known_datastores(
+    source: Annotated[
+        str,
+        Query(
+            description="`known` usa histórico do banco. `live` consulta datastores ao vivo por vCenter ativo.",
+            pattern="^(known|live)$",
+        ),
+    ] = "known",
     db: AsyncSession = Depends(get_db),
     _: dict = Depends(get_current_user),
 ) -> list[dict]:
+    if source == "live":
+        live_rows: list[dict] = []
+        vcs = (
+            await db.execute(
+                select(VCenter).where(VCenter.is_active.is_(True)).order_by(VCenter.id)
+            )
+        ).scalars().all()
+
+        for vc in vcs:
+            try:
+                connection_manager.register(vc)
+                si = vcenter_pool.get_service_instance(vc.id)
+                datastores = await list_datastores_async(si)
+            except Exception as exc:
+                logger.warning(
+                    "Nao foi possivel listar datastores ao vivo para vCenter '%s' (%s): %s",
+                    vc.name,
+                    vc.host,
+                    exc.__class__.__name__,
+                )
+                continue
+
+            for ds in datastores:
+                ds_name = str(ds.get("name") or "").strip()
+                if not ds_name:
+                    continue
+                maintenance_state = str(ds.get("maintenance_state") or "").strip()
+                maintenance_mode = bool(ds.get("maintenance_mode"))
+                live_rows.append(
+                    {
+                        "name": ds_name,
+                        "vcenter_name": vc.name or "",
+                        "vcenter_host": vc.host or "",
+                        "accessible": bool(ds.get("accessible", True)),
+                        "maintenance_mode": maintenance_mode,
+                        "maintenance_state": maintenance_state,
+                    }
+                )
+
+        seen: set[tuple[str, str]] = set()
+        result: list[dict] = []
+        for row in sorted(
+            live_rows,
+            key=lambda r: (
+                str(r.get("vcenter_name") or "").lower(),
+                str(r.get("vcenter_host") or "").lower(),
+                str(r.get("name") or "").lower(),
+            ),
+        ):
+            key = (
+                str(row.get("name") or "").strip().lower(),
+                str(row.get("vcenter_host") or "").strip().lower(),
+            )
+            if not key[0] or key in seen:
+                continue
+            seen.add(key)
+            result.append(row)
+        return result
+
     stmt = (
         select(
             ZombieVmdkRecord.datastore,
@@ -724,35 +829,34 @@ async def list_all_results(
         count_stmt = count_stmt.where(flt)
         size_stmt = size_stmt.where(flt)
 
-    if modified_after:
-        try:
-            dt_after = datetime.fromisoformat(modified_after + "T00:00:00+00:00")
-            stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
-            count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
-            size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
-        except ValueError:
-            pass
+    dt_after = _parse_filter_datetime(
+        modified_after,
+        param_name="modified_after",
+        end_of_day=False,
+    )
+    if dt_after:
+        stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
+        count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
+        size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
 
-    if modified_before:
-        try:
-            dt_before = datetime.fromisoformat(modified_before + "T23:59:59.999999+00:00")
-            stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
-            count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
-            size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
-        except ValueError:
-            pass
+    dt_before = _parse_filter_datetime(
+        modified_before,
+        param_name="modified_before",
+        end_of_day=True,
+    )
+    if dt_before:
+        stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
+        count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
+        size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
 
-    if scan_date:
-        try:
-            d = date.fromisoformat(scan_date)
-            job_subq = select(ZombieScanJob.job_id).where(
-                cast(ZombieScanJob.started_at, Date) == d
-            )
-            stmt = stmt.where(ZombieVmdkRecord.job_id.in_(job_subq))
-            count_stmt = count_stmt.where(ZombieVmdkRecord.job_id.in_(job_subq))
-            size_stmt = size_stmt.where(ZombieVmdkRecord.job_id.in_(job_subq))
-        except ValueError:
-            pass
+    parsed_scan_date = _parse_filter_scan_date(scan_date)
+    if parsed_scan_date:
+        job_subq = select(ZombieScanJob.job_id).where(
+            cast(ZombieScanJob.started_at, Date) == parsed_scan_date
+        )
+        stmt = stmt.where(ZombieVmdkRecord.job_id.in_(job_subq))
+        count_stmt = count_stmt.where(ZombieVmdkRecord.job_id.in_(job_subq))
+        size_stmt = size_stmt.where(ZombieVmdkRecord.job_id.in_(job_subq))
 
     # Filtro de status (WHITELIST exige cruzamento com a tabela)
     if status == "WHITELIST" and whitelist_paths:
@@ -910,21 +1014,23 @@ async def get_results(
         stmt = stmt.where(ZombieVmdkRecord.confidence_score <= max_confidence)
         count_stmt = count_stmt.where(ZombieVmdkRecord.confidence_score <= max_confidence)
 
-    if modified_after:
-        try:
-            dt_after = datetime.fromisoformat(modified_after + "T00:00:00+00:00")
-            stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
-            count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
-        except ValueError:
-            pass
+    dt_after = _parse_filter_datetime(
+        modified_after,
+        param_name="modified_after",
+        end_of_day=False,
+    )
+    if dt_after:
+        stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
+        count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
 
-    if modified_before:
-        try:
-            dt_before = datetime.fromisoformat(modified_before + "T23:59:59.999999+00:00")
-            stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
-            count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
-        except ValueError:
-            pass
+    dt_before = _parse_filter_datetime(
+        modified_before,
+        param_name="modified_before",
+        end_of_day=True,
+    )
+    if dt_before:
+        stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
+        count_stmt = count_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
 
     # ── Total e tamanho total (mesmos filtros) ──────────────────────────────────
     total: int = (await db.execute(count_stmt)).scalar_one()
@@ -951,18 +1057,10 @@ async def get_results(
         size_stmt = size_stmt.where(ZombieVmdkRecord.confidence_score >= min_confidence)
     if max_confidence is not None:
         size_stmt = size_stmt.where(ZombieVmdkRecord.confidence_score <= max_confidence)
-    if modified_after:
-        try:
-            dt_after = datetime.fromisoformat(modified_after + "T00:00:00+00:00")
-            size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
-        except ValueError:
-            pass
-    if modified_before:
-        try:
-            dt_before = datetime.fromisoformat(modified_before + "T23:59:59.999999+00:00")
-            size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
-        except ValueError:
-            pass
+    if dt_after:
+        size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
+    if dt_before:
+        size_stmt = size_stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
     total_gb: float = (await db.execute(size_stmt)).scalar_one() or 0.0
 
     # Whitelist para status
@@ -1067,18 +1165,21 @@ async def export_results(
         stmt = stmt.where(ZombieVmdkRecord.confidence_score >= min_confidence)
     if max_confidence is not None:
         stmt = stmt.where(ZombieVmdkRecord.confidence_score <= max_confidence)
-    if modified_after:
-        try:
-            dt_after = datetime.fromisoformat(modified_after + "T00:00:00+00:00")
-            stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
-        except ValueError:
-            pass
-    if modified_before:
-        try:
-            dt_before = datetime.fromisoformat(modified_before + "T23:59:59.999999+00:00")
-            stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
-        except ValueError:
-            pass
+    dt_after = _parse_filter_datetime(
+        modified_after,
+        param_name="modified_after",
+        end_of_day=False,
+    )
+    if dt_after:
+        stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao >= dt_after)
+
+    dt_before = _parse_filter_datetime(
+        modified_before,
+        param_name="modified_before",
+        end_of_day=True,
+    )
+    if dt_before:
+        stmt = stmt.where(ZombieVmdkRecord.ultima_modificacao <= dt_before)
 
     sort_col = _SORT_COLUMNS[sort_by]
     sort_fn = desc if order == "desc" else asc

@@ -48,7 +48,7 @@ block scripts — Scripts JS adicionais no final do
         --zh-bg-body: #161b22;
         --zh-bg-card: #1c2128;
         --zh-border: #30363d;
-        --zh-text-muted: #8b949e;
+        --zh-text-muted: #9aa6b2;
         --zh-accent-red: #f85149;
         --zh-accent-green: #3fb950;
         --zh-accent-yellow: #d29922;
@@ -62,6 +62,10 @@ block scripts — Scripts JS adicionais no final do
         background-color: var(--zh-bg-body);
         min-height: 100vh;
         overflow-x: hidden;
+      }
+
+      body.zh-no-scroll {
+        overflow: hidden;
       }
 
       /* ── Navbar ───────────────────────────────────────────────────────── */
@@ -163,6 +167,24 @@ block scripts — Scripts JS adicionais no final do
         /* Scrollbar customizada */
         scrollbar-width: thin;
         scrollbar-color: var(--zh-border) transparent;
+      }
+
+      .zh-sidebar-overlay {
+        position: fixed;
+        top: var(--zh-navbar-height);
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 1025;
+      }
+
+      .zh-sidebar-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
       }
 
       .zh-sidebar::-webkit-scrollbar {
@@ -327,6 +349,105 @@ block scripts — Scripts JS adicionais no final do
         color: var(--zh-text-muted) !important;
       }
 
+      .zh-skip-link {
+        position: absolute;
+        left: -9999px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        z-index: 2000;
+      }
+
+      .zh-skip-link:focus {
+        left: 12px;
+        top: 12px;
+        width: auto;
+        height: auto;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--zh-bg-card);
+        color: #e6edf3;
+        border: 1px solid var(--zh-accent-blue);
+        text-decoration: none;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--zh-accent-blue);
+        outline-offset: 2px;
+      }
+
+      .zh-status-toggle {
+        color: #c9d1d9 !important;
+      }
+
+      .zh-status-toggle:hover {
+        color: #e6edf3 !important;
+      }
+
+      /* Padrao global de feedback (loading/sucesso/erro) */
+      .zh-feedback {
+        border: 1px solid var(--zh-border);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+
+      .zh-feedback__title {
+        font-size: .88rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .zh-feedback__meta {
+        font-size: .8rem;
+        color: var(--zh-text-muted);
+      }
+
+      .zh-feedback__line {
+        font-size: .82rem;
+        line-height: 1.5;
+        color: #e6edf3;
+        margin-top: 2px;
+      }
+
+      .zh-feedback__icon {
+        font-size: 1.1rem;
+      }
+
+      .zh-feedback--loading {
+        background: rgba(88, 166, 255, 0.08);
+        border-color: rgba(88, 166, 255, 0.35);
+      }
+
+      .zh-feedback-skeleton {
+        display: grid;
+        gap: 8px;
+      }
+
+      .zh-feedback-skeleton__line {
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          rgba(139, 148, 158, 0.15) 0%,
+          rgba(139, 148, 158, 0.3) 50%,
+          rgba(139, 148, 158, 0.15) 100%
+        );
+        background-size: 220% 100%;
+        animation: zh-feedback-shimmer 1.2s infinite linear;
+      }
+
+      @keyframes zh-feedback-shimmer {
+        from { background-position: 220% 0; }
+        to { background-position: -220% 0; }
+      }
+
+      .zh-feedback-toast {
+        background: var(--zh-bg-card);
+        border: 1px solid var(--zh-border);
+        color: #e6edf3;
+      }
+
       /* Separador horizontal na sidebar */
       .zh-sidebar-divider {
         border-color: var(--zh-border);
@@ -339,6 +460,7 @@ block scripts — Scripts JS adicionais no final do
         .zh-sidebar {
           transform: translateX(-100%);
           transition: transform 0.25s ease;
+          z-index: 1035;
         }
 
         .zh-sidebar.open {
@@ -354,6 +476,7 @@ block scripts — Scripts JS adicionais no final do
   </head>
 
   <body>
+    <a href="#zh-main-content" class="zh-skip-link">Pular para o conteudo principal</a>
 
     <!-- ═══════════════════════════════════════════════════════════════════
        NAVBAR SUPERIOR
@@ -365,6 +488,7 @@ block scripts — Scripts JS adicionais no final do
 
       <!-- ── Botão hambúrguer (apenas mobile) ─────────────────────────── -->
       <button class="btn btn-sm btn-outline-secondary d-md-none border-0 p-1" id="zh-sidebar-toggle"
+        aria-controls="zh-sidebar" aria-expanded="false"
         aria-label="Abrir menu" title="Menu">
         <i class="bi bi-list fs-5"></i>
       </button>
@@ -382,8 +506,10 @@ block scripts — Scripts JS adicionais no final do
       <!-- ── Status de conectividade dos vCenters ─────────────────────── -->
       <!-- Exibido como dropdown com cada vCenter e seu estado de conexão -->
       <div class="dropdown d-none d-sm-block">
-        <button class="btn btn-sm btn-link text-decoration-none text-secondary d-flex align-items-center gap-2 p-1"
-          data-bs-toggle="dropdown" aria-expanded="false" title="Status dos vCenters">
+        <button id="zh-vcenter-status-toggle"
+          class="btn btn-sm btn-link text-decoration-none zh-status-toggle d-flex align-items-center gap-2 p-1"
+          data-bs-toggle="dropdown" aria-expanded="false" title="Status dos vCenters"
+          aria-label="Status de conectividade dos vCenters">
           <!-- Dot global: verde se todos conectados, vermelho se algum offline -->
           <span
             class="zh-vcenter-dot {% if vcenter_status and vcenter_status | selectattr('connected', 'equalto', false) | list %}disconnected{% else %}connected{% endif %}"
@@ -391,11 +517,23 @@ block scripts — Scripts JS adicionais no final do
           <span class="small">
             vCenters
             <!-- Contador: X/total conectados -->
-            <span class="text-muted-zh" id="zh-vcenter-count">
+            <span class="text-muted-zh" id="zh-vcenter-count" aria-live="polite" aria-atomic="true">
               ({{ (vcenter_status | selectattr('connected') | list | length) if vcenter_status else 0 }}/{{
               (vcenter_status | length) if vcenter_status else 0 }})
             </span>
           </span>
+          <span id="zh-global-status-text" class="small text-muted-zh">
+            {% if (vcenter_status | length) == 0 %}
+            Sem vCenters
+            {% elif vcenter_status | selectattr('connected', 'equalto', false) | list %}
+            Com falha
+            {% else %}
+            Operacional
+            {% endif %}
+          </span>
+          <i id="zh-global-status-icon"
+            class="bi {% if (vcenter_status | length) == 0 %}bi-question-circle text-muted-zh{% elif vcenter_status | selectattr('connected', 'equalto', false) | list %}bi-exclamation-circle-fill text-zombie-red{% else %}bi-check-circle-fill text-zombie-green{% endif %}"
+            aria-hidden="true"></i>
           <i class="bi bi-chevron-down" style="font-size: .65rem;"></i>
         </button>
 
@@ -446,12 +584,14 @@ block scripts — Scripts JS adicionais no final do
       Quando READONLY_MODE=true (padrão), exibe em vermelho pulsante.
       Quando READONLY_MODE=false, exibe aviso em laranja.
     -->
+      {% if auth_enabled %}
       <div class="d-flex align-items-center gap-2 flex-shrink-0">
         <span id="zh-auth-user" class="small text-muted-zh d-none"></span>
         <button id="zh-logout-btn" type="button" class="btn btn-sm btn-outline-secondary d-none" title="Encerrar sessao">
           <i class="bi bi-box-arrow-right me-1"></i>Sair
         </button>
       </div>
+      {% endif %}
 
       <div class="d-flex align-items-center gap-2 flex-shrink-0">
         {% if readonly_mode %}
@@ -469,44 +609,59 @@ block scripts — Scripts JS adicionais no final do
       </div>
 
     </nav><!-- fim .zh-navbar -->
+    <div id="zh-sidebar-overlay" class="zh-sidebar-overlay d-md-none" aria-hidden="true"></div>
 
 
     <!-- ═══════════════════════════════════════════════════════════════════
        SIDEBAR ESQUERDA
        Links de navegação principal com ícones e badge de aprovações
   ═══════════════════════════════════════════════════════════════════ -->
+    {% set _path = request.url.path|lower %}
+    {% set _status_qs = (request.query_params.get('status', '')|upper) %}
+    {% set nav_dashboard_active = (_path == '/' or _path.startswith('/dashboard')) %}
+    {% set nav_scan_active = (_path.startswith('/scan') or _path.startswith('/results')) and _status_qs != 'WHITELIST' %}
+    {% set nav_post_exclusion_active = _path.startswith('/operations/post-exclusion-report') %}
+    {% set nav_approvals_active = _path.startswith('/approvals') %}
+    {% set nav_vcenters_active = _path.startswith('/vcenters') %}
+    {% set nav_schedules_active = _path.startswith('/schedules') %}
+    {% set nav_webhooks_active = _path.startswith('/webhooks') %}
+    {% set nav_audit_active = (_path.startswith('/audit') or _path.startswith('/audit-log')) %}
+    {% set nav_whitelist_active = (_path.startswith('/whitelist') or (_path.startswith('/scan/results') and _status_qs == 'WHITELIST')) %}
+    {% set nav_settings_active = _path.startswith('/settings') %}
+    {% set nav_health_active = (_path == '/health' or _path.startswith('/health/')) %}
     <aside class="zh-sidebar" id="zh-sidebar" aria-label="Navegação principal">
 
       <!-- ── Seção: Operações ──────────────────────────────────────────── -->
       <p class="zh-sidebar-label">Operações</p>
 
       <!-- Dashboard — visão geral de métricas históricas -->
-      <a href="/" class="zh-nav-link {% if request.url.path == '/' %}active{% endif %}" title="Dashboard">
+      <a href="/" class="zh-nav-link {% if nav_dashboard_active %}active{% endif %}" title="Painel principal">
         <i class="bi bi-grid-1x2-fill"></i>
         <span>Dashboard</span>
       </a>
 
       <!-- Resultados da Varredura — lista paginada de VMDKs zombie detectados -->
-      <a href="/scan/results" class="zh-nav-link {% if '/scan' in request.url.path %}active{% endif %}"
-        title="Resultados da Varredura">
+      <a href="/scan/results" class="zh-nav-link {% if nav_scan_active %}active{% endif %}"
+        title="Resultados de varredura">
         <i class="bi bi-search"></i>
         <span>Varredura</span>
       </a>
 
       <a href="/operations/post-exclusion-report"
-        class="zh-nav-link {% if '/operations/post-exclusion-report' in request.url.path %}active{% endif %}"
-        title="Relatorio Pos-Exclusao">
+        class="zh-nav-link {% if nav_post_exclusion_active %}active{% endif %}"
+        title="Relatorio pos-exclusao">
         <i class="bi bi-clipboard-data"></i>
         <span>Pos-Exclusao</span>
       </a>
 
       <!-- Aprovações Pendentes — badge em vermelho com quantidade -->
-      <a href="/approvals" class="zh-nav-link {% if '/approvals' in request.url.path %}active{% endif %}"
-        title="Aprovações Pendentes">
+      <a href="/approvals" class="zh-nav-link {% if nav_approvals_active %}active{% endif %}"
+        title="Aprovacoes pendentes">
         <i class="bi bi-shield-check"></i>
         <span>Aprovações</span>
         <!-- Badge: mostra 0 quando não há pendências (cor neutra) -->
-        <span class="zh-nav-badge {{ 'zero' if (pending_approvals or 0) == 0 }}" id="zh-pending-badge">
+        <span class="zh-nav-badge {{ 'zero' if (pending_approvals or 0) == 0 }}" id="zh-pending-badge" aria-live="polite"
+          aria-atomic="true">
           {{ pending_approvals or 0 }}
         </span>
       </a>
@@ -517,22 +672,22 @@ block scripts — Scripts JS adicionais no final do
       <p class="zh-sidebar-label">Infraestrutura</p>
 
       <!-- vCenters — cadastro e gestão de conexões -->
-      <a href="/vcenters" class="zh-nav-link {% if '/vcenters' in request.url.path %}active{% endif %}"
+      <a href="/vcenters" class="zh-nav-link {% if nav_vcenters_active %}active{% endif %}"
         title="Gerenciar vCenters">
         <i class="bi bi-hdd-network-fill"></i>
         <span>vCenters</span>
       </a>
 
       <!-- Agendamentos — configuração de varreduras automáticas via cron -->
-      <a href="/schedules" class="zh-nav-link {% if '/schedules' in request.url.path %}active{% endif %}"
-        title="Agendamentos de Varredura">
+      <a href="/schedules" class="zh-nav-link {% if nav_schedules_active %}active{% endif %}"
+        title="Agendamentos de varredura">
         <i class="bi bi-calendar-check-fill"></i>
         <span>Agendamentos</span>
       </a>
 
       <!-- Webhooks — alertas para Teams, Slack e HTTP genérico -->
-      <a href="/webhooks" class="zh-nav-link {% if '/webhooks' in request.url.path %}active{% endif %}"
-        title="Webhooks de Alerta">
+      <a href="/webhooks" class="zh-nav-link {% if nav_webhooks_active %}active{% endif %}"
+        title="Webhooks de alerta">
         <i class="bi bi-bell-fill"></i>
         <span>Webhooks</span>
       </a>
@@ -543,14 +698,14 @@ block scripts — Scripts JS adicionais no final do
       <p class="zh-sidebar-label">Auditoria</p>
 
       <!-- Audit Log — histórico imutável de todas as operações e tentativas -->
-      <a href="/audit-log" class="zh-nav-link {% if '/audit-log' in request.url.path %}active{% endif %}"
-        title="Log de Auditoria">
+      <a href="/audit-log" class="zh-nav-link {% if nav_audit_active %}active{% endif %}"
+        title="Log de auditoria">
         <i class="bi bi-journal-text"></i>
-        <span>Audit Log</span>
+        <span>Auditoria</span>
       </a>
 
       <!-- Whitelist — VMDKs marcados como seguros e excluídos de varreduras -->
-      <a href="/whitelist" class="zh-nav-link {% if '/whitelist' in request.url.path %}active{% endif %}"
+      <a href="/whitelist" class="zh-nav-link {% if nav_whitelist_active %}active{% endif %}"
         title="Whitelist de VMDKs">
         <i class="bi bi-shield-fill-check"></i>
         <span>Whitelist</span>
@@ -562,14 +717,14 @@ block scripts — Scripts JS adicionais no final do
       <p class="zh-sidebar-label">Sistema</p>
 
       <!-- Configurações — parâmetros gerais do ZombieHunter -->
-      <a href="/settings" class="zh-nav-link {% if '/settings' in request.url.path %}active{% endif %}"
-        title="Configurações do Sistema">
+      <a href="/settings" class="zh-nav-link {% if nav_settings_active %}active{% endif %}"
+        title="Configuracoes do sistema">
         <i class="bi bi-gear-fill"></i>
         <span>Configurações</span>
       </a>
 
       <!-- Health check — status da API, banco e conexões vCenter -->
-      <a href="/health" class="zh-nav-link {% if '/health' in request.url.path %}active{% endif %}" title="Health Check"
+      <a href="/health" class="zh-nav-link {% if nav_health_active %}active{% endif %}" title="Health da API"
         target="_blank" rel="noopener">
         <i class="bi bi-activity"></i>
         <span>Health</span>
@@ -670,9 +825,10 @@ block scripts — Scripts JS adicionais no final do
 
     </footer><!-- fim .zh-footer -->
 
+    {% if auth_enabled %}
     <!-- Modal de autenticacao por sessao JWT -->
     <div class="modal fade" id="zh-auth-modal" tabindex="-1" aria-labelledby="zh-auth-modal-title" aria-hidden="true"
-      data-bs-backdrop="static" data-bs-keyboard="false">
+      data-bs-backdrop="static" data-bs-keyboard="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content zh-card">
           <div class="modal-header border-bottom" style="border-color: var(--zh-border) !important;">
@@ -692,7 +848,7 @@ block scripts — Scripts JS adicionais no final do
                 <input id="zh-auth-password" name="password" type="password" class="form-control" required
                   autocomplete="current-password" />
               </div>
-              <div id="zh-auth-error" class="text-danger small d-none"></div>
+              <div id="zh-auth-error" class="text-danger small d-none" role="alert" aria-live="assertive"></div>
             </div>
             <div class="modal-footer border-top" style="border-color: var(--zh-border) !important;">
               <button id="zh-auth-submit" type="submit" class="btn btn-primary">Entrar</button>
@@ -701,6 +857,7 @@ block scripts — Scripts JS adicionais no final do
         </div>
       </div>
     </div>
+    {% endif %}
 
     <!-- ═══════════════════════════════════════════════════════════════════
        SCRIPTS — carregados no final do body para performance
@@ -716,7 +873,11 @@ block scripts — Scripts JS adicionais no final do
       // Mantido por compatibilidade com scripts legados.
       // Nao recebe API key real no browser.
       window.ZH_API_KEY = "";
-      window.zhAuth = { authenticated: false, user: null };
+      window.ZH_AUTH_ENABLED = {% if auth_enabled %}true{% else %}false{% endif %};
+      window.zhAuth = {
+        authenticated: !window.ZH_AUTH_ENABLED,
+        user: window.ZH_AUTH_ENABLED ? null : { sub: "auth-disabled" }
+      };
 
       const _zhOriginalFetch = window.fetch.bind(window);
       window.fetch = async function (input, init = {}) {
@@ -760,6 +921,7 @@ block scripts — Scripts JS adicionais no final do
     <script src="https://code.jquery.com/jquery-3.7.1.min.js?v={{ api_version }}"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js?v={{ api_version }}"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js?v={{ api_version }}"></script>
+    <script src="/static/js/ui_feedback.js?v={{ api_version }}"></script>
 
     <!-- ── Scripts globais do ZombieHunter ──────────────────────────── -->
     <script>
@@ -869,45 +1031,99 @@ block scripts — Scripts JS adicionais no final do
       // ── Toggle da sidebar em mobile ───────────────────────────────────
       const sidebarToggle = document.getElementById("zh-sidebar-toggle");
       const sidebar = document.getElementById("zh-sidebar");
+      const sidebarOverlay = document.getElementById("zh-sidebar-overlay");
 
       if (sidebarToggle && sidebar) {
+        const zhIsMobileSidebar = () => window.innerWidth <= 768;
+
+        const zhSetSidebarOpen = (open) => {
+          sidebar.classList.toggle("open", open);
+          if (sidebarOverlay) {
+            sidebarOverlay.classList.toggle("open", open);
+            sidebarOverlay.setAttribute("aria-hidden", open ? "false" : "true");
+          }
+          sidebarToggle.setAttribute("aria-expanded", open ? "true" : "false");
+          document.body.classList.toggle("zh-no-scroll", open && zhIsMobileSidebar());
+          if (!open) {
+            sidebarToggle.focus();
+          }
+        };
+
         sidebarToggle.addEventListener("click", () => {
-          sidebar.classList.toggle("open");
+          const open = !sidebar.classList.contains("open");
+          zhSetSidebarOpen(open);
         });
 
         // Fecha ao clicar fora da sidebar em mobile
         document.addEventListener("click", (e) => {
           if (
-            window.innerWidth <= 768 &&
+            zhIsMobileSidebar() &&
             sidebar.classList.contains("open") &&
             !sidebar.contains(e.target) &&
-            !sidebarToggle.contains(e.target)
+            !sidebarToggle.contains(e.target) &&
+            (!sidebarOverlay || !sidebarOverlay.contains(e.target))
           ) {
+            zhSetSidebarOpen(false);
+          }
+        });
+
+        if (sidebarOverlay) {
+          sidebarOverlay.addEventListener("click", () => {
+            if (sidebar.classList.contains("open")) {
+              zhSetSidebarOpen(false);
+            }
+          });
+        }
+
+        sidebar.querySelectorAll("a.zh-nav-link").forEach((link) => {
+          link.addEventListener("click", () => {
+            if (zhIsMobileSidebar() && sidebar.classList.contains("open")) {
+              zhSetSidebarOpen(false);
+            }
+          });
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && zhIsMobileSidebar() && sidebar.classList.contains("open")) {
+            zhSetSidebarOpen(false);
+          }
+        });
+
+        window.addEventListener("resize", () => {
+          if (!zhIsMobileSidebar()) {
             sidebar.classList.remove("open");
+            if (sidebarOverlay) {
+              sidebarOverlay.classList.remove("open");
+              sidebarOverlay.setAttribute("aria-hidden", "true");
+            }
+            sidebarToggle.setAttribute("aria-expanded", "false");
+            document.body.classList.remove("zh-no-scroll");
           }
         });
       }
 
       // ── Atualização periódica do badge de aprovações pendentes ────────
       // Consulta a API a cada 60s para refletir novos tokens emitidos
-      const authModalEl = document.getElementById("zh-auth-modal");
-      if (authModalEl && window.bootstrap) {
-        zhAuthModal = new bootstrap.Modal(authModalEl);
-      }
-      const authForm = document.getElementById("zh-auth-form");
-      if (authForm) {
-        authForm.addEventListener("submit", zhHandleAuthSubmit);
-      }
-      const logoutBtn = document.getElementById("zh-logout-btn");
-      if (logoutBtn) {
-        logoutBtn.addEventListener("click", zhLogout);
-      }
+      if (window.ZH_AUTH_ENABLED) {
+        const authModalEl = document.getElementById("zh-auth-modal");
+        if (authModalEl && window.bootstrap) {
+          zhAuthModal = new bootstrap.Modal(authModalEl);
+        }
+        const authForm = document.getElementById("zh-auth-form");
+        if (authForm) {
+          authForm.addEventListener("submit", zhHandleAuthSubmit);
+        }
+        const logoutBtn = document.getElementById("zh-logout-btn");
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", zhLogout);
+        }
 
-      zhEnsureSession().catch((err) => {
-        console.warn("[auth] check session falhou:", err);
-        zhSetAuthUi(null);
-        if (zhAuthModal) zhAuthModal.show();
-      });
+        zhEnsureSession().catch((err) => {
+          console.warn("[auth] check session falhou:", err);
+          zhSetAuthUi(null);
+          if (zhAuthModal) zhAuthModal.show();
+        });
+      }
 
       async function refreshPendingBadge() {
         if (!window.zhAuth?.authenticated) return;
@@ -946,9 +1162,24 @@ block scripts — Scripts JS adicionais no final do
           const data = await resp.json();
           const allOk = (data.vcenters?.total ?? 0) === (data.vcenters?.connected ?? 0);
           const dot = document.getElementById("zh-global-dot");
+          const statusText = document.getElementById("zh-global-status-text");
+          const statusIcon = document.getElementById("zh-global-status-icon");
+          const total = data.vcenters?.total ?? 0;
           if (dot) {
             dot.classList.toggle("connected", allOk);
             dot.classList.toggle("disconnected", !allOk);
+          }
+          if (statusText) {
+            statusText.textContent = total === 0 ? "Sem vCenters" : (allOk ? "Operacional" : "Com falha");
+          }
+          if (statusIcon) {
+            statusIcon.className = `bi ${
+              total === 0
+                ? "bi-question-circle text-muted-zh"
+                : allOk
+                  ? "bi-check-circle-fill text-zombie-green"
+                  : "bi-exclamation-circle-fill text-zombie-red"
+            }`;
           }
         } catch (err) {
           console.warn("[ui] refreshVcenterDot falhou:", err);

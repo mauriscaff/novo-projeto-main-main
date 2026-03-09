@@ -205,8 +205,12 @@ def scan_vmdks(client: VCenterClient) -> list[VMDKInfo]:
         ds_url: str | None = None
         try:
             ds_url = ds.summary.url
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug(
+                "Nao foi possivel ler datastore_url para datastore '%s': %s",
+                getattr(ds, "name", "unknown"),
+                exc.__class__.__name__,
+            )
 
         vmdk_list.append(
             VMDKInfo(

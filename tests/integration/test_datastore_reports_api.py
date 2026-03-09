@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
-
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
 
 from app.api.routes import datastore_reports as datastore_reports_route
 from app.dependencies import get_current_user

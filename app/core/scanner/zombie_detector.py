@@ -460,8 +460,12 @@ def _wait_for_task(task: Any, timeout: int | None = None) -> None:
         if elapsed >= timeout:
             try:
                 task.CancelTask()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "Falha ao cancelar task do vCenter apos timeout de %ss: %s",
+                    timeout,
+                    exc.__class__.__name__,
+                )
             raise TimeoutError(
                 f"Tarefa do vCenter excedeu {timeout}s sem conclusão."
             )
@@ -489,8 +493,12 @@ async def _wait_for_task_async(task: Any, timeout: int | None = None) -> None:
         if elapsed >= timeout:
             try:
                 task.CancelTask()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "Falha ao cancelar task async do vCenter apos timeout de %ss: %s",
+                    timeout,
+                    exc.__class__.__name__,
+                )
             raise TimeoutError(
                 f"Tarefa do vCenter excedeu {timeout}s sem conclusão."
             )
@@ -1452,7 +1460,11 @@ def _scan_datacenter_sync(
 
     try:
         vcenter_host: str = service_instance._stub.host
-    except Exception:
+    except Exception as exc:
+        logger.debug(
+            "Nao foi possivel obter host do stub do service_instance: %s",
+            exc.__class__.__name__,
+        )
         vcenter_host = content.about.name or "unknown"
 
     _cb("info", "Iniciando varredura de VMDKs zombie.")
@@ -1513,6 +1525,25 @@ def _scan_datacenter_sync(
         ds_name = ds.name
         ds_type = getattr(ds.summary, "type", "UNKNOWN")
         scan_start_time = datetime.now(timezone.utc)
+        maintenance_mode = str(getattr(ds.summary, "maintenanceMode", "") or "").strip().lower()
+
+        if maintenance_mode and maintenance_mode not in {"normal", "none", "false", "0"}:
+            _cb(
+                "warning",
+                f"[{ds_idx}/{total_ds}] Datastore '{ds_name}' em modo de manutenção ({maintenance_mode}) — pulando.",
+                ds_name=ds_name, ds_index=ds_idx, ds_total=total_ds,
+                ds_status="maintenance",
+            )
+            metrics.append(
+                DatastoreScanMetric(
+                    datastore_name=ds_name,
+                    scan_start_time=scan_start_time,
+                    scan_duration_seconds=0.0,
+                    files_found=0,
+                    zombies_found=0,
+                )
+            )
+            continue
 
         if not ds.summary.accessible:
             _cb(

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from datetime import datetime, timezone
-
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
 
 from fastapi.testclient import TestClient
 from sqlalchemy import delete
 
 from app.dependencies import get_current_user
 from app.models.base import AsyncSessionLocal, init_db
+from app.models.vcenter import VCenter
 from app.models.zombie_scan import ZombieVmdkRecord
+import app.api.routes.scanner as scanner_module
 import main as main_module
 
 app = main_module.app
@@ -36,6 +35,7 @@ def _auth_override() -> dict:
 async def _reset_db() -> None:
     await init_db()
     async with AsyncSessionLocal() as db:
+        await db.execute(delete(VCenter))
         await db.execute(delete(ZombieVmdkRecord))
         await db.commit()
 
@@ -100,6 +100,22 @@ async def _seed_records() -> None:
         await db.commit()
 
 
+async def _seed_active_vcenter() -> None:
+    async with AsyncSessionLocal() as db:
+        db.add(
+            VCenter(
+                name="vc-live",
+                host="vc-live.local",
+                port=443,
+                username="administrator@vsphere.local",
+                password="dummy-encrypted",
+                disable_ssl_verify=True,
+                is_active=True,
+            )
+        )
+        await db.commit()
+
+
 def test_list_known_datastores_keeps_distinct_entries_per_vcenter():
     asyncio.run(_reset_db())
     asyncio.run(_seed_records())
@@ -122,5 +138,53 @@ def test_list_known_datastores_keeps_distinct_entries_per_vcenter():
             assert ("ds-common", "vc-b", "vc-b.local") in unique_pairs
             assert ("ds-only-a", "vc-a", "vc-a.local") in unique_pairs
             assert ("ds-only-b", "vc-b", "vc-b.local") in unique_pairs
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_list_datastores_live_includes_maintenance_flags_per_vcenter(monkeypatch):
+    asyncio.run(_reset_db())
+    asyncio.run(_seed_active_vcenter())
+
+    async def _fake_list_datastores_async(_si):
+        return [
+            {
+                "name": "STA_LUN_05",
+                "accessible": True,
+                "maintenance_mode": True,
+                "maintenance_state": "inMaintenance",
+            },
+            {
+                "name": "STA_LUN_06",
+                "accessible": True,
+                "maintenance_mode": False,
+                "maintenance_state": "normal",
+            },
+        ]
+
+    monkeypatch.setattr(scanner_module.connection_manager, "register", lambda _vc: None)
+    monkeypatch.setattr(scanner_module.vcenter_pool, "get_service_instance", lambda _vc_id: object())
+    monkeypatch.setattr(scanner_module, "list_datastores_async", _fake_list_datastores_async)
+
+    app.dependency_overrides[get_current_user] = _auth_override
+    try:
+        with TestClient(app) as client:
+            resp = client.get("/api/v1/scan/datastores?source=live")
+            assert resp.status_code == 200, resp.text
+            payload = resp.json()
+            assert isinstance(payload, list)
+            assert any(
+                row["name"] == "STA_LUN_05"
+                and row["vcenter_host"] == "vc-live.local"
+                and row["maintenance_mode"] is True
+                and row["maintenance_state"] == "inMaintenance"
+                for row in payload
+            )
+            assert any(
+                row["name"] == "STA_LUN_06"
+                and row["vcenter_host"] == "vc-live.local"
+                and row["maintenance_mode"] is False
+                for row in payload
+            )
     finally:
         app.dependency_overrides.clear()

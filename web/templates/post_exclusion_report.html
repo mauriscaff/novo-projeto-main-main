@@ -418,6 +418,20 @@
     return base;
   }
 
+  function isDatastoreEligible(ds) {
+    if (!ds || typeof ds !== "object") return false;
+    const name = String(ds.name || "").trim();
+    if (!name) return false;
+
+    const maintenanceState = String(ds.maintenance_state || "").trim().toLowerCase();
+    const maintenanceMode = Boolean(ds.maintenance_mode) || (
+      maintenanceState !== "" && !["normal", "none", "false", "0"].includes(maintenanceState)
+    );
+    if (maintenanceMode) return false;
+    if (ds.accessible === false) return false;
+    return true;
+  }
+
   function renderVcenterOptions() {
     const options = ['<option value="">Todos os vCenters (opcional)</option>'];
     state.knownVcenters
@@ -443,6 +457,7 @@
     const seen = new Set();
     const rows = state.knownDatastores
       .filter((ds) => {
+        if (!isDatastoreEligible(ds)) return false;
         const name = String(ds.name || "").trim();
         if (!name) return false;
         if (!selectedHost && !selectedName) return true;
@@ -484,28 +499,36 @@
   async function loadFilterData() {
     setFilterLoading(true);
     try {
-      const [vcentersResp, datastoresResp] = await Promise.all([
+      const [vcentersResp, datastoresLiveResp, datastoresKnownResp] = await Promise.all([
         fetch("/api/v1/vcenters/", { headers: apiHeaders() }),
-        fetch("/api/v1/scan/datastores", { headers: apiHeaders() }),
+        fetch("/api/v1/scan/datastores?source=live", { headers: apiHeaders() }),
+        fetch("/api/v1/scan/datastores?source=known", { headers: apiHeaders() }),
       ]);
 
-      if (!vcentersResp.ok || !datastoresResp.ok) {
-        if (vcentersResp.status === 401 || datastoresResp.status === 401) {
+      if (!vcentersResp.ok || !datastoresLiveResp.ok || !datastoresKnownResp.ok) {
+        if (vcentersResp.status === 401 || datastoresLiveResp.status === 401 || datastoresKnownResp.status === 401) {
           throw new Error("Credenciais invalidas ou ausentes para carregar vCenters/datastores.");
         }
         throw new Error("Falha ao carregar filtros da tela no momento.");
       }
 
       const vcentersPayload = await vcentersResp.json();
-      const datastoresPayload = await datastoresResp.json();
+      const datastoresLivePayload = await datastoresLiveResp.json();
+      const datastoresKnownPayload = await datastoresKnownResp.json();
       state.knownVcenters = Array.isArray(vcentersPayload) ? vcentersPayload : [];
-      state.knownDatastores = Array.isArray(datastoresPayload) ? datastoresPayload : [];
+      const liveRows = Array.isArray(datastoresLivePayload) ? datastoresLivePayload.filter(isDatastoreEligible) : [];
+      const knownRows = Array.isArray(datastoresKnownPayload) ? datastoresKnownPayload : [];
+
+      // Preferência por dados ao vivo (mesma lógica da varredura), com fallback para histórico.
+      state.knownDatastores = liveRows.length > 0 ? liveRows : knownRows;
 
       renderVcenterOptions();
       renderDatastoreOptions();
 
       if (!state.knownDatastores.length) {
-        showError("Ainda nao ha datastores no historico de varreduras. Rode uma varredura para popular a lista.");
+        showError("Nao ha datastores elegiveis para o filtro atual (manutencao/inacessivel ocultado).");
+      } else if (liveRows.length === 0 && knownRows.length > 0) {
+        showError("Nao foi possivel listar datastores ao vivo agora. Exibindo historico para consulta.");
       }
     } catch (err) {
       showError(err?.message || "Nao foi possivel carregar lista de vCenters/datastores agora. Tente novamente em instantes.");

@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from app.core.approval import require_write_access
 
 
+@pytest.mark.asyncio
 async def test_require_write_access_raises_403_when_readonly_mode():
     """Com READONLY_MODE=true, require_write_access deve levantar 403."""
     with patch("app.core.approval.settings") as mock_settings:

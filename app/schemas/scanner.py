@@ -169,7 +169,7 @@ class ScanJobProgress(BaseModel):
     """Nome do datastore sendo varrido agora."""
 
     ds_status: str = ""
-    """Status do datastore atual: scanning | done | failed | inaccessible."""
+    """Status do datastore atual: scanning | done | failed | inaccessible | maintenance."""
 
     steps: list[dict] = []
     """Log de passos: [{"ts": "HH:MM:SS", "level": "info|success|warning|error", "msg": "..."}]"""

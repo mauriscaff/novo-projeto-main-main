@@ -186,6 +186,9 @@ def _is_authenticated() -> bool:
     Verifica API Key enviada via X-API-Key ou Authorization: Bearer.
     Se nenhuma chave estiver configurada (valor padrão), permite tudo.
     """
+    if not settings.auth_enabled:
+        return True
+
     key = settings.api_key
     _defaults = {"change-me-in-production", "TROQUE_ESTA_API_KEY", ""}
     if key in _defaults:

@@ -1,10 +1,7 @@
 ﻿from __future__ import annotations
 
 import asyncio
-import os
 from datetime import datetime, timedelta, timezone
-
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
 
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select

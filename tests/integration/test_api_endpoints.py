@@ -1,9 +1,6 @@
 # Integration tests - FastAPI endpoints
 """Testes dos endpoints FastAPI com TestClient."""
 
-import os
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
-
 from config import get_settings
 
 settings = get_settings()
@@ -19,7 +16,12 @@ def test_health_returns_json_with_status(client):
     data = r.json()
     assert "status" in data
     assert data["status"] == "ok"
+    assert "version" in data
+    assert "timestamp" in data
+    assert "service" in data  # compatibilidade com clientes atuais
     assert "database" not in data
+    assert "scheduler" not in data
+    assert "vcenters" not in data
 
 
 def test_readiness_requires_authentication(client):
