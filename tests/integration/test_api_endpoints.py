@@ -4,29 +4,44 @@
 import os
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
 
-from fastapi.testclient import TestClient
-from main import app
+from config import get_settings
 
-client = TestClient(app)
+settings = get_settings()
 
 
-def test_health_returns_200():
+def test_health_returns_200(client):
     r = client.get("/health")
     assert r.status_code == 200
 
 
-def test_health_returns_json_with_status():
+def test_health_returns_json_with_status(client):
     r = client.get("/health")
     data = r.json()
     assert "status" in data
+    assert data["status"] == "ok"
+    assert "database" not in data
+
+
+def test_readiness_requires_authentication(client):
+    r = client.get("/health/readiness")
+    assert r.status_code == 401
+
+
+def test_readiness_with_api_key_returns_details(client):
+    r = client.get("/health/readiness", headers={"X-API-Key": settings.api_key})
+    assert r.status_code == 200
+    data = r.json()
     assert data["status"] in ("ok", "degraded")
+    assert "database" in data
+    assert "scheduler" in data
+    assert "vcenters" in data
 
 
-def test_docs_returns_200():
+def test_docs_returns_200(client):
     r = client.get("/docs")
     assert r.status_code == 200
 
 
-def test_redoc_returns_200():
+def test_redoc_returns_200(client):
     r = client.get("/redoc")
     assert r.status_code == 200

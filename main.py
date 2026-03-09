@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +14,7 @@ from sqlalchemy import select, text
 from app.api.routes import approvals, auth, dashboard, datastore_reports, scan, scanner, schedules, vcenter, webhooks
 from app.core.scheduler import scheduler, start as scheduler_start, stop as scheduler_stop
 from app.core.vcenter.connection_manager import connection_manager
+from app.dependencies import get_current_user
 from app.models.base import AsyncSessionLocal, init_db
 from app.models.audit_log import ApprovalToken, TERMINAL_STATUSES
 from app.models.vcenter import VCenter
@@ -25,6 +26,35 @@ templates = Jinja2Templates(directory=str(_WEB_DIR / "templates"))
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+_WEB_AUTH_COOKIE_NAME = "zh_api_session"
+_WEB_AUTH_COOKIE_MAX_AGE_SEC = 8 * 60 * 60
+
+
+def _attach_web_auth_cookie(request: Request, response: HTMLResponse) -> None:
+    """
+    Injeta API key em cookie HttpOnly para o frontend web consumir a API sem
+    expor segredo em variavel JavaScript.
+    """
+    key = (settings.api_key or "").strip()
+    defaults = {"", "change-me-in-production", "TROQUE_ESTA_API_KEY", "YOUR_VALUE_HERE"}
+    if key in defaults:
+        return
+
+    response.set_cookie(
+        key=_WEB_AUTH_COOKIE_NAME,
+        value=key,
+        max_age=_WEB_AUTH_COOKIE_MAX_AGE_SEC,
+        httponly=True,
+        secure=(request.url.scheme == "https"),
+        samesite="strict",
+        path="/",
+    )
+
+
+def _render_web_template(request: Request, template_name: str, ctx: dict) -> HTMLResponse:
+    response = templates.TemplateResponse(template_name, ctx)
+    _attach_web_auth_cookie(request, response)
+    return response
 
 
 @asynccontextmanager
@@ -32,10 +62,14 @@ async def lifespan(app: FastAPI):
     # ── Startup ──────────────────────────────────────────────────────────
     await init_db()
     await _register_existing_vcenters()
-    await scheduler_start()          # inicia APScheduler + recarrega schedules do banco
+    if settings.scheduler_enabled:
+        await scheduler_start()      # inicia APScheduler + recarrega schedules do banco
+    else:
+        logger.info("APScheduler desabilitado por configuracao (SCHEDULER_ENABLED=false).")
     yield
     # ── Shutdown ─────────────────────────────────────────────────────────
-    scheduler_stop()                 # para o APScheduler graciosamente
+    if settings.scheduler_enabled:
+        scheduler_stop()             # para o APScheduler graciosamente
     connection_manager.disconnect_all()
 
 
@@ -130,15 +164,14 @@ async def _base_ctx(request: Request) -> dict:
                 )
             )
             pending = len(result.scalars().all())
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Falha ao carregar contagem de aprovacoes pendentes: %s", exc, exc_info=True)
 
     return {
         "request":          request,
         "readonly_mode":    settings.readonly_mode,
         "vcenter_status":   vcenter_status,
         "api_version":      settings.app_version,
-        "api_key":          settings.api_key,       # injetado no fetch global do JS
         "last_scan_at":     None,   # preenchido por cada rota que precise
         "pending_approvals": pending,
         "flash_messages":   [],     # lista de (category, message) — sem Flask
@@ -152,7 +185,7 @@ async def _base_ctx(request: Request) -> dict:
 @app.get("/", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_dashboard(request: Request):
     ctx = await _base_ctx(request)
-    return templates.TemplateResponse("dashboard.html", ctx)
+    return _render_web_template(request, "dashboard.html", ctx)
 
 
 @app.get("/dashboard", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
@@ -165,38 +198,38 @@ async def web_dashboard_redirect():
 async def web_scan_results(request: Request):
     ctx = await _base_ctx(request)
     ctx["job_id"] = None
-    return templates.TemplateResponse("scan_results.html", ctx)
+    return _render_web_template(request, "scan_results.html", ctx)
 
 
 @app.get("/scan/results/{job_id}", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_scan_results_job(request: Request, job_id: str):
     ctx = await _base_ctx(request)
     ctx["job_id"] = job_id
-    return templates.TemplateResponse("scan_results.html", ctx)
+    return _render_web_template(request, "scan_results.html", ctx)
 
 
 @app.get("/operations/post-exclusion-report", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_post_exclusion_report(request: Request):
     ctx = await _base_ctx(request)
-    return templates.TemplateResponse("post_exclusion_report.html", ctx)
+    return _render_web_template(request, "post_exclusion_report.html", ctx)
 
 
 @app.get("/approvals", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_approvals(request: Request):
     ctx = await _base_ctx(request)
-    return templates.TemplateResponse("approvals.html", ctx)
+    return _render_web_template(request, "approvals.html", ctx)
 
 
 @app.get("/audit-log", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_audit_log(request: Request):
     ctx = await _base_ctx(request)
-    return templates.TemplateResponse("audit.html", ctx)
+    return _render_web_template(request, "audit.html", ctx)
 
 
 @app.get("/vcenters", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_vcenters(request: Request):
     ctx = await _base_ctx(request)
-    return templates.TemplateResponse("vcenters.html", ctx)
+    return _render_web_template(request, "vcenters.html", ctx)
 
 
 @app.get("/whitelist", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
@@ -215,15 +248,15 @@ async def web_settings(request: Request):
 
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict:
-    """
-    Healthcheck completo da API.
+    return {
+        "status": "ok",
+        "service": settings.app_name,
+        "version": settings.app_version,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
-    Verifica:
-    - Conectividade com o banco SQLite
-    - Estado do APScheduler (agendamentos ativos)
-    - Estado do pool de conexões com os vCenters cadastrados
-    """
-    # ── Banco de dados ────────────────────────────────────────────────────────
+
+async def _build_readiness_report() -> dict:
     db_status = "ok"
     db_detail: str | None = None
     try:
@@ -232,11 +265,11 @@ async def health_check() -> dict:
     except Exception as exc:
         db_status = "error"
         db_detail = str(exc)
-        logger.error("Health: falha no banco de dados — %s", exc)
+        logger.error("Readiness: falha no banco de dados: %s", exc)
 
-    # ── APScheduler ───────────────────────────────────────────────────────────
     aps_jobs = scheduler.get_jobs() if scheduler.running else []
     scheduler_info = {
+        "enabled": settings.scheduler_enabled,
         "running": scheduler.running,
         "jobs_count": len(aps_jobs),
         "jobs": [
@@ -249,11 +282,8 @@ async def health_check() -> dict:
         ],
     }
 
-    # ── Pool de vCenters ──────────────────────────────────────────────────────
     pool = connection_manager.pool_status()
     connected_count = sum(1 for s in pool.values() if s.get("connected", False))
-
-    # ── Status geral ──────────────────────────────────────────────────────────
     overall = "ok" if db_status == "ok" else "degraded"
 
     response: dict = {
@@ -272,3 +302,8 @@ async def health_check() -> dict:
         response["database"]["detail"] = db_detail
 
     return response
+
+
+@app.get("/health/readiness", tags=["Health"])
+async def readiness_check(_: dict = Depends(get_current_user)) -> dict:
+    return await _build_readiness_report()

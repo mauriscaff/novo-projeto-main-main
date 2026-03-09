@@ -2,10 +2,12 @@
 Dependências compartilhadas injetadas pelo FastAPI via Depends().
 """
 
+import logging
+import secrets
 from typing import AsyncGenerator
 
 from fastapi import Depends, HTTPException, Security, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, APIKeyHeader
+from fastapi.security import APIKeyCookie, APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,7 @@ from app.models.base import AsyncSessionLocal
 from config import get_settings
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Sessão de banco de dados
@@ -25,6 +28,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.commit()
         except Exception:
             await session.rollback()
+            logger.exception("Falha na transacao do banco; rollback aplicado.")
             raise
 
 
@@ -34,11 +38,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 bearer_scheme = HTTPBearer(auto_error=False)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+api_key_cookie = APIKeyCookie(name="zh_api_session", auto_error=False)
 
 
 async def get_current_user(
     bearer: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
     api_key: str | None = Security(api_key_header),
+    api_key_from_cookie: str | None = Security(api_key_cookie),
 ) -> dict:
     """
     Aceita autenticação via:
@@ -46,8 +52,12 @@ async def get_current_user(
       - API Key no header X-API-Key
     """
     # Tentativa 1: API Key estática
-    if api_key and api_key == settings.api_key:
+    if api_key and secrets.compare_digest(api_key, settings.api_key):
         return {"sub": "api-key-user", "method": "api_key"}
+
+    # Tentativa 1b: API Key via cookie HttpOnly (frontend web)
+    if api_key_from_cookie and secrets.compare_digest(api_key_from_cookie, settings.api_key):
+        return {"sub": "api-key-cookie-user", "method": "api_key_cookie"}
 
     # Tentativa 2: JWT Bearer
     if bearer:

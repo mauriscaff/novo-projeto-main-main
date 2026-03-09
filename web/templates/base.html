@@ -678,19 +678,13 @@ block scripts — Scripts JS adicionais no final do
 
       // API Key injetada pelo servidor (Jinja2)
       // Se a variável não existir no contexto, usa string vazia (sem auth)
-      window.ZH_API_KEY = "{{ api_key | default('') | e }}";
+      window.ZH_API_KEY = "";
 
       // Também injeta no $.ajax do jQuery (usado pelo DataTables)
       (function () {
         document.addEventListener("DOMContentLoaded", function () {
-          if (window.$ && window.ZH_API_KEY) {
-            $.ajaxSetup({
-              beforeSend: function (xhr, settings) {
-                if (settings.url && settings.url.startsWith("/api")) {
-                  xhr.setRequestHeader("X-API-Key", window.ZH_API_KEY);
-                }
-              },
-            });
+          if (window.$) {
+            $.ajaxSetup({});
           }
         });
       })();
@@ -745,8 +739,7 @@ block scripts — Scripts JS adicionais no final do
         try {
           const resp = await fetch("/api/v1/approvals?status=pending_dryrun&status=dryrun_done&only_active=true", {
             headers: {
-              "Accept": "application/json",
-              "X-API-Key": window.ZH_API_KEY || ""
+              "Accept": "application/json"
             }
           });
           if (!resp.ok) return;
@@ -756,8 +749,8 @@ block scripts — Scripts JS adicionais no final do
             badge.textContent = tokens.length;
             badge.classList.toggle("zero", tokens.length === 0);
           }
-        } catch (_) {
-          // Falha silenciosa — não interrompe a navegação
+        } catch (err) {
+          console.warn("[ui] refreshPendingBadge falhou:", err);
         }
       }
       // Primeira chamada após 5s (evita conflito com carregamento inicial)
@@ -765,25 +758,24 @@ block scripts — Scripts JS adicionais no final do
       setInterval(refreshPendingBadge, 60_000);
 
       // ── Atualização periódica do status dos vCenters ──────────────────
-      // Consulta /health a cada 2 minutos e atualiza o dot global
+      // Consulta /health/readiness a cada 2 minutos e atualiza o dot global
       async function refreshVcenterDot() {
         try {
-          const resp = await fetch("/health", {
+          const resp = await fetch("/health/readiness", {
             headers: {
-              "Accept": "application/json",
-              "X-API-Key": window.ZH_API_KEY || ""
+              "Accept": "application/json"
             }
           });
           if (!resp.ok) return;
           const data = await resp.json();
-          const allOk = data.vcenter_pool?.all_connected ?? true;
+          const allOk = (data.vcenters?.total ?? 0) === (data.vcenters?.connected ?? 0);
           const dot = document.getElementById("zh-global-dot");
           if (dot) {
             dot.classList.toggle("connected", allOk);
             dot.classList.toggle("disconnected", !allOk);
           }
-        } catch (_) {
-          // Falha silenciosa
+        } catch (err) {
+          console.warn("[ui] refreshVcenterDot falhou:", err);
         }
       }
       setTimeout(refreshVcenterDot, 10_000);
