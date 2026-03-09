@@ -10,14 +10,14 @@ from fastapi import HTTPException
 from app.core.approval import require_write_access
 
 
-@pytest.mark.asyncio
 async def test_require_write_access_raises_403_when_readonly_mode():
     """Com READONLY_MODE=true, require_write_access deve levantar 403."""
     with patch("app.core.approval.settings") as mock_settings:
         mock_settings.readonly_mode = True
         request = MagicMock()
         request.headers.get.return_value = ""
-        db = AsyncMock()
+        db = MagicMock()
+        db.commit = AsyncMock()
         with pytest.raises(HTTPException) as exc_info:
             await require_write_access(
                 request=request,
