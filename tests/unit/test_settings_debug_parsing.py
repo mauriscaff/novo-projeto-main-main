@@ -22,3 +22,15 @@ def test_relative_database_url_is_normalized_to_absolute_path():
     assert settings.database_url.startswith("sqlite+aiosqlite:///")
     assert settings.database_url.endswith("/custom_scan.db")
     assert "/./" not in settings.database_url
+
+
+def test_scheduler_enabled_defaults_to_true(monkeypatch):
+    monkeypatch.delenv("SCHEDULER_ENABLED", raising=False)
+    settings = Settings(_env_file=None)
+    assert settings.scheduler_enabled is True
+
+
+def test_scheduler_enabled_accepts_false_from_env(monkeypatch):
+    monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+    settings = Settings(_env_file=None)
+    assert settings.scheduler_enabled is False
