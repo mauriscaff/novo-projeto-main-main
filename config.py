@@ -137,6 +137,8 @@ class Settings(BaseSettings):
     # Expressão cron de exemplo para referência; o valor real fica em cada ScanSchedule.
     scan_cron_default: str = "0 2 * * *"
     """Cron padrão sugerido ao criar agendamentos via API (não é aplicado automaticamente)."""
+    scheduler_enabled: bool = True
+    """Controla o start do APScheduler no lifecycle do FastAPI."""
 
     # ── Interface Web Flask (web/app.py) ─────────────────────────────────────
     flask_port: int = 5000
