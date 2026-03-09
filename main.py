@@ -26,35 +26,6 @@ templates = Jinja2Templates(directory=str(_WEB_DIR / "templates"))
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
-_WEB_AUTH_COOKIE_NAME = "zh_api_session"
-_WEB_AUTH_COOKIE_MAX_AGE_SEC = 8 * 60 * 60
-
-
-def _attach_web_auth_cookie(request: Request, response: HTMLResponse) -> None:
-    """
-    Injeta API key em cookie HttpOnly para o frontend web consumir a API sem
-    expor segredo em variavel JavaScript.
-    """
-    key = (settings.api_key or "").strip()
-    defaults = {"", "change-me-in-production", "TROQUE_ESTA_API_KEY", "YOUR_VALUE_HERE"}
-    if key in defaults:
-        return
-
-    response.set_cookie(
-        key=_WEB_AUTH_COOKIE_NAME,
-        value=key,
-        max_age=_WEB_AUTH_COOKIE_MAX_AGE_SEC,
-        httponly=True,
-        secure=(request.url.scheme == "https"),
-        samesite="strict",
-        path="/",
-    )
-
-
-def _render_web_template(request: Request, template_name: str, ctx: dict) -> HTMLResponse:
-    response = templates.TemplateResponse(template_name, ctx)
-    _attach_web_auth_cookie(request, response)
-    return response
 
 
 @asynccontextmanager
@@ -185,7 +156,7 @@ async def _base_ctx(request: Request) -> dict:
 @app.get("/", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_dashboard(request: Request):
     ctx = await _base_ctx(request)
-    return _render_web_template(request, "dashboard.html", ctx)
+    return templates.TemplateResponse("dashboard.html", ctx)
 
 
 @app.get("/dashboard", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
@@ -198,38 +169,38 @@ async def web_dashboard_redirect():
 async def web_scan_results(request: Request):
     ctx = await _base_ctx(request)
     ctx["job_id"] = None
-    return _render_web_template(request, "scan_results.html", ctx)
+    return templates.TemplateResponse("scan_results.html", ctx)
 
 
 @app.get("/scan/results/{job_id}", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_scan_results_job(request: Request, job_id: str):
     ctx = await _base_ctx(request)
     ctx["job_id"] = job_id
-    return _render_web_template(request, "scan_results.html", ctx)
+    return templates.TemplateResponse("scan_results.html", ctx)
 
 
 @app.get("/operations/post-exclusion-report", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_post_exclusion_report(request: Request):
     ctx = await _base_ctx(request)
-    return _render_web_template(request, "post_exclusion_report.html", ctx)
+    return templates.TemplateResponse("post_exclusion_report.html", ctx)
 
 
 @app.get("/approvals", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_approvals(request: Request):
     ctx = await _base_ctx(request)
-    return _render_web_template(request, "approvals.html", ctx)
+    return templates.TemplateResponse("approvals.html", ctx)
 
 
 @app.get("/audit-log", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_audit_log(request: Request):
     ctx = await _base_ctx(request)
-    return _render_web_template(request, "audit.html", ctx)
+    return templates.TemplateResponse("audit.html", ctx)
 
 
 @app.get("/vcenters", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_vcenters(request: Request):
     ctx = await _base_ctx(request)
-    return _render_web_template(request, "vcenters.html", ctx)
+    return templates.TemplateResponse("vcenters.html", ctx)
 
 
 @app.get("/whitelist", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)

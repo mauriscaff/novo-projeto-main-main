@@ -38,13 +38,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 bearer_scheme = HTTPBearer(auto_error=False)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-api_key_cookie = APIKeyCookie(name="zh_api_session", auto_error=False)
+jwt_cookie = APIKeyCookie(name="zh_access_token", auto_error=False)
 
 
 async def get_current_user(
     bearer: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
     api_key: str | None = Security(api_key_header),
-    api_key_from_cookie: str | None = Security(api_key_cookie),
+    jwt_from_cookie: str | None = Security(jwt_cookie),
 ) -> dict:
     """
     Aceita autenticação via:
@@ -55,21 +55,19 @@ async def get_current_user(
     if api_key and secrets.compare_digest(api_key, settings.api_key):
         return {"sub": "api-key-user", "method": "api_key"}
 
-    # Tentativa 1b: API Key via cookie HttpOnly (frontend web)
-    if api_key_from_cookie and secrets.compare_digest(api_key_from_cookie, settings.api_key):
-        return {"sub": "api-key-cookie-user", "method": "api_key_cookie"}
-
     # Tentativa 2: JWT Bearer
-    if bearer:
+    token_value = bearer.credentials if bearer else jwt_from_cookie
+    if token_value:
         try:
             payload = jwt.decode(
-                bearer.credentials,
+                token_value,
                 settings.secret_key,
                 algorithms=[settings.algorithm],
             )
             sub: str | None = payload.get("sub")
             if sub:
-                return {"sub": sub, "method": "jwt"}
+                method = "jwt" if bearer else "jwt_cookie"
+                return {"sub": sub, "method": method}
         except JWTError:
             pass
 

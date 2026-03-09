@@ -447,6 +447,13 @@ block scripts — Scripts JS adicionais no final do
       Quando READONLY_MODE=false, exibe aviso em laranja.
     -->
       <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <span id="zh-auth-user" class="small text-muted-zh d-none"></span>
+        <button id="zh-logout-btn" type="button" class="btn btn-sm btn-outline-secondary d-none" title="Encerrar sessao">
+          <i class="bi bi-box-arrow-right me-1"></i>Sair
+        </button>
+      </div>
+
+      <div class="d-flex align-items-center gap-2 flex-shrink-0">
         {% if readonly_mode %}
         <!-- Modo seguro: operações destrutivas bloqueadas — badge VERDE -->
         <span class="zh-readonly-badge" title="READONLY_MODE=true — nenhuma operação destrutiva pode ser executada">
@@ -663,28 +670,80 @@ block scripts — Scripts JS adicionais no final do
 
     </footer><!-- fim .zh-footer -->
 
+    <!-- Modal de autenticacao por sessao JWT -->
+    <div class="modal fade" id="zh-auth-modal" tabindex="-1" aria-labelledby="zh-auth-modal-title" aria-hidden="true"
+      data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content zh-card">
+          <div class="modal-header border-bottom" style="border-color: var(--zh-border) !important;">
+            <h5 class="modal-title" id="zh-auth-modal-title">
+              <i class="bi bi-shield-lock me-2"></i>Autenticacao necessaria
+            </h5>
+          </div>
+          <form id="zh-auth-form">
+            <div class="modal-body">
+              <p class="text-muted-zh mb-3">Entre com seu usuario para acessar as rotas <code>/api/v1/*</code>.</p>
+              <div class="mb-3">
+                <label for="zh-auth-username" class="form-label">Usuario</label>
+                <input id="zh-auth-username" name="username" class="form-control" required autocomplete="username" />
+              </div>
+              <div class="mb-2">
+                <label for="zh-auth-password" class="form-label">Senha</label>
+                <input id="zh-auth-password" name="password" type="password" class="form-control" required
+                  autocomplete="current-password" />
+              </div>
+              <div id="zh-auth-error" class="text-danger small d-none"></div>
+            </div>
+            <div class="modal-footer border-top" style="border-color: var(--zh-border) !important;">
+              <button id="zh-auth-submit" type="submit" class="btn btn-primary">Entrar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════
        SCRIPTS — carregados no final do body para performance
   ═══════════════════════════════════════════════════════════════════ -->
 
-    <!-- ── Configuração global da API: autenticação automática ──────────
-       Injeta a API Key do servidor e sobrescreve window.fetch para que
-       TODOS os requests para /api/* incluam X-API-Key automaticamente.
-       Isso evita 401 em todos os arquivos JS sem precisar alterá-los.
+    <!-- ── Configuração global de auth web ──────────────────────────────
+       Frontend usa sessão JWT em cookie HttpOnly.
+       Não expor API key em HTML/JS e remover header X-API-Key legado.
   ─────────────────────────────────────────────────────────────────── -->
     <script>
       "use strict";
 
-      // API Key injetada pelo servidor (Jinja2)
-      // Se a variável não existir no contexto, usa string vazia (sem auth)
+      // Mantido por compatibilidade com scripts legados.
+      // Nao recebe API key real no browser.
       window.ZH_API_KEY = "";
+      window.zhAuth = { authenticated: false, user: null };
+
+      const _zhOriginalFetch = window.fetch.bind(window);
+      window.fetch = async function (input, init = {}) {
+        const nextInit = { ...init };
+        nextInit.credentials = nextInit.credentials || "same-origin";
+        if (nextInit.headers) {
+          const headers = new Headers(nextInit.headers);
+          headers.delete("X-API-Key");
+          nextInit.headers = headers;
+        }
+        return _zhOriginalFetch(input, nextInit);
+      };
 
       // Também injeta no $.ajax do jQuery (usado pelo DataTables)
       (function () {
         document.addEventListener("DOMContentLoaded", function () {
           if (window.$) {
-            $.ajaxSetup({});
+            $.ajaxSetup({
+              xhrFields: { withCredentials: true },
+              beforeSend: function (xhr) {
+                try {
+                  xhr.setRequestHeader("X-API-Key", "");
+                } catch (_) {
+                  // noop
+                }
+              },
+            });
           }
         });
       })();
@@ -711,6 +770,102 @@ block scripts — Scripts JS adicionais no final do
       Chart.defaults.borderColor = "#30363d";
       Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
 
+      let zhAuthModal = null;
+
+      function zhSetAuthUi(userData) {
+        window.zhAuth.authenticated = !!userData;
+        window.zhAuth.user = userData || null;
+
+        const userLabel = document.getElementById("zh-auth-user");
+        const logoutBtn = document.getElementById("zh-logout-btn");
+
+        if (userLabel) {
+          if (userData?.sub) {
+            userLabel.textContent = `Sessao: ${userData.sub}`;
+            userLabel.classList.remove("d-none");
+          } else {
+            userLabel.textContent = "";
+            userLabel.classList.add("d-none");
+          }
+        }
+        if (logoutBtn) {
+          logoutBtn.classList.toggle("d-none", !userData);
+        }
+      }
+
+      async function zhSessionMe() {
+        const resp = await fetch("/api/v1/auth/session/me", {
+          headers: { Accept: "application/json" }
+        });
+        if (!resp.ok) return null;
+        return await resp.json();
+      }
+
+      async function zhEnsureSession() {
+        const data = await zhSessionMe();
+        if (data?.sub) {
+          zhSetAuthUi(data);
+          if (zhAuthModal) zhAuthModal.hide();
+          return true;
+        }
+        zhSetAuthUi(null);
+        if (zhAuthModal) zhAuthModal.show();
+        return false;
+      }
+
+      async function zhHandleAuthSubmit(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const errorEl = document.getElementById("zh-auth-error");
+        const submitBtn = document.getElementById("zh-auth-submit");
+        const username = String(form.username?.value || "").trim();
+        const password = String(form.password?.value || "");
+
+        if (errorEl) {
+          errorEl.textContent = "";
+          errorEl.classList.add("d-none");
+        }
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+          const resp = await fetch("/api/v1/auth/session/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ username, password })
+          });
+          if (!resp.ok) {
+            const payload = await resp.json().catch(() => ({}));
+            const detail = payload?.detail || "Falha ao autenticar.";
+            if (errorEl) {
+              errorEl.textContent = detail;
+              errorEl.classList.remove("d-none");
+            }
+            return;
+          }
+          form.reset();
+          await zhEnsureSession();
+        } catch (err) {
+          if (errorEl) {
+            errorEl.textContent = "Erro de rede ao autenticar.";
+            errorEl.classList.remove("d-none");
+          }
+          console.warn("[auth] login falhou:", err);
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      }
+
+      async function zhLogout() {
+        try {
+          await fetch("/api/v1/auth/session/logout", { method: "POST", headers: { Accept: "application/json" } });
+        } catch (err) {
+          console.warn("[auth] logout falhou:", err);
+        } finally {
+          zhSetAuthUi(null);
+          if (zhAuthModal) zhAuthModal.show();
+        }
+      }
+
       // ── Toggle da sidebar em mobile ───────────────────────────────────
       const sidebarToggle = document.getElementById("zh-sidebar-toggle");
       const sidebar = document.getElementById("zh-sidebar");
@@ -735,7 +890,27 @@ block scripts — Scripts JS adicionais no final do
 
       // ── Atualização periódica do badge de aprovações pendentes ────────
       // Consulta a API a cada 60s para refletir novos tokens emitidos
+      const authModalEl = document.getElementById("zh-auth-modal");
+      if (authModalEl && window.bootstrap) {
+        zhAuthModal = new bootstrap.Modal(authModalEl);
+      }
+      const authForm = document.getElementById("zh-auth-form");
+      if (authForm) {
+        authForm.addEventListener("submit", zhHandleAuthSubmit);
+      }
+      const logoutBtn = document.getElementById("zh-logout-btn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", zhLogout);
+      }
+
+      zhEnsureSession().catch((err) => {
+        console.warn("[auth] check session falhou:", err);
+        zhSetAuthUi(null);
+        if (zhAuthModal) zhAuthModal.show();
+      });
+
       async function refreshPendingBadge() {
+        if (!window.zhAuth?.authenticated) return;
         try {
           const resp = await fetch("/api/v1/approvals?status=pending_dryrun&status=dryrun_done&only_active=true", {
             headers: {
@@ -760,6 +935,7 @@ block scripts — Scripts JS adicionais no final do
       // ── Atualização periódica do status dos vCenters ──────────────────
       // Consulta /health/readiness a cada 2 minutos e atualiza o dot global
       async function refreshVcenterDot() {
+        if (!window.zhAuth?.authenticated) return;
         try {
           const resp = await fetch("/health/readiness", {
             headers: {

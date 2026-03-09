@@ -127,8 +127,10 @@ Observação: se `DATABASE_URL` vier como SQLite relativo (`./arquivo.db`), a ap
    - ReDoc: **http://localhost:8000/redoc**
 
 3. **Autenticar**:
-   - Obter token: `POST /api/v1/auth/token` (form: username, password) ou usar header `X-API-Key` com a `API_KEY` configurada.
-   - Nas requisições seguintes: header `Authorization: Bearer <token>` ou `X-API-Key: <sua_api_key>`.
+   - API clients: `POST /api/v1/auth/token` (username/password) ou `X-API-Key`.
+   - Frontend web (Jinja2): `POST /api/v1/auth/session/login` cria cookie HttpOnly `zh_access_token`.
+   - Nas requisições seguintes: `Authorization: Bearer <token>`, `X-API-Key: <sua_api_key>` ou cookie de sessão web.
+   - Guia de migração: `docs/FRONTEND_AUTH_MIGRATION.md`.
 
 4. **Cadastrar vCenter** (se não usar apenas o padrão do `.env`):
    - `POST /api/v1/vcenters` com host, usuário, senha, etc.
