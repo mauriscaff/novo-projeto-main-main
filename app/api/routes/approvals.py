@@ -24,13 +24,14 @@ Regras de segurança (todas verificadas em código):
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import desc, or_, select
+from sqlalchemy import desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.vmdk_actions import (
@@ -41,7 +42,9 @@ from app.core.vmdk_actions import (
 )
 from app.dependencies import get_current_user, get_db
 from app.models.audit_log import TERMINAL_STATUSES, VALID_ACTIONS, ApprovalToken, AuditLog
+from app.models.datastore_snapshot import DatastoreDecomSnapshot
 from app.models.zombie_scan import ZombieVmdkRecord
+from app.core.scanner.scan_runner import resolve_vcenter
 from sqlalchemy import desc as sa_desc
 from config import get_settings
 
@@ -211,6 +214,50 @@ def _get_client_ip(request: Request) -> str | None:
     if fwd:
         return fwd.split(",")[0].strip()
     return request.client.host if request.client else None
+
+
+def _extract_datastore_from_vmdk_path(vmdk_path: str) -> str | None:
+    """
+    Extrai nome do datastore de caminhos no formato:
+    [DATSTORE_NAME] pasta/arquivo.vmdk
+    """
+    m = re.match(r"^\[(?P<ds>[^\]]+)\]", (vmdk_path or "").strip())
+    return m.group("ds").strip() if m else None
+
+
+async def _find_latest_snapshot_for_token(
+    token: ApprovalToken,
+    db: AsyncSession,
+) -> DatastoreDecomSnapshot | None:
+    datastore_name = _extract_datastore_from_vmdk_path(token.vmdk_path)
+    if not datastore_name:
+        return None
+
+    stmt = select(DatastoreDecomSnapshot).where(
+        func.lower(DatastoreDecomSnapshot.datastore_name) == datastore_name.lower()
+    )
+
+    vc = await resolve_vcenter(db, token.vcenter_id)
+    if vc:
+        stmt = stmt.where(DatastoreDecomSnapshot.resolved_vcenter_id == vc.id)
+    else:
+        vc_ref = (token.vcenter_id or "").strip().lower()
+        stmt = stmt.where(
+            (func.lower(DatastoreDecomSnapshot.requested_vcenter_ref) == vc_ref)
+            | (func.lower(DatastoreDecomSnapshot.resolved_vcenter_name) == vc_ref)
+            | (func.lower(DatastoreDecomSnapshot.resolved_vcenter_host) == vc_ref)
+        )
+
+    if token.vmdk_datacenter:
+        dc = token.vmdk_datacenter.strip().lower()
+        stmt = stmt.where(
+            (DatastoreDecomSnapshot.datacenter.is_(None))
+            | (func.lower(DatastoreDecomSnapshot.datacenter) == dc)
+        )
+
+    stmt = stmt.order_by(DatastoreDecomSnapshot.created_at.desc()).limit(1)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 async def _audit(
@@ -508,6 +555,7 @@ async def execute(
             client_ip=client_ip,
             user_agent=request.headers.get("user-agent"),
         )
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
@@ -537,6 +585,7 @@ async def execute(
             client_ip=client_ip,
             user_agent=request.headers.get("user-agent"),
         )
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(
@@ -544,6 +593,41 @@ async def execute(
                 f"Chame primeiro: GET /api/v1/approvals/{token_value}/dryrun"
             ),
         )
+
+    # ── Salvaguarda 4.1: Governança opcional por snapshot de datastore ───────
+    # Compatível com READONLY_MODE porque a checagem de readonly ocorre antes.
+    if (
+        settings.governance_require_datastore_snapshot_for_delete
+        and token.action == "DELETE"
+    ):
+        snapshot = await _find_latest_snapshot_for_token(token, db)
+        if not snapshot:
+            datastore_name = _extract_datastore_from_vmdk_path(token.vmdk_path) or "desconhecido"
+            detail = (
+                "Governança ativa: DELETE bloqueado sem snapshot prévio de datastore. "
+                f"Datastore='{datastore_name}', vcenter='{token.vcenter_id}'."
+            )
+            await _audit(
+                db,
+                analyst=analyst,
+                action=token.action,
+                vmdk_path=token.vmdk_path,
+                vcenter_id=token.vcenter_id,
+                token=token,
+                dry_run=False,
+                status_value="blocked_missing_ds_report",
+                detail=detail,
+                client_ip=client_ip,
+                user_agent=request.headers.get("user-agent"),
+            )
+            await db.commit()
+            raise HTTPException(
+                status_code=428,
+                detail=(
+                    "Governança exige relatório prévio de datastore para ação DELETE. "
+                    "Gere um snapshot em /api/v1/scan/datastore-snapshots e tente novamente."
+                ),
+            )
 
     # ── Salvaguarda 5: Mudança de status do VMDK ──────────────────────────────
     status_changed, change_reason = await check_vmdk_status_changed(token, db)
@@ -563,6 +647,7 @@ async def execute(
             client_ip=client_ip,
             user_agent=request.headers.get("user-agent"),
         )
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
@@ -614,6 +699,7 @@ async def execute(
             "Falha na execução %s | token=%s | path='%s' | erro: %s",
             token.action, token_value[:8], token.vmdk_path, exec_result.error,
         )
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(

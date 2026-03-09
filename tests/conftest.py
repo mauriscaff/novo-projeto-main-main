@@ -7,10 +7,14 @@ para rodar testes sem conexão real com VMware.
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
+
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_zombiehunter.db"
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 from app.core.scanner.zombie_detector import (
     _FileEntry,

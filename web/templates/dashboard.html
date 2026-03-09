@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 {#
-dashboard.html — Página principal do ZombieHunter
+dashboard.html â€” PÃ¡gina principal do ZombieHunter
 ===================================================
-Herda base.html. Todos os dados são carregados via AJAX em dashboard.js
-(GET /api/v1/dashboard), sem SSR de conteúdo crítico — apenas o esqueleto
-HTML é renderizado pelo servidor.
+Herda base.html. Todos os dados sÃ£o carregados via AJAX em dashboard.js
+(GET /api/v1/dashboard), sem SSR de conteÃºdo crÃ­tico â€” apenas o esqueleto
+HTML Ã© renderizado pelo servidor.
 
-Variáveis Jinja2 usadas deste template (além das do base.html):
-Nenhuma — todos os dados vêm da API via JavaScript.
+VariÃ¡veis Jinja2 usadas deste template (alÃ©m das do base.html):
+Nenhuma â€” todos os dados vÃªm da API via JavaScript.
 #}
 
 {% block title %}Dashboard{% endblock %}
 
-{# ── Estilos específicos do Dashboard ──────────────────────────────────────── #}
+{# â”€â”€ Estilos especÃ­ficos do Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
 {% block head_extra %}{% endblock %}
 
 {% block content %}
 
-{# ═══════════════════════════════════════════════════════════════════════════
-CABEÇALHO DA PÁGINA
-Título + botão de atualização manual + timestamp de última atualização
-════════════════════════════════════════════════════════════════════════════ #}
-<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+CABEÃ‡ALHO DA PÃGINA
+TÃ­tulo + botÃ£o de atualizaÃ§Ã£o manual + timestamp de Ãºltima atualizaÃ§Ã£o
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
 
   <div>
     <h4 class="mb-0 fw-semibold d-flex align-items-center gap-2">
@@ -29,18 +29,18 @@ Título + botão de atualização manual + timestamp de última atualização
       Dashboard
     </h4>
     <small class="text-muted-zh">
-      Visão consolidada de VMDKs zombie detectados em todos os vCenters
+      VisÃ£o consolidada de VMDKs zombie detectados em todos os vCenters
     </small>
   </div>
 
   <div class="d-flex align-items-center gap-3">
-    {# Timestamp da última atualização (preenchido pelo JS) #}
+    {# Timestamp da Ãºltima atualizaÃ§Ã£o (preenchido pelo JS) #}
     <span class="text-muted-zh" style="font-size:.8rem;">
       <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>
-      Atualizado em: <span id="zh-last-updated">—</span>
+      Atualizado em: <span id="zh-last-updated">â€”</span>
     </span>
 
-    {# Botão de atualização manual — desabilitado durante loading #}
+    {# BotÃ£o de atualizaÃ§Ã£o manual â€” desabilitado durante loading #}
     <button id="zh-btn-refresh" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
       title="Atualizar dados agora" type="button">
       <i class="bi bi-arrow-clockwise"></i>
@@ -49,343 +49,760 @@ Título + botão de atualização manual + timestamp de última atualização
   </div>
 </div>
 
+{# â”€â”€ Abas de NavegaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+<ul class="nav nav-tabs mb-4 border-bottom-0" id="dashboardTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active fw-semibold d-flex align-items-center gap-2" id="overview-tab" data-bs-toggle="tab"
+      data-bs-target="#zh-tab-overview" type="button" role="tab" aria-controls="zh-tab-overview" aria-selected="true"
+      style="color:var(--zh-text-main);background:transparent;border-color:transparent transparent var(--zh-accent-blue);border-bottom-width:3px;">
+      <i class="bi bi-pie-chart-fill text-zombie-purple"></i> VisÃ£o Geral
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link fw-semibold d-flex align-items-center gap-2" id="storage-tab" data-bs-toggle="tab"
+      data-bs-target="#zh-tab-storage" type="button" role="tab" aria-controls="zh-tab-storage" aria-selected="false"
+      style="color:var(--zh-text-muted);border:none;">
+      <i class="bi bi-device-hdd-fill text-zombie-yellow"></i> Storage RecuperÃ¡vel
+    </button>
+  </li>
+</ul>
+
 {# Overlay de loading global (exibido na primeira carga) #}
 <div id="zh-loading-overlay" class="text-center py-5 mb-4">
   <div class="spinner-border text-zombie-blue mb-3" role="status" style="width:2.5rem;height:2.5rem;">
     <span class="visually-hidden">Carregando...</span>
   </div>
-  <p class="text-muted-zh mb-0">Buscando dados da API…</p>
+  <p class="text-muted-zh mb-0">Buscando dados da APIâ€¦</p>
 </div>
 
-{# Banner de erro (oculto por padrão, exibido pelo JS em caso de falha) #}
+{# Banner de erro (oculto por padrÃ£o, exibido pelo JS em caso de falha) #}
 <div id="zh-error-banner" class="alert alert-danger d-none d-flex align-items-center gap-2 mb-4" role="alert">
   <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
   <span></span>
 </div>
 
-
-{# ═══════════════════════════════════════════════════════════════════════════
-LINHA 1 — CARDS DE RESUMO (5 cards em grid responsivo)
-════════════════════════════════════════════════════════════════════════════ #}
-<div class="row g-3 mb-4" id="zh-cards-row">
-
-  {# Card 1: Total de VMDKs zombie (todas as varreduras) #}
-  <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill">
-    <div class="zh-card h-100 p-3">
-      <div class="d-flex align-items-start justify-content-between mb-2">
-        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
-          Total VMDKs
-        </span>
-        {# Ícone temático de caveira — representa arquivos "mortos" #}
-        <i class="bi bi-bug-fill text-zombie-red" style="font-size:1.1rem;" aria-hidden="true"></i>
-      </div>
-      <div class="fs-3 fw-bold text-zombie-red" id="zh-card-total-vmdks">—</div>
-      <small class="text-muted-zh">acumulado histórico</small>
-    </div>
-  </div>
-
-  {# Card 2: Espaço recuperável em GB #}
-  <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill">
-    <div class="zh-card h-100 p-3">
-      <div class="d-flex align-items-start justify-content-between mb-2">
-        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
-          Espaço recuperável
-        </span>
-        <i class="bi bi-device-hdd-fill text-zombie-yellow" style="font-size:1.1rem;" aria-hidden="true"></i>
-      </div>
-      <div class="fs-3 fw-bold text-zombie-yellow" id="zh-card-total-gb">—</div>
-      <small class="text-muted-zh">soma de todos os VMDKs</small>
-    </div>
-  </div>
-
-  {# Card 3: Aprovações pendentes — clicável, destaque em vermelho se > 0 #}
-  <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill" id="zh-pending-card-wrapper">
-    <a href="/approvals" class="text-decoration-none">
-      <div class="zh-card h-100 p-3 zh-card-hoverable">
-        <div class="d-flex align-items-start justify-content-between mb-2">
-          <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
-            Aprovações pendentes
-          </span>
-          {# Ícone de relógio — aguardando ação do analista #}
-          <i class="bi bi-clock-history" style="font-size:1.1rem;color:var(--zh-accent-yellow);" aria-hidden="true"></i>
-        </div>
-        <div class="fs-3 fw-bold" id="zh-card-pending" style="color:var(--zh-accent-yellow);">—</div>
-        <small class="text-muted-zh">tokens aguardando execução</small>
-      </div>
-    </a>
-  </div>
-
-  {# Card 4: Última varredura — timestamp dinâmico #}
-  <div class="col-6 col-sm-6 col-xl-auto flex-xl-fill">
-    <div class="zh-card h-100 p-3">
-      <div class="d-flex align-items-start justify-content-between mb-2">
-        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
-          Última varredura
-        </span>
-        <i class="bi bi-calendar-check-fill text-zombie-green" style="font-size:1.1rem;" aria-hidden="true"></i>
-      </div>
-      <div class="fs-6 fw-semibold text-zombie-green" id="zh-card-last-scan">—</div>
-      <small class="text-muted-zh">data/hora de conclusão</small>
-    </div>
-  </div>
-
-  {# Card 5: vCenters monitorados #}
-  <div class="col-6 col-sm-6 col-xl-auto flex-xl-fill">
-    <div class="zh-card h-100 p-3">
-      <div class="d-flex align-items-start justify-content-between mb-2">
-        <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
-          vCenters
-        </span>
-        <i class="bi bi-hdd-network-fill text-zombie-blue" style="font-size:1.1rem;" aria-hidden="true"></i>
-      </div>
-      <div class="fs-3 fw-bold text-zombie-blue" id="zh-card-vcenter-count">—</div>
-      <small class="text-muted-zh">instâncias monitoradas</small>
-    </div>
-  </div>
-
-</div>{# fim cards row #}
+<div class="tab-content" id="dashboardTabsContent">
+  {# Aba 1: VisÃ£o Geral (conteÃºdo herdado) #}
+  <div class="tab-pane fade show active" id="zh-tab-overview" role="tabpanel" aria-labelledby="overview-tab">
 
 
-{# ═══════════════════════════════════════════════════════════════════════════
-LINHA 2 — GRÁFICOS
-Donut (esquerda) | Barras horizontais (centro) | Linha de tendência (direita)
-════════════════════════════════════════════════════════════════════════════ #}
-<div class="row g-3 mb-4">
 
-  {# Gráfico 1 — Rosca: distribuição por tipo_zombie #}
-  <div class="col-12 col-lg-4">
-    <div class="zh-card h-100">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <span>
-          <i class="bi bi-pie-chart-fill me-2 text-zombie-red" aria-hidden="true"></i>
-          Distribuição por Tipo
-        </span>
-        {# Legenda de tipos como referência rápida #}
-        <a href="/scan/results" class="btn btn-link btn-sm text-muted-zh p-0 text-decoration-none"
-          style="font-size:.75rem;">Ver todos →</a>
-      </div>
-      <div class="card-body d-flex flex-column align-items-center" style="padding:20px 16px;">
-        {# Container com altura fixa — Chart.js respeita o tamanho do wrapper #}
-        <div style="position:relative;width:100%;max-width:320px;height:280px;">
-          <canvas id="zh-chart-donut" aria-label="Distribuição de VMDKs por tipo zombie" role="img"></canvas>
-        </div>
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    LINHA 1 â€” CARDS DE RESUMO (5 cards em grid responsivo)
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    <div class="row g-3 mb-4" id="zh-cards-row">
 
-        {# Legenda manual com cores semânticas e contadores (preenchida pelo JS via legenda nativa do Chart.js) #}
-        <div class="mt-3 w-100" id="zh-donut-legend-extra" style="font-size:.78rem;">
-          {# Placeholder — Chart.js renderiza legenda native abaixo do canvas #}
+      {# Card 1: Total de VMDKs zombie (todas as varreduras) #}
+      <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill">
+        <div class="zh-card h-100 p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              Total VMDKs
+            </span>
+            {# Ãcone temÃ¡tico de caveira â€” representa arquivos "mortos" #}
+            <i class="bi bi-bug-fill text-zombie-red" style="font-size:1.1rem;" aria-hidden="true"></i>
+          </div>
+          <div class="fs-3 fw-bold text-zombie-red" id="zh-card-total-vmdks">â€”</div>
+          <small class="text-muted-zh">acumulado histÃ³rico</small>
         </div>
       </div>
-    </div>
-  </div>
 
-  {# Gráfico 2 — Barras horizontais: Top 5 vCenters por GB zombie #}
-  <div class="col-12 col-lg-4">
-    <div class="zh-card h-100">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <span>
-          <i class="bi bi-bar-chart-fill me-2 text-zombie-blue" aria-hidden="true"></i>
-          Top 5 vCenters — GB Zombie
-        </span>
-        <span class="text-muted-zh" style="font-size:.72rem;">Maior volume</span>
-      </div>
-      <div class="card-body" style="padding:20px 16px;">
-        <div style="position:relative;width:100%;height:280px;">
-          <canvas id="zh-chart-bars" aria-label="Top 5 vCenters com mais GB zombie" role="img"></canvas>
+      {# Card 2: EspaÃ§o recuperÃ¡vel em GB #}
+      <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill">
+        <div class="zh-card h-100 p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              EspaÃ§o recuperÃ¡vel
+            </span>
+            <i class="bi bi-device-hdd-fill text-zombie-yellow" style="font-size:1.1rem;" aria-hidden="true"></i>
+          </div>
+          <div class="fs-3 fw-bold text-zombie-yellow" id="zh-card-total-gb">â€”</div>
+          <small class="text-muted-zh">soma de todos os VMDKs</small>
         </div>
       </div>
-    </div>
-  </div>
 
-  {# Gráfico 3 — Linha: Histórico das últimas 10 varreduras #}
-  <div class="col-12 col-lg-4">
-    <div class="zh-card h-100">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <span>
-          <i class="bi bi-graph-up-arrow me-2 text-zombie-green" aria-hidden="true"></i>
-          Histórico de Varreduras
-        </span>
-        <span class="text-muted-zh" style="font-size:.72rem;">Últimas 10</span>
+      {# Card 3: AprovaÃ§Ãµes pendentes â€” clicÃ¡vel, destaque em vermelho se > 0 #}
+      <div class="col-6 col-sm-4 col-xl-auto flex-xl-fill" id="zh-pending-card-wrapper">
+        <a href="/approvals" class="text-decoration-none">
+          <div class="zh-card h-100 p-3 zh-card-hoverable">
+            <div class="d-flex align-items-start justify-content-between mb-2">
+              <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+                AprovaÃ§Ãµes pendentes
+              </span>
+              {# Ãcone de relÃ³gio â€” aguardando aÃ§Ã£o do analista #}
+              <i class="bi bi-clock-history" style="font-size:1.1rem;color:var(--zh-accent-yellow);"
+                aria-hidden="true"></i>
+            </div>
+            <div class="fs-3 fw-bold" id="zh-card-pending" style="color:var(--zh-accent-yellow);">â€”</div>
+            <small class="text-muted-zh">tokens aguardando execuÃ§Ã£o</small>
+          </div>
+        </a>
       </div>
-      <div class="card-body" style="padding:20px 16px;">
-        <div style="position:relative;width:100%;height:280px;">
-          <canvas id="zh-chart-trend" aria-label="Histórico de GB e VMDKs detectados nas últimas 10 varreduras"
-            role="img"></canvas>
+
+      {# Card 4: Ãšltima varredura â€” timestamp dinÃ¢mico #}
+      <div class="col-6 col-sm-6 col-xl-auto flex-xl-fill">
+        <div class="zh-card h-100 p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              Ãšltima varredura
+            </span>
+            <i class="bi bi-calendar-check-fill text-zombie-green" style="font-size:1.1rem;" aria-hidden="true"></i>
+          </div>
+          <div class="fs-6 fw-semibold text-zombie-green" id="zh-card-last-scan">â€”</div>
+          <small class="text-muted-zh">data/hora de conclusÃ£o</small>
         </div>
       </div>
-    </div>
-  </div>
 
-</div>{# fim gráficos row #}
-
-
-{# ═══════════════════════════════════════════════════════════════════════════
-LINHA 3 — STATUS POR vCENTER
-Um card por vCenter com: nome, host, status de conexão, stats do último scan
-e mini gráfico de barras por tipo de zombie.
-════════════════════════════════════════════════════════════════════════════ #}
-<div class="row g-3 mb-4" id="zh-vcenter-cards-row">
-  {# Skeleton card de loading (oculto após dados carregarem) #}
-  <div class="col-12" id="zh-vcenter-loading">
-    <div class="zh-card p-3 d-flex align-items-center gap-3">
-      <div class="spinner-border spinner-border-sm text-zombie-blue" role="status"></div>
-      <span class="text-muted-zh" style="font-size:.85rem;">Carregando vCenters…</span>
-    </div>
-  </div>
-</div>
-
-
-{# ═══════════════════════════════════════════════════════════════════════════
-LINHA 4 — TABELA DE ALERTAS RECENTES
-Últimos 10 VMDKs detectados, com actions inline
-════════════════════════════════════════════════════════════════════════════ #}
-<div class="row g-3">
-  <div class="col-12">
-    <div class="zh-card">
-      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-
-        <span class="d-flex align-items-center gap-2">
-          <i class="bi bi-exclamation-triangle-fill text-zombie-yellow" aria-hidden="true"></i>
-          <span>VMDKs Detectados Recentemente</span>
-          {# Badge com total de registros carregados (preenchido pelo DataTables) #}
-        </span>
-
-        <div class="d-flex align-items-center gap-2">
-          {# Filtro rápido por tipo (cliente, sem reload) — controlado pelo JS #}
-          <select id="zh-filter-type" class="form-select form-select-sm"
-            style="width:auto;min-width:155px;background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);font-size:.8rem;"
-            title="Filtrar por tipo zombie">
-            <option value="">Todos os tipos</option>
-            <option value="ORPHANED">Orphaned</option>
-            <option value="SNAPSHOT_ORPHAN">Snapshot Orphan</option>
-            <option value="BROKEN_CHAIN">Broken Chain</option>
-            <option value="UNREGISTERED_DIR">Unregistered Dir</option>
-            <option value="POSSIBLE_FALSE_POSITIVE">False Positive</option>
-          </select>
-
-          {# Link para resultados completos #}
-          <a href="/scan/results" class="btn btn-sm btn-outline-secondary" style="font-size:.8rem;white-space:nowrap;">
-            <i class="bi bi-table me-1"></i>Ver todos
-          </a>
-
-          {# Botão de iniciar nova varredura #}
-          <button id="zh-btn-new-scan" class="btn btn-sm btn-outline-danger" style="font-size:.8rem;white-space:nowrap;"
-            title="Iniciar nova varredura imediatamente" type="button">
-            <i class="bi bi-play-fill me-1"></i>Nova varredura
-          </button>
-        </div>
-
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          {#
-          DataTables inicializa sobre esta <table> em dashboard.js.
-            thead define a estrutura; dados são injetados via JS.
-            #}
-            <table id="zh-table-recent" class="table table-dark table-hover table-sm mb-0 align-middle"
-              style="border-color:var(--zh-border);font-size:.85rem;">
-              <thead style="background-color:var(--zh-bg-sidebar);border-bottom:1px solid var(--zh-border);">
-                <tr>
-                  <th style="padding:12px 14px;">VMDK Path</th>
-                  <th style="padding:12px 14px;">vCenter</th>
-                  <th style="padding:12px 14px;" class="text-end">Tamanho</th>
-                  <th style="padding:12px 14px;">Tipo</th>
-                  <th style="padding:12px 14px;">Detectado em</th>
-                  <th style="padding:12px 14px;" class="text-end">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="zh-table-body">
-                {# DataTables preenche este corpo via JS — não adicionar <tr> aqui #}
-              </tbody>
-            </table>
+      {# Card 5: vCenters monitorados #}
+      <div class="col-6 col-sm-6 col-xl-auto flex-xl-fill">
+        <div class="zh-card h-100 p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              vCenters
+            </span>
+            <i class="bi bi-hdd-network-fill text-zombie-blue" style="font-size:1.1rem;" aria-hidden="true"></i>
+          </div>
+          <div class="fs-3 fw-bold text-zombie-blue" id="zh-card-vcenter-count">â€”</div>
+          <small class="text-muted-zh">instÃ¢ncias monitoradas</small>
         </div>
       </div>
-    </div>
-  </div>
-</div>{# fim tabela row #}
+
+    </div>{# fim cards row #}
 
 
-{# ═══════════════════════════════════════════════════════════════════════════
-MODAL — Nova Varredura
-Acionado pelo botão "Nova varredura" na tabela.
-Permite selecionar vCenters e datacenters antes de disparar.
-════════════════════════════════════════════════════════════════════════════ #}
-<div class="modal fade" id="zh-modal-scan" tabindex="-1" aria-labelledby="zh-modal-scan-label" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
-      <div class="modal-header" style="border-color:var(--zh-border);">
-        <h5 class="modal-title d-flex align-items-center gap-2" id="zh-modal-scan-label">
-          <i class="bi bi-play-circle-fill text-zombie-red"></i>
-          Iniciar Nova Varredura
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    LINHA 2 â€” GRÃFICOS
+    Donut (esquerda) | Barras horizontais (centro) | Linha de tendÃªncia (direita)
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    <div class="row g-3 mb-4">
 
-        {# vCenters — checkboxes carregados via JS #}
-        <div class="mb-3">
-          <label class="form-label fw-semibold" style="font-size:.85rem;">
-            <i class="bi bi-hdd-network me-1 text-zombie-blue"></i>
-            vCenters a varrer
-          </label>
-          <div id="zh-scan-vcenter-list" class="d-flex flex-column gap-2">
-            {# Placeholder — preenchido por JS ao abrir o modal #}
-            <span class="text-muted-zh small">Carregando vCenters…</span>
+      {# GrÃ¡fico 1 â€” Rosca: distribuiÃ§Ã£o por tipo_zombie #}
+      <div class="col-12 col-lg-4">
+        <div class="zh-card h-100">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span>
+              <i class="bi bi-pie-chart-fill me-2 text-zombie-red" aria-hidden="true"></i>
+              DistribuiÃ§Ã£o por Tipo
+            </span>
+            {# Legenda de tipos como referÃªncia rÃ¡pida #}
+            <a href="/scan/results" class="btn btn-link btn-sm text-muted-zh p-0 text-decoration-none"
+              style="font-size:.75rem;">Ver todos â†’</a>
+          </div>
+          <div class="card-body d-flex flex-column align-items-center" style="padding:20px 16px;">
+            {# Container com altura fixa â€” Chart.js respeita o tamanho do wrapper #}
+            <div style="position:relative;width:100%;max-width:320px;height:280px;">
+              <canvas id="zh-chart-donut" aria-label="DistribuiÃ§Ã£o de VMDKs por tipo zombie" role="img"></canvas>
+            </div>
+
+            {# Legenda manual com cores semÃ¢nticas e contadores (preenchida pelo JS via legenda nativa do Chart.js) #}
+            <div class="mt-3 w-100" id="zh-donut-legend-extra" style="font-size:.78rem;">
+              {# Placeholder â€” Chart.js renderiza legenda native abaixo do canvas #}
+            </div>
           </div>
         </div>
-
-        {# Datacenters — opcional, filtra escopo #}
-        <div class="mb-3">
-          <label class="form-label fw-semibold" style="font-size:.85rem;">
-            <i class="bi bi-building me-1 text-muted-zh"></i>
-            Datacenters (opcional — deixe vazio para todos)
-          </label>
-          <input type="text" id="zh-scan-dc-filter" class="form-control form-control-sm"
-            placeholder="Ex.: DC-PROD, DC-HML  (separados por vírgula)"
-            style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
-          <div class="form-text text-muted-zh">Deixe em branco para varrer todos os datacenters</div>
-        </div>
-
-        {# Aviso de readonly #}
-        {% if readonly_mode %}
-        <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-0" style="font-size:.82rem;">
-          <i class="bi bi-lock-fill flex-shrink-0"></i>
-          <span>
-            A varredura <strong>apenas lê</strong> o vCenter — nenhuma alteração é feita.
-            READONLY_MODE=true está ativo.
-          </span>
-        </div>
-        {% endif %}
-
       </div>
-      <div class="modal-footer" style="border-color:var(--zh-border);">
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-sm btn-danger d-flex align-items-center gap-2" id="zh-btn-confirm-scan">
-          <span class="spinner-border spinner-border-sm d-none" id="zh-scan-spinner" role="status"></span>
-          <i class="bi bi-play-fill" id="zh-scan-icon"></i>
-          <span id="zh-scan-btn-text">Iniciar Varredura</span>
-        </button>
+
+      {# GrÃ¡fico 2 â€” Barras horizontais: Top 5 vCenters por GB zombie #}
+      <div class="col-12 col-lg-4">
+        <div class="zh-card h-100">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span>
+              <i class="bi bi-bar-chart-fill me-2 text-zombie-blue" aria-hidden="true"></i>
+              Top 5 vCenters â€” GB Zombie
+            </span>
+            <span class="text-muted-zh" style="font-size:.72rem;">Maior volume</span>
+          </div>
+          <div class="card-body" style="padding:20px 16px;">
+            <div style="position:relative;width:100%;height:280px;">
+              <canvas id="zh-chart-bars" aria-label="Top 5 vCenters com mais GB zombie" role="img"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# GrÃ¡fico 3 â€” Linha: HistÃ³rico das Ãºltimas 10 varreduras #}
+      <div class="col-12 col-lg-4">
+        <div class="zh-card h-100">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span>
+              <i class="bi bi-graph-up-arrow me-2 text-zombie-green" aria-hidden="true"></i>
+              HistÃ³rico de Varreduras
+            </span>
+            <span class="text-muted-zh" style="font-size:.72rem;">Ãšltimas 10</span>
+          </div>
+          <div class="card-body" style="padding:20px 16px;">
+            <div style="position:relative;width:100%;height:280px;">
+              <canvas id="zh-chart-trend" aria-label="HistÃ³rico de GB e VMDKs detectados nas Ãºltimas 10 varreduras"
+                role="img"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>{# fim grÃ¡ficos row #}
+
+
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    LINHA 3 â€” STATUS POR vCENTER
+    Um card por vCenter com: nome, host, status de conexÃ£o, stats do Ãºltimo scan
+    e mini grÃ¡fico de barras por tipo de zombie.
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    <div class="row g-3 mb-4" id="zh-vcenter-cards-row">
+      {# Skeleton card de loading (oculto apÃ³s dados carregarem) #}
+      <div class="col-12" id="zh-vcenter-loading">
+        <div class="zh-card p-3 d-flex align-items-center gap-3">
+          <div class="spinner-border spinner-border-sm text-zombie-blue" role="status"></div>
+          <span class="text-muted-zh" style="font-size:.85rem;">Carregando vCentersâ€¦</span>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+
+
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    LINHA 4 â€” TABELA DE ALERTAS RECENTES
+    Ãšltimos 10 VMDKs detectados, com actions inline
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="zh-card">
+          <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+
+            <span class="d-flex align-items-center gap-2">
+              <i class="bi bi-exclamation-triangle-fill text-zombie-yellow" aria-hidden="true"></i>
+              <span>VMDKs Detectados Recentemente</span>
+              {# Badge com total de registros carregados (preenchido pelo DataTables) #}
+            </span>
+
+            <div class="d-flex align-items-center gap-2">
+              {# Filtro rÃ¡pido por tipo (cliente, sem reload) â€” controlado pelo JS #}
+              <select id="zh-filter-type" class="form-select form-select-sm"
+                style="width:auto;min-width:155px;background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);font-size:.8rem;"
+                title="Filtrar por tipo zombie">
+                <option value="">Todos os tipos</option>
+                <option value="ORPHANED">Orphaned</option>
+                <option value="SNAPSHOT_ORPHAN">Snapshot Orphan</option>
+                <option value="BROKEN_CHAIN">Broken Chain</option>
+                <option value="UNREGISTERED_DIR">Unregistered Dir</option>
+                <option value="POSSIBLE_FALSE_POSITIVE">False Positive</option>
+              </select>
+
+              {# Link para resultados completos #}
+              <a href="/scan/results" class="btn btn-sm btn-outline-secondary"
+                style="font-size:.8rem;white-space:nowrap;">
+                <i class="bi bi-table me-1"></i>Ver todos
+              </a>
+
+              {# BotÃ£o de iniciar nova varredura #}
+              <button id="zh-btn-new-scan" class="btn btn-sm btn-outline-danger"
+                style="font-size:.8rem;white-space:nowrap;" title="Iniciar nova varredura imediatamente" type="button">
+                <i class="bi bi-play-fill me-1"></i>Nova varredura
+              </button>
+
+              <button id="zh-btn-open-ds-laudo" class="btn btn-sm btn-outline-primary"
+                style="font-size:.8rem;white-space:nowrap;"
+                title="Gerar snapshot para exclusÃ£o de datastore" type="button">
+                <i class="bi bi-file-earmark-text me-1"></i>Gerar Laudo de ExclusÃ£o de Datastore
+              </button>
+
+              <button id="zh-btn-open-ds-post-report" class="btn btn-sm btn-outline-info"
+                style="font-size:.8rem;white-space:nowrap;"
+                title="Verificar exclusÃ£o por arquivo via pair_id" type="button">
+                <i class="bi bi-arrow-left-right me-1"></i>RelatÃ³rio PÃ³s-ExclusÃ£o
+              </button>
+            </div>
+
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              {#
+              DataTables inicializa sobre esta <table> em dashboard.js.
+                thead define a estrutura; dados sÃ£o injetados via JS.
+                #}
+                <table id="zh-table-recent" class="table table-dark table-hover table-sm mb-0 align-middle"
+                  style="border-color:var(--zh-border);font-size:.85rem;">
+                  <thead style="background-color:var(--zh-bg-sidebar);border-bottom:1px solid var(--zh-border);">
+                    <tr>
+                      <th style="padding:12px 14px;">VMDK Path</th>
+                      <th style="padding:12px 14px;">vCenter</th>
+                      <th style="padding:12px 14px;" class="text-end">Tamanho</th>
+                      <th style="padding:12px 14px;">Tipo</th>
+                      <th style="padding:12px 14px;">Detectado em</th>
+                      <th style="padding:12px 14px;" class="text-end">AÃ§Ãµes</th>
+                    </tr>
+                  </thead>
+                  <tbody id="zh-table-body">
+                    {# DataTables preenche este corpo via JS â€” nÃ£o adicionar <tr> aqui #}
+                  </tbody>
+                </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>{# fim tabela row #}
+
+    <div id="zh-ds-snapshot-row" class="row g-3 mt-1 d-none">
+      <div class="col-12">
+        <div class="zh-card">
+          <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="d-flex align-items-center gap-2">
+              <i class="bi bi-file-earmark-check-fill text-zombie-blue"></i>
+              Snapshot para ExclusÃ£o de Datastore
+            </span>
+            <small class="text-muted-zh" id="zh-ds-snapshot-ts">â€”</small>
+          </div>
+          <div class="card-body">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <span class="badge text-bg-secondary" id="zh-ds-snapshot-vcenter">vCenter: â€”</span>
+              <span class="badge text-bg-secondary" id="zh-ds-snapshot-datastore">Datastore: â€”</span>
+              <span class="badge text-bg-secondary d-none" id="zh-ds-snapshot-datacenter">Datacenter: â€”</span>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-md-4">
+                <div class="zh-ds-kpi p-3 h-100">
+                  <div class="text-muted-zh small text-uppercase">Total de itens</div>
+                  <div class="fs-4 fw-bold text-zombie-red" id="zh-ds-snapshot-total-itens">â€”</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="zh-ds-kpi p-3 h-100">
+                  <div class="text-muted-zh small text-uppercase">Total em GB</div>
+                  <div class="fs-4 fw-bold text-zombie-yellow" id="zh-ds-snapshot-total-gb">â€”</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="zh-ds-kpi p-3 h-100">
+                  <div class="text-muted-zh small text-uppercase">Snapshot ID</div>
+                  <div class="fs-5 fw-semibold text-zombie-blue" id="zh-ds-snapshot-id">â€”</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="text-muted-zh small mb-2">Breakdown por tipo</div>
+              <div id="zh-ds-snapshot-breakdown" class="d-flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+              <a id="zh-ds-snapshot-export-csv" href="#" class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">
+                <i class="bi bi-filetype-csv me-1"></i>Exportar CSV
+              </a>
+              <a id="zh-ds-snapshot-export-json" href="#" class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">
+                <i class="bi bi-filetype-json me-1"></i>Exportar JSON
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="zh-ds-compare-row" class="row g-3 mt-1 d-none">
+      <div class="col-12">
+        <div class="zh-card">
+          <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="d-flex align-items-center gap-2">
+              <i class="bi bi-clipboard-data-fill text-zombie-green"></i>
+              Verificação Pós-Exclusão (VMDK)
+            </span>
+            <small class="text-muted-zh" id="zh-ds-compare-ts">—</small>
+          </div>
+          <div class="card-body">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <span class="badge text-bg-secondary" id="zh-ds-compare-datastore">Datastore: —</span>
+              <span class="badge text-bg-secondary" id="zh-ds-compare-pair-id">Pair: —</span>
+              <span class="badge text-bg-secondary" id="zh-ds-compare-pre-id">Pré: —</span>
+              <span class="badge text-bg-secondary" id="zh-ds-compare-post-id">Pós: —</span>
+              <span class="badge text-bg-secondary" id="zh-ds-compare-status">Status: —</span>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-md-3">
+                <div class="zh-ds-kpi p-3 h-100">
+                  <div class="text-muted-zh small text-uppercase">Arquivos removidos</div>
+                  <div class="fs-4 fw-bold text-zombie-red" id="zh-ds-compare-removed-items">—</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="zh-ds-kpi p-3 h-100">
+                  <div class="text-muted-zh small text-uppercase">GB removidos</div>
+                  <div class="fs-4 fw-bold text-zombie-yellow" id="zh-ds-compare-removed-gb">—</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="zh-ds-kpi p-3 h-100">
+                  <div class="text-muted-zh small text-uppercase">Ganho (%)</div>
+                  <div class="fs-4 fw-bold text-zombie-blue" id="zh-ds-compare-gain-percent">—</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="zh-ds-kpi p-3 h-100">
+                  <div class="text-muted-zh small text-uppercase">Itens remanescentes</div>
+                  <div class="fs-4 fw-bold text-zombie-green" id="zh-ds-compare-remaining-items">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="text-muted-zh small mb-2">Breakdown removido por tipo zombie</div>
+              <div class="table-responsive">
+                <table class="table table-dark table-sm align-middle mb-0 zh-ds-compare-table">
+                  <thead>
+                    <tr>
+                      <th>Tipo Zombie</th>
+                      <th class="text-end">Itens Removidos</th>
+                      <th class="text-end">GB Removidos</th>
+                    </tr>
+                  </thead>
+                  <tbody id="zh-ds-compare-breakdown-body">
+                    <tr>
+                      <td colspan="3" class="text-muted-zh">Sem dados para exibir.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <div class="text-muted-zh small">Arquivos removidos (evidência)</div>
+                <div class="d-flex align-items-center gap-2">
+                  <input id="zh-ds-compare-files-search" type="text" class="form-control form-control-sm"
+                    placeholder="Buscar por path/tipo..."
+                    style="width:240px;background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
+                  <button id="zh-ds-compare-sort-size-btn" type="button" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-sort-down-alt me-1"></i>Ordenar tamanho
+                  </button>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-dark table-sm align-middle mb-0 zh-ds-compare-files-table">
+                  <thead>
+                    <tr>
+                      <th>VMDK Path</th>
+                      <th>Tipo Zombie</th>
+                      <th class="text-end">Tamanho (GB)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="zh-ds-compare-files-body">
+                    <tr>
+                      <td colspan="3" class="text-muted-zh">Sem evidências para exibir.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+              <a id="zh-ds-compare-export-json" href="#" class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">
+                <i class="bi bi-filetype-json me-1"></i>Exportar JSON
+              </a>
+              <a id="zh-ds-compare-export-csv" href="#" class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">
+                <i class="bi bi-filetype-csv me-1"></i>Exportar CSV
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    MODAL â€” Nova Varredura
+    Acionado pelo botÃ£o "Nova varredura" na tabela.
+    Permite selecionar vCenters e datacenters antes de disparar.
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    <div class="modal fade" id="zh-modal-scan" tabindex="-1" aria-labelledby="zh-modal-scan-label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+          <div class="modal-header" style="border-color:var(--zh-border);">
+            <h5 class="modal-title d-flex align-items-center gap-2" id="zh-modal-scan-label">
+              <i class="bi bi-play-circle-fill text-zombie-red"></i>
+              Iniciar Nova Varredura
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+              aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+
+            {# vCenters â€” checkboxes carregados via JS #}
+            <div class="mb-3">
+              <label class="form-label fw-semibold" style="font-size:.85rem;">
+                <i class="bi bi-hdd-network me-1 text-zombie-blue"></i>
+                vCenters a varrer
+              </label>
+              <div id="zh-scan-vcenter-list" class="d-flex flex-column gap-2">
+                {# Placeholder â€” preenchido por JS ao abrir o modal #}
+                <span class="text-muted-zh small">Carregando vCentersâ€¦</span>
+              </div>
+            </div>
+
+            {# Datacenters â€” opcional, filtra escopo #}
+            <div class="mb-3">
+              <label class="form-label fw-semibold" style="font-size:.85rem;">
+                <i class="bi bi-building me-1 text-muted-zh"></i>
+                Datacenters (opcional â€” deixe vazio para todos)
+              </label>
+              <input type="text" id="zh-scan-dc-filter" class="form-control form-control-sm"
+                placeholder="Ex.: DC-PROD, DC-HML  (separados por vÃ­rgula)"
+                style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
+              <div class="form-text text-muted-zh">Deixe em branco para varrer todos os datacenters</div>
+            </div>
+
+            {# Datastores (LUNs) â€” checkboxes carregados via JS #}
+            <div class="mb-3">
+              <label class="form-label fw-semibold d-flex align-items-center justify-content-between"
+                style="font-size:.85rem;">
+                <span>
+                  <i class="bi bi-device-hdd me-1 text-muted-zh"></i>
+                  Datastores / LUNs (desmarque para pular)
+                </span>
+                <a href="#" id="zh-ds-toggle-all" class="text-zombie-blue text-decoration-none"
+                  style="font-size:.75rem;">
+                  desmarcar todos
+                </a>
+              </label>
+              <div id="zh-scan-ds-list" class="d-flex flex-column gap-1"
+                style="max-height:180px;overflow-y:auto;padding-right:4px;">
+                <span class="text-muted-zh small">Carregando datastoresâ€¦</span>
+              </div>
+              <div class="form-text text-muted-zh">Todos marcados = varrer tudo. Desmarque os que quiser pular.</div>
+            </div>
+
+            {# Aviso de readonly #}
+            {% if readonly_mode %}
+            <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-0" style="font-size:.82rem;">
+              <i class="bi bi-lock-fill flex-shrink-0"></i>
+              <span>
+                A varredura <strong>apenas lÃª</strong> o vCenter â€” nenhuma alteraÃ§Ã£o Ã© feita.
+                READONLY_MODE=true estÃ¡ ativo.
+              </span>
+            </div>
+            {% endif %}
+
+          </div>
+          <div class="modal-footer" style="border-color:var(--zh-border);">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-sm btn-danger d-flex align-items-center gap-2"
+              id="zh-btn-confirm-scan">
+              <span class="spinner-border spinner-border-sm d-none" id="zh-scan-spinner" role="status"></span>
+              <i class="bi bi-play-fill" id="zh-scan-icon"></i>
+              <span id="zh-scan-btn-text">Iniciar Varredura</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="zh-modal-ds-laudo" tabindex="-1" aria-labelledby="zh-modal-ds-laudo-label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+          <div class="modal-header" style="border-color:var(--zh-border);">
+            <h5 class="modal-title d-flex align-items-center gap-2" id="zh-modal-ds-laudo-label">
+              <i class="bi bi-file-earmark-check-fill text-zombie-blue"></i>
+              Gerar Laudo de ExclusÃ£o de Datastore
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div id="zh-ds-laudo-error" class="alert alert-danger d-none py-2" style="font-size:.82rem;" role="alert"></div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold" for="zh-ds-laudo-vcenter" style="font-size:.85rem;">
+                <i class="bi bi-hdd-network me-1 text-zombie-blue"></i>vCenter
+              </label>
+              <select id="zh-ds-laudo-vcenter" class="form-select form-select-sm"
+                style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;">
+                <option value="">Selecione um vCenter...</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold" for="zh-ds-laudo-datastore" style="font-size:.85rem;">
+                <i class="bi bi-device-hdd me-1 text-muted-zh"></i>Datastore
+              </label>
+              <select id="zh-ds-laudo-datastore" class="form-select form-select-sm"
+                style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;">
+                <option value="">Selecione um vCenter primeiro...</option>
+              </select>
+            </div>
+
+            <div class="mb-0">
+              <label class="form-label fw-semibold" for="zh-ds-laudo-datacenter" style="font-size:.85rem;">
+                <i class="bi bi-building me-1 text-muted-zh"></i>Datacenter (opcional)
+              </label>
+              <input id="zh-ds-laudo-datacenter" type="text" class="form-control form-control-sm"
+                placeholder="Ex.: DC-PROD"
+                style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
+              <div class="form-text text-muted-zh">Se informado, filtra o snapshot para este datacenter.</div>
+            </div>
+          </div>
+          <div class="modal-footer" style="border-color:var(--zh-border);">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-2" id="zh-btn-generate-ds-laudo">
+              <span class="spinner-border spinner-border-sm d-none" id="zh-ds-laudo-spinner" role="status"></span>
+              <i class="bi bi-file-earmark-check" id="zh-ds-laudo-icon"></i>
+              <span id="zh-ds-laudo-btn-text">Gerar Snapshot</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="zh-modal-ds-compare" tabindex="-1" aria-labelledby="zh-modal-ds-compare-label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
+          <div class="modal-header" style="border-color:var(--zh-border);">
+            <h5 class="modal-title d-flex align-items-center gap-2" id="zh-modal-ds-compare-label">
+              <i class="bi bi-arrow-left-right text-zombie-green"></i>
+              Verificação Pós-Exclusão (VMDK)
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div id="zh-ds-compare-error" class="alert alert-danger d-none py-2" style="font-size:.82rem;" role="alert"></div>
+
+            <div class="mb-0">
+              <label class="form-label fw-semibold" for="zh-ds-compare-pair-id-input" style="font-size:.85rem;">
+                <i class="bi bi-link-45deg me-1 text-zombie-blue"></i>pair_id
+              </label>
+              <input id="zh-ds-compare-pair-id-input" type="text" class="form-control form-control-sm"
+                placeholder="Ex.: 9d1013c156464a4a9d6049dc0ebb763e"
+                style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
+              <div class="form-text text-muted-zh">Informe o pair_id do ciclo pré/pós exclusão.</div>
+            </div>
+          </div>
+          <div class="modal-footer" style="border-color:var(--zh-border);">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-sm btn-info d-flex align-items-center gap-2" id="zh-btn-compare-ds-report">
+              <span class="spinner-border spinner-border-sm d-none" id="zh-ds-compare-spinner" role="status"></span>
+              <i class="bi bi-clipboard-data" id="zh-ds-compare-icon"></i>
+              <span id="zh-ds-compare-btn-text">Verificar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>{# fim aba 1 #}
+
+  {# Aba 2: Storage RecuperÃ¡vel #}
+  <div class="tab-pane fade" id="zh-tab-storage" role="tabpanel" aria-labelledby="storage-tab">
+
+    {# â”€â”€ Cards de Resumo Storage â”€â”€ #}
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="zh-card h-100 p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              Volume Total (TB)
+            </span>
+            <i class="bi bi-database-fill-down text-zombie-yellow" style="font-size:1.1rem;"></i>
+          </div>
+          <div class="fs-3 fw-bold text-zombie-yellow" id="zh-storage-total-tb">â€”</div>
+          <small class="text-muted-zh">EspaÃ§o liberÃ¡vel</small>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="zh-card h-100 p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              Datastores Afetados
+            </span>
+            <i class="bi bi-device-hdd-fill text-zombie-blue" style="font-size:1.1rem;"></i>
+          </div>
+          <div class="fs-3 fw-bold text-zombie-blue" id="zh-storage-ds-count">â€”</div>
+          <small class="text-muted-zh">Datastores com lixo</small>
+        </div>
+      </div>
+      <div class="col-12 col-xl-6">
+        <div class="zh-card h-100 p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="text-muted-zh" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              Resumo por Tipo (GB)
+            </span>
+          </div>
+          <div class="d-flex justify-content-between align-items-end h-100 pb-1" id="zh-storage-type-summary">
+            {# Preenchido por JS, ex: [Orphaned: 50GB] [Unregistered: 10GB] #}
+            <span class="text-muted-zh small">Aguardando dados...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# â”€â”€ GrÃ¡fico Top Datastores â”€â”€ #}
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="zh-card">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span>
+              <i class="bi bi-bar-chart-fill me-2 text-zombie-green"></i>
+              Top Datastores por Volume (GB)
+            </span>
+          </div>
+          <div class="card-body" style="padding:20px 16px;">
+            <div style="position:relative;width:100%;height:300px;">
+              <canvas id="zh-chart-storage-datastores"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# â”€â”€ Tabela Detalhada por Datastore â”€â”€ #}
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="zh-card">
+          <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span>
+              <i class="bi bi-table me-2 text-zombie-blue"></i>
+              Detalhamento de Storage RecuperÃ¡vel
+            </span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table id="zh-table-storage" class="table table-dark table-hover table-sm mb-0 align-middle"
+                style="border-color:var(--zh-border);font-size:.85rem;">
+                <thead style="background-color:var(--zh-bg-sidebar);border-bottom:1px solid var(--zh-border);">
+                  <tr>
+                    <th style="padding:12px 14px;">Datastore</th>
+                    <th style="padding:12px 14px;">vCenter</th>
+                    <th style="padding:12px 14px;" class="text-end">Total (GB)</th>
+                    <th style="padding:12px 14px;" class="text-end">Total (TB)</th>
+                    <th style="padding:12px 14px;" class="text-end">Qtd VMDKs</th>
+                    <th style="padding:12px 14px;" class="text-end">% do Total</th>
+                    <th style="padding:12px 14px;" class="text-center">Tipos</th>
+                  </tr>
+                </thead>
+                <tbody id="zh-table-storage-body">
+                  {# Preenchido por JS #}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>{# fim aba 2 #}
+</div>{# fim tab-content #}
 
 {% endblock %}{# fim block content #}
 
 
-{# ═══════════════════════════════════════════════════════════════════════════
-SCRIPTS — carregados após os scripts do base.html
-════════════════════════════════════════════════════════════════════════════ #}
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+SCRIPTS â€” carregados apÃ³s os scripts do base.html
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
 {% block scripts %}
 
 {# CSS adicional inline para o dashboard #}
 <style>
-  /* Destaque vermelho no card de aprovações quando há pendências */
+  /* Destaque vermelho no card de aprovaÃ§Ãµes quando hÃ¡ pendÃªncias */
   .zh-card-alert {
     outline: 1px solid rgba(248, 81, 73, 0.4);
     box-shadow: 0 0 12px rgba(248, 81, 73, 0.1);
   }
 
-  /* Efeito hover em cards clicáveis */
+  /* Efeito hover em cards clicÃ¡veis */
   .zh-card-hoverable {
     transition: background-color 0.15s ease, outline 0.15s ease;
   }
@@ -430,7 +847,7 @@ SCRIPTS — carregados após os scripts do base.html
     background-color: rgba(88, 166, 255, 0.05);
   }
 
-  /* ── Cards de vCenter ─────────────────────────────────────────────────── */
+  /* â”€â”€ Cards de vCenter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .zh-vc-card {
     border: 1px solid var(--zh-border);
     border-radius: 10px;
@@ -478,16 +895,85 @@ SCRIPTS — carregados após os scripts do base.html
     height: 80px;
     width: 100%;
   }
+
+  .zh-ds-kpi {
+    border: 1px solid var(--zh-border);
+    border-radius: 8px;
+    background-color: rgba(13, 17, 23, 0.65);
+  }
+
+  .zh-ds-breakdown-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--zh-border);
+    background-color: rgba(88, 166, 255, 0.08);
+    color: #e6edf3;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+
+  .zh-ds-compare-table th,
+  .zh-ds-compare-table td {
+    border-color: var(--zh-border);
+    font-size: .82rem;
+    padding: 8px 10px;
+  }
+
+  .zh-ds-compare-files-table th,
+  .zh-ds-compare-files-table td {
+    border-color: var(--zh-border);
+    font-size: .82rem;
+    padding: 8px 10px;
+  }
+
+  .zh-ds-status-fully {
+    background-color: rgba(46, 160, 67, .2) !important;
+    border: 1px solid rgba(46, 160, 67, .4);
+    color: #7ee787 !important;
+  }
+
+  .zh-ds-status-partial {
+    background-color: rgba(210, 153, 34, .22) !important;
+    border: 1px solid rgba(210, 153, 34, .45);
+    color: #f2cc60 !important;
+  }
+
+  .zh-ds-status-none {
+    background-color: rgba(248, 81, 73, .2) !important;
+    border: 1px solid rgba(248, 81, 73, .45);
+    color: #ffa198 !important;
+  }
+
+  .zh-ds-dsstatus-removed {
+    background-color: rgba(46, 160, 67, .2) !important;
+    border: 1px solid rgba(46, 160, 67, .4);
+    color: #7ee787 !important;
+  }
+
+  .zh-ds-dsstatus-present {
+    background-color: rgba(210, 153, 34, .22) !important;
+    border: 1px solid rgba(210, 153, 34, .45);
+    color: #f2cc60 !important;
+  }
+
+  .zh-ds-dsstatus-unknown {
+    background-color: rgba(139, 148, 158, .2) !important;
+    border: 1px solid rgba(139, 148, 158, .45);
+    color: #c9d1d9 !important;
+  }
 </style>
 
 {# Script do dashboard (carregado de /static/js/dashboard.js) #}
 <script src="/static/js/dashboard.js?v=6"></script>
 
-{# ── Script: renderização dos cards de vCenter ───────────────────────────── #}
+{# â”€â”€ Script: renderizaÃ§Ã£o dos cards de vCenter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
 <script>
   "use strict";
 
-  // ── Configuração de tipos zombie ──────────────────────────────────────────
+  // â”€â”€ ConfiguraÃ§Ã£o de tipos zombie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const ZH_ZOMBIE_TYPES = [
     { key: "ORPHANED", label: "Orphaned", color: "rgba(248,81,73,.8)" },
     { key: "BROKEN_CHAIN", label: "Broken Chain", color: "rgba(188,140,255,.8)" },
@@ -502,14 +988,14 @@ SCRIPTS — carregados após os scripts do base.html
   // Mini chart registry para destruir antes de recriar
   const _vcMiniCharts = {};
 
-  // ── Formata duração em segundos → "Xm Ys" ────────────────────────────────
+  // â”€â”€ Formata duraÃ§Ã£o em segundos â†’ "Xm Ys" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function fmtDuration(secs) {
-    if (!secs && secs !== 0) return "—";
+    if (!secs && secs !== 0) return "â€”";
     const m = Math.floor(secs / 60), s = Math.round(secs % 60);
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
   }
 
-  // ── Renderiza os cards usando os dados do dashboard + vcenter_status ──────
+  // â”€â”€ Renderiza os cards usando os dados do dashboard + vcenter_status â”€â”€â”€â”€â”€â”€
   function renderVcenterCards(dashData) {
     const container = document.getElementById("zh-vcenter-cards-row");
     const loading = document.getElementById("zh-vcenter-loading");
@@ -519,14 +1005,14 @@ SCRIPTS — carregados após os scripts do base.html
     Object.values(_vcMiniCharts).forEach(c => { try { c.destroy(); } catch (_) { } });
     Object.keys(_vcMiniCharts).forEach(k => delete _vcMiniCharts[k]);
 
-    // Mapa: vcenter_name → dados do dashboard
+    // Mapa: vcenter_name â†’ dados do dashboard
     const byVc = {};
     (dashData.by_vcenter || []).forEach(row => { byVc[row.vcenter] = row; });
 
-    // Tendência (último job por vcenter vem via trend_last_4)
+    // TendÃªncia (Ãºltimo job por vcenter vem via trend_last_4)
     const lastJob = (dashData.trend_last_4 || [])[0] || null;
 
-    // Se não há vCenters cadastrados
+    // Se nÃ£o hÃ¡ vCenters cadastrados
     if (!ZH_VCENTER_STATUS.length) {
       container.innerHTML = `
         <div class="col-12">
@@ -547,24 +1033,24 @@ SCRIPTS — carregados após os scripts do base.html
       const connected = vc.connected ?? false;
       const canvasId = `zh-vc-mini-${idx}`;
 
-      // Pills de tipo (busca na by_type global — filtrar por vcenter não é possível
-      // sem API dedicada; mostramos o breakdown global de tipo como referência)
+      // Pills de tipo (busca na by_type global â€” filtrar por vcenter nÃ£o Ã© possÃ­vel
+      // sem API dedicada; mostramos o breakdown global de tipo como referÃªncia)
       const typeRows = ZH_ZOMBIE_TYPES.map(t => {
         const entry = (dashData.by_type || {})[t.key];
         const cnt = entry ? entry.count : 0;
         return `<span class="zh-vc-type-pill" style="background:${t.color}22;color:${t.color};">${t.label} <strong>${cnt}</strong></span>`;
       }).join("");
 
-      // Dados do último job
-      const lastScanAt = lastJob?.finished_at ? zhFormatDate(lastJob.finished_at) : "—";
-      const lastVmdks = lastJob?.total_vmdks ?? "—";
-      const lastSizeGb = lastJob?.total_size_gb != null ? window.zhFormatSizeGB(lastJob.total_size_gb) : "—";
+      // Dados do Ãºltimo job
+      const lastScanAt = lastJob?.finished_at ? zhFormatDate(lastJob.finished_at) : "â€”";
+      const lastVmdks = lastJob?.total_vmdks ?? "â€”";
+      const lastSizeGb = lastJob?.total_size_gb != null ? window.zhFormatSizeGB(lastJob.total_size_gb) : "â€”";
 
       return `
         <div class="col-12 col-md-6 col-xl-4">
           <div class="zh-vc-card ${connected ? 'connected-card' : 'disconnected-card'} p-3 h-100 d-flex flex-column gap-3">
 
-            <!-- Cabeçalho: nome + status + botão scan -->
+            <!-- CabeÃ§alho: nome + status + botÃ£o scan -->
             <div class="d-flex align-items-start justify-content-between gap-2">
               <div class="d-flex flex-column gap-1 min-w-0">
                 <span class="fw-semibold text-truncate" style="font-size:.95rem;" title="${vc.name}">${vc.name}</span>
@@ -572,7 +1058,7 @@ SCRIPTS — carregados após os scripts do base.html
               </div>
               <div class="d-flex flex-column align-items-end gap-2 flex-shrink-0">
                 <span class="badge ${connected ? 'text-bg-success' : 'text-bg-danger'}" style="font-size:.68rem;">
-                  ${connected ? '✅ Conectado' : '❌ Offline'}
+                  ${connected ? 'âœ… Conectado' : 'âŒ Offline'}
                 </span>
                 <button
                   class="btn btn-sm btn-outline-danger zh-vc-scan-btn"
@@ -585,29 +1071,29 @@ SCRIPTS — carregados após os scripts do base.html
               </div>
             </div>
 
-            <!-- Stats do último scan (agregados globais do dashboard) -->
+            <!-- Stats do Ãºltimo scan (agregados globais do dashboard) -->
             <div class="d-flex gap-3 flex-wrap">
               <div>
-                <div class="zh-vc-stat-label">VMDKs histórico</div>
+                <div class="zh-vc-stat-label">VMDKs histÃ³rico</div>
                 <div class="zh-vc-stat-value text-zombie-red">${vcData.total_vmdks}</div>
               </div>
               <div>
-                <div class="zh-vc-stat-label">Espaço</div>
+                <div class="zh-vc-stat-label">EspaÃ§o</div>
                 <div class="zh-vc-stat-value text-zombie-yellow">${window.zhFormatSizeGB(vcData.size_gb)}</div>
               </div>
               <div>
-                <div class="zh-vc-stat-label">Último scan</div>
+                <div class="zh-vc-stat-label">Ãšltimo scan</div>
                 <div class="zh-vc-stat-value text-zombie-blue" style="font-size:.78rem;">${lastScanAt}</div>
               </div>
               <div>
-                <div class="zh-vc-stat-label">VMDKs (último job)</div>
+                <div class="zh-vc-stat-label">VMDKs (Ãºltimo job)</div>
                 <div class="zh-vc-stat-value text-zombie-green">${lastVmdks}</div>
               </div>
             </div>
 
-            <!-- Mini gráfico de barras por tipo -->
+            <!-- Mini grÃ¡fico de barras por tipo -->
             <div class="zh-vc-mini-chart-wrap">
-              <canvas id="${canvasId}" aria-label="Distribuição por tipo de zombie — ${vc.name}" role="img"></canvas>
+              <canvas id="${canvasId}" aria-label="DistribuiÃ§Ã£o por tipo de zombie â€” ${vc.name}" role="img"></canvas>
             </div>
 
             <!-- Pills de tipo -->
@@ -619,7 +1105,7 @@ SCRIPTS — carregados após os scripts do base.html
 
     container.innerHTML = cols.join("");
 
-    // Cria mini-charts após o DOM estar pronto
+    // Cria mini-charts apÃ³s o DOM estar pronto
     ZH_VCENTER_STATUS.forEach((vc, idx) => {
       const canvasId = `zh-vc-mini-${idx}`;
       const canvas = document.getElementById(canvasId);
@@ -656,7 +1142,7 @@ SCRIPTS — carregados após os scripts do base.html
       });
     });
 
-    // Wira botões "Scan" individuais para abrir o modal pré-selecionando o vCenter
+    // Wira botÃµes "Scan" individuais para abrir o modal prÃ©-selecionando o vCenter
     document.querySelectorAll(".zh-vc-scan-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const vcId = btn.dataset.vcId;
@@ -667,7 +1153,7 @@ SCRIPTS — carregados após os scripts do base.html
         if (!modalEl) return;
         const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-        // Pré-preenche: carrega lista de vCenters e desmarca os outros
+        // PrÃ©-preenche: carrega lista de vCenters e desmarca os outros
         const vcList = document.getElementById("zh-scan-vcenter-list");
         if (vcList) {
           vcList.innerHTML = `<span class="text-muted-zh small">
@@ -689,17 +1175,17 @@ SCRIPTS — carregados após os scripts do base.html
     });
   }
 
-  // ── Hook no dashboard.js: espera o evento customizado 'zh-dashboard-loaded' ──
-  // dashboard.js deve disparar este evento após atualizar os cards.
-  // Fallback: lê a API diretamente 1s após o carregamento.
+  // â”€â”€ Hook no dashboard.js: espera o evento customizado 'zh-dashboard-loaded' â”€â”€
+  // dashboard.js deve disparar este evento apÃ³s atualizar os cards.
+  // Fallback: lÃª a API diretamente 1s apÃ³s o carregamento.
   document.addEventListener("zh-dashboard-loaded", (e) => {
     if (e.detail) renderVcenterCards(e.detail);
   });
 
-  // Fallback independente: lê o dashboard 1,5s após load
+  // Fallback independente: lÃª o dashboard 1,5s apÃ³s load
   window.addEventListener("load", () => {
     setTimeout(async () => {
-      // Se já foi renderizado pelo evento, não re-renderizar
+      // Se jÃ¡ foi renderizado pelo evento, nÃ£o re-renderizar
       if (!document.getElementById("zh-vcenter-loading")) return;
       try {
         const resp = await fetch("/api/v1/dashboard/", {
@@ -719,21 +1205,21 @@ SCRIPTS — carregados após os scripts do base.html
   });
 </script>
 
-{# Script inline funcionalidades específicas desta página #}
+{# Script inline funcionalidades especÃ­ficas desta pÃ¡gina #}
 <script>
   "use strict";
 
-  // ── Filtro de tipo na tabela ───────────────────────────────────────────────
+  // â”€â”€ Filtro de tipo na tabela â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Aplica filtro por coluna "Tipo" sempre que o <select> mudar
   document.getElementById("zh-filter-type")?.addEventListener("change", function () {
     if (!window.dataTable && typeof $ !== "undefined") return;
-    // DataTables expõe instância via jQuery — buscamos via API global
+    // DataTables expÃµe instÃ¢ncia via jQuery â€” buscamos via API global
     const dt = $("#zh-table-recent").DataTable();
     // Coluna 3 = Tipo (0-based)
     dt.column(3).search(this.value, false, false).draw();
   });
 
-  // ── Modal de nova varredura ───────────────────────────────────────────────
+  // â”€â”€ Modal de nova varredura â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const modalScan = document.getElementById("zh-modal-scan");
   const btnNewScan = document.getElementById("zh-btn-new-scan");
   const btnConfirmScan = document.getElementById("zh-btn-confirm-scan");
@@ -742,7 +1228,7 @@ SCRIPTS — carregados após os scripts do base.html
   const scanBtnText = document.getElementById("zh-scan-btn-text");
   const vcenterList = document.getElementById("zh-scan-vcenter-list");
 
-  // Abre modal e carrega lista de vCenters disponíveis
+  // Abre modal e carrega lista de vCenters disponÃ­veis
   btnNewScan?.addEventListener("click", async () => {
     const bsModal = new bootstrap.Modal(modalScan);
     bsModal.show();
@@ -784,6 +1270,45 @@ SCRIPTS — carregados após os scripts do base.html
       vcenterList.innerHTML =
         `<span class="text-zombie-red small"><i class="bi bi-x-circle me-1"></i>${err.message}</span>`;
     }
+
+    // Carrega datastores conhecidos via API
+    const dsList = document.getElementById("zh-scan-ds-list");
+    try {
+      const dsResp = await fetch("/api/v1/scan/datastores", {
+        headers: { Accept: "application/json", "X-API-Key": window.ZH_API_KEY || "" }
+      });
+      if (!dsResp.ok) throw new Error("Erro ao carregar datastores");
+      const datastores = await dsResp.json();
+
+      if (!datastores.length) {
+        dsList.innerHTML =
+          `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Nenhum datastore conhecido (execute uma varredura primeiro).</span>`;
+      } else {
+        dsList.innerHTML = datastores.map((ds, i) => `
+        <div class="form-check">
+          <input class="form-check-input zh-ds-check" type="checkbox"
+            value="${ds.name}" id="ds-check-${i}" checked />
+          <label class="form-check-label d-flex align-items-center gap-2" for="ds-check-${i}" style="font-size:.82rem;">
+            <i class="bi bi-device-hdd text-muted-zh" style="font-size:.7rem;"></i>
+            ${ds.name}
+            <span class="text-muted-zh" style="font-size:.7rem;">(${ds.vcenter_name || ds.vcenter_host})</span>
+          </label>
+        </div>
+        `).join("");
+      }
+    } catch (dsErr) {
+      dsList.innerHTML =
+        `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>NÃ£o foi possÃ­vel carregar datastores.</span>`;
+    }
+  });
+
+  // Toggle all datastores
+  document.getElementById("zh-ds-toggle-all")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const checks = document.querySelectorAll(".zh-ds-check");
+    const allChecked = [...checks].every((c) => c.checked);
+    checks.forEach((c) => (c.checked = !allChecked));
+    e.target.textContent = allChecked ? "selecionar todos" : "desmarcar todos";
   });
 
   // Dispara a varredura via POST /api/v1/scan/start
@@ -799,11 +1324,22 @@ SCRIPTS — carregados após os scripts do base.html
     const dcRaw = document.getElementById("zh-scan-dc-filter")?.value.trim();
     const dcList = dcRaw ? dcRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
-    // Estado visual do botão
+    // Coleta datastores selecionados (checkboxes)
+    const allDsChecks = document.querySelectorAll(".zh-ds-check");
+    const checkedDs = [...document.querySelectorAll(".zh-ds-check:checked")].map((el) => el.value);
+    // Se todos estÃ£o marcados, nÃ£o envia filtro (= varrer tudo)
+    const dsFilter = (allDsChecks.length > 0 && checkedDs.length < allDsChecks.length) ? checkedDs : [];
+
+    // Estado visual do botÃ£o
     scanSpinner?.classList.remove("d-none");
     scanIcon?.classList.add("d-none");
-    if (scanBtnText) scanBtnText.textContent = "Iniciando…";
+    if (scanBtnText) scanBtnText.textContent = "Iniciandoâ€¦";
     if (btnConfirmScan) btnConfirmScan.disabled = true;
+
+    // Monta payload â€” inclui datastores somente se preenchido
+    const payload = { vcenter_ids: checked };
+    if (dcList.length) payload.datacenters = dcList;
+    if (dsFilter.length) payload.datastores = dsFilter;
 
     try {
       const resp = await fetch("/api/v1/scan/start", {
@@ -813,7 +1349,7 @@ SCRIPTS — carregados após os scripts do base.html
           Accept: "application/json",
           "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY"
         },
-        body: JSON.stringify({ vcenter_ids: checked, datacenters: dcList }),
+        body: JSON.stringify(payload),
       });
 
       const text = await resp.text();
@@ -822,13 +1358,13 @@ SCRIPTS — carregados após os scripts do base.html
         result = text ? JSON.parse(text) : {};
       } catch (parseErr) {
         if (resp.status === 401) {
-          throw new Error("Não autenticado. Verifique se a API Key está configurada no servidor (config / .env) e recarregue a página.");
+          throw new Error("NÃ£o autenticado. Verifique se a API Key estÃ¡ configurada no servidor (config / .env) e recarregue a pÃ¡gina.");
         }
-        throw new Error("Resposta inválida do servidor (não-JSON). Status: " + resp.status + ".");
+        throw new Error("Resposta invÃ¡lida do servidor (nÃ£o-JSON). Status: " + resp.status + ".");
       }
       if (!resp.ok) throw new Error(result.detail ?? "Erro ao iniciar varredura");
 
-      // Fecha modal e redireciona para página de resultados do job
+      // Fecha modal e redireciona para pÃ¡gina de resultados do job
       bootstrap.Modal.getInstance(modalScan)?.hide();
       window.location.href = `/scan/results/${result.job_id}`;
 
@@ -849,6 +1385,633 @@ SCRIPTS — carregados após os scripts do base.html
       if (btnConfirmScan) btnConfirmScan.disabled = false;
     }
   });
+
+  // â”€â”€ Laudo de exclusÃ£o de datastore (snapshot) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const modalDsLaudo = document.getElementById("zh-modal-ds-laudo");
+  const btnOpenDsLaudo = document.getElementById("zh-btn-open-ds-laudo");
+  const btnGenerateDsLaudo = document.getElementById("zh-btn-generate-ds-laudo");
+  const dsLaudoSpinner = document.getElementById("zh-ds-laudo-spinner");
+  const dsLaudoIcon = document.getElementById("zh-ds-laudo-icon");
+  const dsLaudoBtnText = document.getElementById("zh-ds-laudo-btn-text");
+  const dsLaudoErr = document.getElementById("zh-ds-laudo-error");
+  const dsLaudoVcenter = document.getElementById("zh-ds-laudo-vcenter");
+  const dsLaudoDatastore = document.getElementById("zh-ds-laudo-datastore");
+  const dsLaudoDatacenter = document.getElementById("zh-ds-laudo-datacenter");
+
+  const dsSnapshotRow = document.getElementById("zh-ds-snapshot-row");
+  const dsSnapshotTs = document.getElementById("zh-ds-snapshot-ts");
+  const dsSnapshotVc = document.getElementById("zh-ds-snapshot-vcenter");
+  const dsSnapshotDs = document.getElementById("zh-ds-snapshot-datastore");
+  const dsSnapshotDc = document.getElementById("zh-ds-snapshot-datacenter");
+  const dsSnapshotTotalItens = document.getElementById("zh-ds-snapshot-total-itens");
+  const dsSnapshotTotalGb = document.getElementById("zh-ds-snapshot-total-gb");
+  const dsSnapshotId = document.getElementById("zh-ds-snapshot-id");
+  const dsSnapshotBreakdown = document.getElementById("zh-ds-snapshot-breakdown");
+  const dsExportCsv = document.getElementById("zh-ds-snapshot-export-csv");
+  const dsExportJson = document.getElementById("zh-ds-snapshot-export-json");
+
+  const dsLaudoState = {
+    vcenters: [],
+    datastores: [],
+  };
+
+  function _dsLaudoHeaders(withJsonContentType = false) {
+    const headers = {
+      Accept: "application/json",
+      "X-API-Key": window.ZH_API_KEY || "",
+    };
+    if (withJsonContentType) headers["Content-Type"] = "application/json";
+    return headers;
+  }
+
+  function _extractDownloadFilename(contentDisposition, fallbackName) {
+    if (!contentDisposition) return fallbackName;
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      try { return decodeURIComponent(utf8Match[1]); } catch (_) { /* ignore */ }
+    }
+    const plainMatch = contentDisposition.match(/filename="?([^\";]+)"?/i);
+    return plainMatch?.[1] || fallbackName;
+  }
+
+  async function _downloadWithApiKey(url, fallbackName) {
+    const resp = await fetch(url, {
+      headers: {
+        "X-API-Key": window.ZH_API_KEY || "",
+        Accept: "application/json, text/csv, application/octet-stream",
+      },
+    });
+
+    if (!resp.ok) {
+      let message = `Falha ao exportar (HTTP ${resp.status}).`;
+      try {
+        const ct = (resp.headers.get("content-type") || "").toLowerCase();
+        if (ct.includes("application/json")) {
+          const payload = await resp.json();
+          if (typeof payload?.detail === "string" && payload.detail.trim()) message = payload.detail;
+        } else {
+          const text = await resp.text();
+          if (text && text.trim()) message = text.trim();
+        }
+      } catch (_) { /* ignore parse errors */ }
+      throw new Error(message);
+    }
+
+    const filename = _extractDownloadFilename(
+      resp.headers.get("content-disposition") || "",
+      fallbackName
+    );
+    const blob = await resp.blob();
+    const fileUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = fileUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(fileUrl);
+  }
+
+  function _dsLaudoFriendlyError(detail, fallback) {
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      const msgs = detail
+        .map((d) => (d && typeof d === "object" ? d.msg : ""))
+        .filter(Boolean);
+      if (msgs.length) return msgs.join(" | ");
+    }
+    return fallback;
+  }
+
+  function _dsLaudoShowError(msg) {
+    if (!dsLaudoErr) return;
+    if (!msg) {
+      dsLaudoErr.classList.add("d-none");
+      dsLaudoErr.textContent = "";
+      return;
+    }
+    dsLaudoErr.textContent = msg;
+    dsLaudoErr.classList.remove("d-none");
+  }
+
+  function _dsLaudoEscapeHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function _dsLaudoGetSelectedVc() {
+    const selectedId = Number(dsLaudoVcenter?.value || 0);
+    if (!selectedId) return null;
+    return dsLaudoState.vcenters.find((v) => Number(v.id) === selectedId) || null;
+  }
+
+  function _dsLaudoFilterDatastores(vc) {
+    if (!vc) return [];
+    const vcName = String(vc.name || "").toLowerCase();
+    const vcHost = String(vc.host || "").toLowerCase();
+    return dsLaudoState.datastores.filter((ds) => {
+      const dsVcName = String(ds.vcenter_name || "").toLowerCase();
+      const dsVcHost = String(ds.vcenter_host || "").toLowerCase();
+      return dsVcName === vcName || dsVcHost === vcHost;
+    });
+  }
+
+  function _dsLaudoPopulateDatastores() {
+    if (!dsLaudoDatastore) return;
+    const vc = _dsLaudoGetSelectedVc();
+    const datastores = _dsLaudoFilterDatastores(vc);
+
+    if (!vc) {
+      dsLaudoDatastore.innerHTML = `<option value="">Selecione um vCenter primeiro...</option>`;
+      return;
+    }
+
+    if (!datastores.length) {
+      dsLaudoDatastore.innerHTML = `<option value="">Nenhum datastore encontrado para este vCenter</option>`;
+      return;
+    }
+
+    dsLaudoDatastore.innerHTML = [
+      `<option value="">Selecione um datastore...</option>`,
+      ...datastores.map((ds) => (
+        `<option value="${_dsLaudoEscapeHtml(ds.name)}">${_dsLaudoEscapeHtml(ds.name)}</option>`
+      )),
+    ].join("");
+  }
+
+  async function _dsLaudoLoadSelectors() {
+    _dsLaudoShowError(null);
+    if (!dsLaudoVcenter || !dsLaudoDatastore) return;
+
+    dsLaudoVcenter.innerHTML = `<option value="">Carregando vCenters...</option>`;
+    dsLaudoDatastore.innerHTML = `<option value="">Carregando datastores...</option>`;
+
+    try {
+      const [vcResp, dsResp] = await Promise.all([
+        fetch("/api/v1/vcenters", { headers: _dsLaudoHeaders() }),
+        fetch("/api/v1/scan/datastores", { headers: _dsLaudoHeaders() }),
+      ]);
+
+      const vcText = await vcResp.text();
+      const dsText = await dsResp.text();
+      const vcPayload = vcText ? JSON.parse(vcText) : [];
+      const dsPayload = dsText ? JSON.parse(dsText) : [];
+
+      if (!vcResp.ok) {
+        throw new Error(_dsLaudoFriendlyError(vcPayload?.detail, "NÃ£o foi possÃ­vel carregar os vCenters."));
+      }
+      if (!dsResp.ok) {
+        throw new Error(_dsLaudoFriendlyError(dsPayload?.detail, "NÃ£o foi possÃ­vel carregar os datastores."));
+      }
+
+      dsLaudoState.vcenters = Array.isArray(vcPayload) ? vcPayload : [];
+      dsLaudoState.datastores = Array.isArray(dsPayload) ? dsPayload : [];
+
+      if (!dsLaudoState.vcenters.length) {
+        dsLaudoVcenter.innerHTML = `<option value="">Nenhum vCenter cadastrado</option>`;
+        dsLaudoDatastore.innerHTML = `<option value="">Sem dados de datastore</option>`;
+        return;
+      }
+
+      dsLaudoVcenter.innerHTML = [
+        `<option value="">Selecione um vCenter...</option>`,
+        ...dsLaudoState.vcenters.map((vc) => (
+          `<option value="${vc.id}">${_dsLaudoEscapeHtml(vc.name)} (${_dsLaudoEscapeHtml(vc.host)})</option>`
+        )),
+      ].join("");
+
+      _dsLaudoPopulateDatastores();
+    } catch (err) {
+      _dsLaudoShowError(err.message || "NÃ£o foi possÃ­vel carregar os dados para o laudo.");
+      dsLaudoVcenter.innerHTML = `<option value="">Falha ao carregar</option>`;
+      dsLaudoDatastore.innerHTML = `<option value="">Falha ao carregar</option>`;
+    }
+  }
+
+  function _dsLaudoSetExportLink(el, href) {
+    if (!el) return;
+    el.href = "#";
+    el.dataset.exportUrl = href;
+    el.classList.remove("disabled");
+    el.removeAttribute("aria-disabled");
+    if (!el.dataset.boundExportHandler) {
+      el.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const exportUrl = el.dataset.exportUrl || "";
+        if (!exportUrl) return;
+        try {
+          const fmt = exportUrl.includes("format=json") ? "json" : "csv";
+          await _downloadWithApiKey(exportUrl, `datastore_snapshot.${fmt}`);
+        } catch (err) {
+          _dsLaudoShowError(err?.message || "Nao foi possivel exportar o snapshot.");
+        }
+      });
+      el.dataset.boundExportHandler = "1";
+    }
+  }
+
+  function _dsLaudoRenderCard(snapshot, vc, datastoreName, datacenterName) {
+    if (!snapshot || !dsSnapshotRow) return;
+
+    dsSnapshotRow.classList.remove("d-none");
+    dsSnapshotId.textContent = String(snapshot.id ?? "â€”");
+    dsSnapshotTotalItens.textContent = Number(snapshot.total_itens || 0).toLocaleString("pt-BR");
+    dsSnapshotTotalGb.textContent = `${Number(snapshot.total_size_gb || 0).toFixed(3)} GB`;
+    dsSnapshotTs.textContent = snapshot.timestamp
+      ? `Gerado em ${window.zhFormatDate(snapshot.timestamp)}`
+      : "Gerado agora";
+
+    dsSnapshotVc.textContent = `vCenter: ${vc?.name || "â€”"} (${vc?.host || "â€”"})`;
+    dsSnapshotDs.textContent = `Datastore: ${datastoreName || "â€”"}`;
+
+    if (datacenterName) {
+      dsSnapshotDc.textContent = `Datacenter: ${datacenterName}`;
+      dsSnapshotDc.classList.remove("d-none");
+    } else {
+      dsSnapshotDc.classList.add("d-none");
+      dsSnapshotDc.textContent = "Datacenter: â€”";
+    }
+
+    const breakdown = snapshot.breakdown || {};
+    const items = Object.entries(breakdown)
+      .filter(([, count]) => Number(count) > 0)
+      .sort((a, b) => Number(b[1]) - Number(a[1]));
+
+    if (!items.length) {
+      dsSnapshotBreakdown.innerHTML = `<span class="text-muted-zh small">Sem itens no breakdown.</span>`;
+    } else {
+      dsSnapshotBreakdown.innerHTML = items
+        .map(([tipo, count]) => (
+          `<span class="zh-ds-breakdown-pill"><strong>${_dsLaudoEscapeHtml(tipo)}</strong> ${Number(count).toLocaleString("pt-BR")}</span>`
+        ))
+        .join("");
+    }
+
+    const baseUrl = `/api/v1/scan/datastore-snapshots/${snapshot.id}/export`;
+    _dsLaudoSetExportLink(dsExportCsv, `${baseUrl}?format=csv`);
+    _dsLaudoSetExportLink(dsExportJson, `${baseUrl}?format=json`);
+  }
+
+  btnOpenDsLaudo?.addEventListener("click", async () => {
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalDsLaudo);
+    bsModal.show();
+    await _dsLaudoLoadSelectors();
+  });
+
+  dsLaudoVcenter?.addEventListener("change", _dsLaudoPopulateDatastores);
+
+  modalDsLaudo?.addEventListener("hidden.bs.modal", () => {
+    _dsLaudoShowError(null);
+  });
+
+  btnGenerateDsLaudo?.addEventListener("click", async () => {
+    const vc = _dsLaudoGetSelectedVc();
+    const datastoreName = String(dsLaudoDatastore?.value || "").trim();
+    const datacenterName = String(dsLaudoDatacenter?.value || "").trim();
+
+    if (!vc) {
+      _dsLaudoShowError("Selecione um vCenter para gerar o laudo.");
+      return;
+    }
+    if (!datastoreName) {
+      _dsLaudoShowError("Selecione um datastore para gerar o laudo.");
+      return;
+    }
+
+    _dsLaudoShowError(null);
+    dsLaudoSpinner?.classList.remove("d-none");
+    dsLaudoIcon?.classList.add("d-none");
+    if (dsLaudoBtnText) dsLaudoBtnText.textContent = "Gerando...";
+    if (btnGenerateDsLaudo) btnGenerateDsLaudo.disabled = true;
+
+    try {
+      const payload = {
+        vcenter_id: Number(vc.id),
+        datastore_name: datastoreName,
+      };
+      if (datacenterName) payload.datacenter = datacenterName;
+
+      const resp = await fetch("/api/v1/scan/datastore-snapshots", {
+        method: "POST",
+        headers: _dsLaudoHeaders(true),
+        body: JSON.stringify(payload),
+      });
+
+      const text = await resp.text();
+      let result = {};
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch (_) {
+        if (!resp.ok) throw new Error(`Erro ao gerar snapshot (HTTP ${resp.status}).`);
+      }
+
+      if (!resp.ok) {
+        throw new Error(_dsLaudoFriendlyError(result.detail, `Erro ao gerar snapshot (HTTP ${resp.status}).`));
+      }
+
+      _dsLaudoRenderCard(result, vc, datastoreName, datacenterName);
+      bootstrap.Modal.getInstance(modalDsLaudo)?.hide();
+    } catch (err) {
+      _dsLaudoShowError(err.message || "Falha ao gerar laudo de exclusÃ£o.");
+    } finally {
+      dsLaudoSpinner?.classList.add("d-none");
+      dsLaudoIcon?.classList.remove("d-none");
+      if (dsLaudoBtnText) dsLaudoBtnText.textContent = "Gerar Snapshot";
+      if (btnGenerateDsLaudo) btnGenerateDsLaudo.disabled = false;
+    }
+  });
+</script>
+
+<script>
+  "use strict";
+
+  const postCompareModal = document.getElementById("zh-modal-ds-compare");
+  const postCompareOpenBtn = document.getElementById("zh-btn-open-ds-post-report");
+  const postCompareBtn = document.getElementById("zh-btn-compare-ds-report");
+  const postCompareSpinner = document.getElementById("zh-ds-compare-spinner");
+  const postCompareIcon = document.getElementById("zh-ds-compare-icon");
+  const postCompareBtnText = document.getElementById("zh-ds-compare-btn-text");
+  const postCompareErr = document.getElementById("zh-ds-compare-error");
+  const postComparePairInput = document.getElementById("zh-ds-compare-pair-id-input");
+
+  const postCompareRow = document.getElementById("zh-ds-compare-row");
+  const postCompareTs = document.getElementById("zh-ds-compare-ts");
+  const postCompareDatastore = document.getElementById("zh-ds-compare-datastore");
+  const postComparePairBadge = document.getElementById("zh-ds-compare-pair-id");
+  const postComparePreBadge = document.getElementById("zh-ds-compare-pre-id");
+  const postComparePostBadge = document.getElementById("zh-ds-compare-post-id");
+  const postCompareStatusBadge = document.getElementById("zh-ds-compare-status");
+  const postCompareRemovedItems = document.getElementById("zh-ds-compare-removed-items");
+  const postCompareRemovedGb = document.getElementById("zh-ds-compare-removed-gb");
+  const postCompareGainPercent = document.getElementById("zh-ds-compare-gain-percent");
+  const postCompareRemainingItems = document.getElementById("zh-ds-compare-remaining-items");
+  const postCompareBreakdownBody = document.getElementById("zh-ds-compare-breakdown-body");
+  const postCompareFilesBody = document.getElementById("zh-ds-compare-files-body");
+  const postCompareFilesSearch = document.getElementById("zh-ds-compare-files-search");
+  const postCompareSortSizeBtn = document.getElementById("zh-ds-compare-sort-size-btn");
+  const postCompareExportJson = document.getElementById("zh-ds-compare-export-json");
+  const postCompareExportCsv = document.getElementById("zh-ds-compare-export-csv");
+
+  const postCompareState = {
+    payload: null,
+    allFiles: [],
+    sortSizeDesc: true,
+  };
+
+  function _postCompareHeaders() {
+    return {
+      Accept: "application/json",
+      "X-API-Key": window.ZH_API_KEY || "",
+    };
+  }
+
+  function _postCompareShowError(msg) {
+    if (!postCompareErr) return;
+    if (!msg) {
+      postCompareErr.classList.add("d-none");
+      postCompareErr.textContent = "";
+      return;
+    }
+    postCompareErr.textContent = msg;
+    postCompareErr.classList.remove("d-none");
+  }
+
+  function _postCompareFriendlyError(statusCode, detail) {
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (statusCode === 404) {
+      return "Pair ID não encontrado ou sem baseline pré-exclusão. Confirme o pair_id informado.";
+    }
+    if (statusCode === 422) {
+      return "Pair inválido/inconsistente. Verifique snapshots pré/pós do mesmo datastore.";
+    }
+    return "Não foi possível verificar a exclusão por arquivo no momento.";
+  }
+
+  function _postCompareEscape(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function _postCompareDatastoreStatusLabel(status) {
+    if (status === "removed") return "Removed";
+    if (status === "still_present") return "Still Present";
+    return "Unknown";
+  }
+
+  function _postCompareDatastoreStatusClass(status) {
+    if (status === "removed") return "zh-ds-dsstatus-removed";
+    if (status === "still_present") return "zh-ds-dsstatus-present";
+    return "zh-ds-dsstatus-unknown";
+  }
+
+  function _postCompareDetermineStatus(payload) {
+    if (payload && typeof payload.verification_status === "string" && payload.verification_status) {
+      return payload.verification_status;
+    }
+    const deleted = Number(payload?.deleted_files_count || 0);
+    const remaining = Number(payload?.remaining_files_count || 0);
+    if (deleted <= 0) return "no_gain";
+    return remaining <= 0 ? "fully_removed" : "partially_removed";
+  }
+
+  function _postCompareSetExportLinks(pairId) {
+    const safePairId = encodeURIComponent(String(pairId || "").trim());
+    const base = `/api/v1/datastore-reports/post-exclusion-file-verification/${safePairId}/export`;
+
+    if (postCompareExportJson) _postCompareEnableExport(postCompareExportJson, `${base}?format=json`, "json");
+    if (postCompareExportCsv) _postCompareEnableExport(postCompareExportCsv, `${base}?format=csv`, "csv");
+  }
+
+  function _postCompareEnableExport(el, href, fmt) {
+    if (!el) return;
+    el.href = "#";
+    el.dataset.exportUrl = href;
+    el.dataset.exportFormat = fmt;
+    el.classList.remove("disabled");
+    el.removeAttribute("aria-disabled");
+
+    if (!el.dataset.boundExportHandler) {
+      el.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const url = el.dataset.exportUrl || "";
+        const format = el.dataset.exportFormat || "json";
+        if (!url) return;
+        try {
+          await _downloadWithApiKey(url, `post_exclusion_verification.${format}`);
+        } catch (err) {
+          _postCompareShowError(err?.message || "Nao foi possivel exportar a verificacao.");
+        }
+      });
+      el.dataset.boundExportHandler = "1";
+    }
+  }
+
+  function _postCompareRenderBreakdown(payload) {
+    const countMap = payload?.deleted_breakdown || {};
+    const sizeMap = payload?.deleted_size_breakdown_gb || {};
+    const types = Array.from(new Set([...Object.keys(countMap), ...Object.keys(sizeMap)]));
+    const rows = types
+      .map((type) => ({
+        type,
+        count: Number(countMap[type] || 0),
+        size: Number(sizeMap[type] || 0),
+      }))
+      .filter((x) => x.count > 0 || x.size > 0)
+      .sort((a, b) => b.count - a.count || b.size - a.size);
+
+    if (!rows.length) {
+      postCompareBreakdownBody.innerHTML = `
+        <tr>
+          <td colspan="3" class="text-muted-zh">Nenhum arquivo removido por tipo zombie.</td>
+        </tr>`;
+      return;
+    }
+
+    postCompareBreakdownBody.innerHTML = rows
+      .map((r) => `
+        <tr>
+          <td>${_postCompareEscape(r.type)}</td>
+          <td class="text-end">${r.count.toLocaleString("pt-BR")}</td>
+          <td class="text-end">${r.size.toFixed(3)}</td>
+        </tr>`)
+      .join("");
+  }
+
+  function _postCompareRenderFiles() {
+    const query = String(postCompareFilesSearch?.value || "").trim().toLowerCase();
+    const sorted = [...postCompareState.allFiles].sort((a, b) => {
+      const da = Number(a.tamanho_gb || 0);
+      const db = Number(b.tamanho_gb || 0);
+      return postCompareState.sortSizeDesc ? (db - da) : (da - db);
+    });
+
+    const rows = sorted.filter((f) => {
+      if (!query) return true;
+      const path = String(f.path || "").toLowerCase();
+      const tipo = String(f.tipo_zombie || "").toLowerCase();
+      return path.includes(query) || tipo.includes(query);
+    });
+
+    if (!rows.length) {
+      postCompareFilesBody.innerHTML = `
+        <tr>
+          <td colspan="3" class="text-muted-zh">Nenhuma evidência corresponde ao filtro informado.</td>
+        </tr>`;
+      return;
+    }
+
+    postCompareFilesBody.innerHTML = rows
+      .map((f) => `
+        <tr>
+          <td class="text-break">${_postCompareEscape(f.path)}</td>
+          <td>${_postCompareEscape(f.tipo_zombie)}</td>
+          <td class="text-end">${Number(f.tamanho_gb || 0).toFixed(3)}</td>
+        </tr>`)
+      .join("");
+  }
+
+  function _postCompareRender(payload) {
+    if (!payload || !postCompareRow) return;
+    postCompareState.payload = payload;
+    postCompareState.allFiles = Array.isArray(payload.deleted_vmdks) ? payload.deleted_vmdks : [];
+    postCompareRow.classList.remove("d-none");
+
+    const verificationStatus = _postCompareDetermineStatus(payload);
+    const datastoreStatus = String(payload?.datastore_status || "unknown");
+    postCompareTs.textContent = `Verificado em ${window.zhFormatDate(new Date().toISOString())}`;
+    postCompareDatastore.textContent = `Datastore: ${payload.datastore || "—"}`;
+    postComparePairBadge.textContent = `Pair: ${payload.pair_id || "—"}`;
+    postComparePreBadge.textContent = `Pré: ${payload.pre_report_id || "—"}`;
+    postComparePostBadge.textContent = `Pós: ${payload.post_report_id || "—"}`;
+
+    postCompareStatusBadge.className = `badge ${_postCompareDatastoreStatusClass(datastoreStatus)}`;
+    postCompareStatusBadge.textContent = `Datastore: ${_postCompareDatastoreStatusLabel(datastoreStatus)}`;
+
+    postCompareRemovedItems.textContent = Number(payload.deleted_files_count || 0).toLocaleString("pt-BR");
+    postCompareRemovedGb.textContent = `${Number(payload.deleted_size_gb || 0).toFixed(3)} GB`;
+    postCompareGainPercent.textContent = `${Number(payload.size_gain_percent || 0).toFixed(2)}%`;
+    postCompareRemainingItems.textContent = Number(payload.remaining_files_count || 0).toLocaleString("pt-BR");
+
+    if (datastoreStatus === "removed" && verificationStatus !== "fully_removed") {
+      postCompareStatusBadge.textContent = "Datastore: Removed";
+    }
+
+    _postCompareRenderBreakdown(payload);
+    _postCompareRenderFiles();
+    _postCompareSetExportLinks(payload.pair_id);
+  }
+
+  postCompareOpenBtn?.addEventListener("click", () => {
+    _postCompareShowError(null);
+    if (postComparePairInput) postComparePairInput.value = "";
+    const bsModal = bootstrap.Modal.getOrCreateInstance(postCompareModal);
+    bsModal.show();
+  });
+
+  postCompareFilesSearch?.addEventListener("input", _postCompareRenderFiles);
+  postCompareSortSizeBtn?.addEventListener("click", () => {
+    postCompareState.sortSizeDesc = !postCompareState.sortSizeDesc;
+    _postCompareRenderFiles();
+  });
+
+  postCompareModal?.addEventListener("hidden.bs.modal", () => {
+    _postCompareShowError(null);
+  });
+
+  postCompareBtn?.addEventListener("click", async () => {
+    const pairId = String(postComparePairInput?.value || "").trim();
+    if (!pairId) {
+      _postCompareShowError("Informe um pair_id válido para verificar.");
+      return;
+    }
+
+    _postCompareShowError(null);
+    postCompareSpinner?.classList.remove("d-none");
+    postCompareIcon?.classList.add("d-none");
+    if (postCompareBtnText) postCompareBtnText.textContent = "Verificando...";
+    if (postCompareBtn) postCompareBtn.disabled = true;
+
+    try {
+      const primaryUrl = `/api/v1/datastore-reports/post-exclusion-file-verification/${encodeURIComponent(pairId)}?page=1&page_size=500`;
+      const fallbackUrl = `/api/v1/datastore-reports/verify-files/${encodeURIComponent(pairId)}?page=1&page_size=500`;
+
+      let resp = await fetch(primaryUrl, { headers: _postCompareHeaders() });
+      if (resp.status === 404) {
+        resp = await fetch(fallbackUrl, { headers: _postCompareHeaders() });
+      }
+
+      const text = await resp.text();
+      let payload = {};
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (_) {
+        if (!resp.ok) throw new Error(`Falha na verificação (HTTP ${resp.status}).`);
+      }
+
+      if (!resp.ok) {
+        throw new Error(_postCompareFriendlyError(resp.status, payload.detail));
+      }
+
+      _postCompareRender(payload);
+      bootstrap.Modal.getInstance(postCompareModal)?.hide();
+    } catch (err) {
+      _postCompareShowError(err.message || "Não foi possível verificar a pós-exclusão.");
+    } finally {
+      postCompareSpinner?.classList.add("d-none");
+      postCompareIcon?.classList.remove("d-none");
+      if (postCompareBtnText) postCompareBtnText.textContent = "Verificar";
+      if (postCompareBtn) postCompareBtn.disabled = false;
+    }
+  });
 </script>
 
 {% endblock %}{# fim block scripts #}
+

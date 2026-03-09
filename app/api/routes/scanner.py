@@ -14,29 +14,40 @@ Rotas (prefixo registrado em main.py: /api/v1/scan):
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import json
 import logging
+import re
 import uuid
 from datetime import date, datetime, timezone
 from urllib.parse import unquote
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import asc, cast, desc, func, select, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.datastore_report import KNOWN_ZOMBIE_TYPES, aggregate_datastore_rows
+from app.core.executive_report import build_datastore_executive_report_markdown
 from app.core.scanner.scan_runner import resolve_vcenter, run_zombie_scan, get_scan_progress
 from app.core.scanner.zombie_detector import TIPOS_EXCLUIVEIS, ZombieType, _CAUSES_BY_TYPE
 from app.dependencies import get_current_user, get_db
+from app.models.audit_log import AuditLog
+from app.models.datastore_snapshot import DatastoreDecomSnapshot
 from app.models.vmdk_whitelist import VmdkWhitelist
 from app.models.zombie_scan import ZombieScanJob, ZombieVmdkRecord
+from app.schemas.datastore_snapshot import (
+    DatastoreSnapshotCreateRequest,
+    DatastoreSnapshotResponse,
+)
 from app.schemas.webhook import MarkSafeRequest, WhitelistEntryResponse
 from app.schemas.scanner import (
     DatastoreScanMetricSchema,
     PaginatedResults,
+    ScanStartByDatastoreRequest,
     ScanJobStatusResponse,
     ScanJobSummary,
     ScanStartRequest,
@@ -46,8 +57,12 @@ from app.schemas.scanner import (
     ZombieBreakdown,
     ZombieResultItem,
 )
+from config import get_settings
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
+settings = get_settings()
+_active_scan_tasks: set[asyncio.Task] = set()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers internos
@@ -77,6 +92,60 @@ _CSV_FIELDS = [
     "detection_rules", "false_positive_reason",
 ]
 
+_SNAPSHOT_CSV_FIELDS = [
+    "snapshot_id",
+    "timestamp",
+    "requested_vcenter_ref",
+    "resolved_vcenter_id",
+    "resolved_vcenter_name",
+    "resolved_vcenter_host",
+    "datacenter",
+    "datastore_name",
+    "source_job_id",
+    "total_itens",
+    "total_size_gb",
+    "conclusao",
+]
+
+
+def _safe_report_filename(value: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+    return (normalized or "datastore")[:80]
+
+
+def _get_client_ip(request: Request) -> str | None:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else None
+
+
+async def _audit_datastore_report(
+    db: AsyncSession,
+    *,
+    request: Request,
+    analyst: str,
+    action: str,
+    datastore_name: str,
+    vcenter_id: str | None,
+    status_value: str,
+    detail: str | None = None,
+) -> None:
+    entry = AuditLog(
+        analyst=analyst or "unknown",
+        action=action,
+        vmdk_path=f"[{datastore_name}] __DATASTORE_REPORT__",
+        vcenter_id=vcenter_id,
+        approval_token_id=None,
+        approval_token_value=None,
+        dry_run=False,
+        readonly_mode_active=settings.readonly_mode,
+        status=status_value,
+        detail=detail,
+        client_ip=_get_client_ip(request),
+        user_agent=(request.headers.get("user-agent") or "")[:512] or None,
+    )
+    db.add(entry)
 
 
 async def _get_job_or_404(job_id: str, db: AsyncSession) -> ZombieScanJob:
@@ -84,6 +153,37 @@ async def _get_job_or_404(job_id: str, db: AsyncSession) -> ZombieScanJob:
     if not job:
         raise HTTPException(status_code=404, detail="Job não encontrado.")
     return job
+
+
+def _spawn_scan_task(
+    *,
+    job_id: str,
+    vcenter_ids: list[int | str],
+    datacenters: list[str] | None,
+    datastores: list[str] | None,
+) -> None:
+    """
+    Dispara o runner de scan em task desacoplada da requisição HTTP.
+
+    Mantemos referência forte para evitar coleta prematura e registramos exceções
+    não tratadas para facilitar troubleshooting.
+    """
+    task = asyncio.create_task(
+        run_zombie_scan(job_id, vcenter_ids, datacenters, datastores)
+    )
+    _active_scan_tasks.add(task)
+
+    def _on_done(done_task: asyncio.Task) -> None:
+        _active_scan_tasks.discard(done_task)
+        try:
+            exc = done_task.exception()
+        except asyncio.CancelledError:
+            logger.warning("[job:%s] Task de scan foi cancelada.", job_id)
+            return
+        if exc is not None:
+            logger.error("[job:%s] Falha não tratada na task de scan: %s", job_id, exc, exc_info=exc)
+
+    task.add_done_callback(_on_done)
 
 
 def _job_to_schema(job: ZombieScanJob) -> dict:
@@ -142,6 +242,24 @@ def _record_to_item(
     )
 
 
+def _snapshot_to_response(snapshot: DatastoreDecomSnapshot) -> DatastoreSnapshotResponse:
+    return DatastoreSnapshotResponse(
+        id=snapshot.id,
+        requested_vcenter_ref=snapshot.requested_vcenter_ref,
+        resolved_vcenter_id=snapshot.resolved_vcenter_id,
+        resolved_vcenter_name=snapshot.resolved_vcenter_name,
+        resolved_vcenter_host=snapshot.resolved_vcenter_host,
+        datacenter=snapshot.datacenter,
+        datastore_name=snapshot.datastore_name,
+        source_job_id=snapshot.source_job_id,
+        total_itens=snapshot.total_itens,
+        total_size_gb=round(float(snapshot.total_size_gb or 0.0), 3),
+        breakdown={k: int(v) for k, v in (snapshot.breakdown or {}).items()},
+        timestamp=snapshot.created_at,
+        generated_by=snapshot.generated_by,
+        conclusao="base para auditoria p\u00f3s-descomissionamento",
+    )
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /datastores — lista datastores conhecidos para seleção no frontend
@@ -170,16 +288,16 @@ async def list_known_datastores(
             ZombieVmdkRecord.vcenter_host,
         )
         .distinct()
-        .order_by(ZombieVmdkRecord.datastore)
+        .order_by(
+            ZombieVmdkRecord.vcenter_name,
+            ZombieVmdkRecord.vcenter_host,
+            ZombieVmdkRecord.datastore,
+        )
     )
     rows = (await db.execute(stmt)).all()
-    seen: set[str] = set()
     result: list[dict] = []
     for row in rows:
         ds_name = row.datastore
-        if ds_name in seen:
-            continue
-        seen.add(ds_name)
         result.append({
             "name": ds_name,
             "vcenter_name": row.vcenter_name or "",
@@ -213,7 +331,6 @@ Acompanhe o progresso via `GET /scan/jobs/{job_id}`.
 )
 async def start_scan(
     body: ScanStartRequest,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     _: dict = Depends(get_current_user),
 ) -> ScanStartResponse:
@@ -240,14 +357,69 @@ async def start_scan(
     )
     db.add(job)
     await db.flush()
+    await db.commit()
     await db.refresh(job)
 
-    background_tasks.add_task(
-        run_zombie_scan,
-        job_id,
-        list(body.vcenter_ids),
-        body.datacenters,
-        body.datastores,
+    _spawn_scan_task(
+        job_id=job_id,
+        vcenter_ids=list(body.vcenter_ids),
+        datacenters=body.datacenters,
+        datastores=body.datastores,
+    )
+
+    return ScanStartResponse(**_job_to_schema(job))
+
+
+@router.post(
+    "/start-by-datastore",
+    response_model=ScanStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Iniciar varredura zombie por datastore",
+    description="""
+Dispara uma varredura assíncrona com escopo explícito por datastore.
+
+- `vcenter_ids`: lista de IDs inteiros ou nomes de vCenters cadastrados.
+- `datastores`: lista obrigatória de Datastores (LUNs) a varrer.
+- `datacenters`: opcional. Se omitido, todos os Datacenters de cada vCenter.
+
+Somente os datastores informados serão varridos.
+    """,
+)
+async def start_scan_by_datastore(
+    body: ScanStartByDatastoreRequest,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> ScanStartResponse:
+    found_any = False
+    for ref in body.vcenter_ids:
+        vc = await resolve_vcenter(db, ref)
+        if vc:
+            found_any = True
+            break
+    if not found_any:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Nenhum dos vCenter IDs/nomes informados foi encontrado no banco.",
+        )
+
+    job_id = str(uuid.uuid4())
+    job = ZombieScanJob(
+        job_id=job_id,
+        vcenter_ids=list(body.vcenter_ids),
+        datacenters=body.datacenters,
+        datastores=list(body.datastores),
+        status="pending",
+    )
+    db.add(job)
+    await db.flush()
+    await db.commit()
+    await db.refresh(job)
+
+    _spawn_scan_task(
+        job_id=job_id,
+        vcenter_ids=list(body.vcenter_ids),
+        datacenters=body.datacenters,
+        datastores=list(body.datastores),
     )
 
     return ScanStartResponse(**_job_to_schema(job))
@@ -1130,3 +1302,378 @@ async def remove_from_whitelist(
         raise HTTPException(status_code=404, detail="Entrada de whitelist não encontrada.")
     await db.delete(entry)
     logger.info("Whitelist id=%d ('%s') removida.", whitelist_id, entry.path)
+
+
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# POST /datastore-snapshots
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+@router.post(
+    "/datastore-snapshots",
+    response_model=DatastoreSnapshotResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Gerar snapshot de descomissionamento de datastore",
+    description="""
+Gera e persiste um snapshot auditável de volumetria para um datastore.
+
+Entrada:
+- `vcenter_id`: ID (int) ou nome do vCenter
+- `datacenter`: opcional (se omitido, considera todos)
+- `datastore_name`: nome exato do datastore
+    """,
+)
+async def create_datastore_snapshot(
+    body: DatastoreSnapshotCreateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+) -> DatastoreSnapshotResponse:
+    vc = await resolve_vcenter(db, body.vcenter_id)
+    if not vc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"vCenter '{body.vcenter_id}' não encontrado.",
+        )
+
+    vc_filter = (
+        (func.lower(ZombieVmdkRecord.vcenter_host) == vc.host.lower())
+        | (func.lower(ZombieVmdkRecord.vcenter_name) == vc.name.lower())
+    )
+
+    latest_job_stmt = (
+        select(ZombieScanJob.job_id)
+        .join(ZombieVmdkRecord, ZombieVmdkRecord.job_id == ZombieScanJob.job_id)
+        .where(
+            ZombieScanJob.status == "completed",
+            vc_filter,
+        )
+        .order_by(ZombieScanJob.finished_at.desc().nulls_last())
+        .limit(1)
+    )
+    latest_job_id = (await db.execute(latest_job_stmt)).scalar_one_or_none()
+
+    if not latest_job_id:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Nenhum scan concluído encontrado para o vCenter '{vc.name}'. "
+                "Execute uma varredura antes de gerar o snapshot."
+            ),
+        )
+
+    rows_stmt = (
+        select(
+            ZombieVmdkRecord.tipo_zombie,
+            ZombieVmdkRecord.tamanho_gb,
+        )
+        .where(
+            ZombieVmdkRecord.job_id == latest_job_id,
+            vc_filter,
+            func.lower(ZombieVmdkRecord.datastore) == body.datastore_name.lower(),
+        )
+    )
+    if body.datacenter:
+        rows_stmt = rows_stmt.where(
+            func.lower(ZombieVmdkRecord.datacenter) == body.datacenter.lower()
+        )
+
+    rows = (await db.execute(rows_stmt)).all()
+    if not rows:
+        dc_msg = f" no datacenter '{body.datacenter}'" if body.datacenter else ""
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Datastore '{body.datastore_name}' não encontrado{dc_msg} "
+                f"no último scan concluído (job_id={latest_job_id}) para o vCenter '{vc.name}'."
+            ),
+        )
+
+    total_itens, total_size_gb, breakdown = aggregate_datastore_rows(
+        [(r.tipo_zombie, r.tamanho_gb) for r in rows]
+    )
+
+    snapshot = DatastoreDecomSnapshot(
+        requested_vcenter_ref=str(body.vcenter_id),
+        resolved_vcenter_id=vc.id,
+        resolved_vcenter_name=vc.name,
+        resolved_vcenter_host=vc.host,
+        datacenter=body.datacenter,
+        datastore_name=body.datastore_name,
+        source_job_id=latest_job_id,
+        total_itens=total_itens,
+        total_size_gb=total_size_gb,
+        breakdown=breakdown,
+        generated_by=user.get("sub"),
+        request_payload=body.model_dump(mode="json"),
+    )
+    db.add(snapshot)
+    await db.flush()
+    await db.refresh(snapshot)
+
+    await _audit_datastore_report(
+        db,
+        request=request,
+        analyst=user.get("sub", "unknown"),
+        action="DATASTORE_SNAPSHOT",
+        datastore_name=body.datastore_name,
+        vcenter_id=str(vc.id),
+        status_value="generated_snapshot",
+        detail=(
+            f"snapshot_id={snapshot.id}; source_job_id={latest_job_id}; "
+            f"total_itens={total_itens}; total_size_gb={total_size_gb:.3f}"
+        ),
+    )
+
+    return _snapshot_to_response(snapshot)
+
+
+@router.post(
+    "/datastore-laudos",
+    response_model=DatastoreSnapshotResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Gerar laudo pre-exclusao de datastore",
+    description="""
+Gera um laudo pre-exclusao para datastore inteiro com base no ultimo scan concluido.
+O laudo e persistido como snapshot auditavel.
+    """,
+)
+async def create_datastore_laudo(
+    body: DatastoreSnapshotCreateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+) -> DatastoreSnapshotResponse:
+    return await create_datastore_snapshot(body, request, db, user)
+
+
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# GET /datastore-snapshots/{id}
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+@router.get(
+    "/datastore-snapshots/{snapshot_id}",
+    response_model=DatastoreSnapshotResponse,
+    summary="Consultar snapshot de descomissionamento por ID",
+)
+async def get_datastore_snapshot(
+    snapshot_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> DatastoreSnapshotResponse:
+    snapshot = await db.get(DatastoreDecomSnapshot, snapshot_id)
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="Snapshot nÃ£o encontrado.")
+    return _snapshot_to_response(snapshot)
+
+
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# GET /datastore-snapshots/{id}/export
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+@router.get(
+    "/datastore-snapshots/{snapshot_id}/export",
+    summary="Exportar snapshot de descomissionamento (CSV ou JSON)",
+)
+async def export_datastore_snapshot(
+    snapshot_id: int,
+    format: Annotated[str, Query(description="Formato de saÃ­da: csv | json")] = "csv",
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> StreamingResponse:
+    snapshot = await db.get(DatastoreDecomSnapshot, snapshot_id)
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="Snapshot nÃ£o encontrado.")
+
+    if format not in ("csv", "json"):
+        raise HTTPException(
+            status_code=422,
+            detail="ParÃ¢metro 'format' deve ser 'csv' ou 'json'.",
+        )
+
+    payload = _snapshot_to_response(snapshot).model_dump(mode="json")
+
+    if format == "json":
+        content = json.dumps(payload, ensure_ascii=False, indent=2)
+        return StreamingResponse(
+            iter([content]),
+            media_type="application/json; charset=utf-8",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="datastore_snapshot_{snapshot_id}.json"'
+                ),
+            },
+        )
+
+    breakdown: dict[str, int] = payload.get("breakdown", {})
+    dynamic_type_columns = [k for k in sorted(breakdown) if k not in KNOWN_ZOMBIE_TYPES]
+    all_type_columns = list(KNOWN_ZOMBIE_TYPES) + dynamic_type_columns
+    fieldnames = _SNAPSHOT_CSV_FIELDS + all_type_columns
+
+    row = {
+        "snapshot_id": payload["id"],
+        "timestamp": payload["timestamp"],
+        "requested_vcenter_ref": payload["requested_vcenter_ref"],
+        "resolved_vcenter_id": payload["resolved_vcenter_id"],
+        "resolved_vcenter_name": payload["resolved_vcenter_name"],
+        "resolved_vcenter_host": payload["resolved_vcenter_host"],
+        "datacenter": payload.get("datacenter") or "",
+        "datastore_name": payload["datastore_name"],
+        "source_job_id": payload["source_job_id"],
+        "total_itens": payload["total_itens"],
+        "total_size_gb": f"{float(payload['total_size_gb']):.3f}",
+        "conclusao": payload.get("conclusao", ""),
+    }
+    for t in all_type_columns:
+        row[t] = int(breakdown.get(t, 0))
+
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, lineterminator="\r\n")
+    writer.writeheader()
+    writer.writerow(row)
+
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="datastore_snapshot_{snapshot_id}.csv"'
+            ),
+        },
+    )
+
+
+@router.get(
+    "/datastore-laudos/{snapshot_id}",
+    response_model=DatastoreSnapshotResponse,
+    summary="Consultar laudo pre-exclusao por ID",
+)
+async def get_datastore_laudo(
+    snapshot_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> DatastoreSnapshotResponse:
+    return await get_datastore_snapshot(snapshot_id, db, _)
+
+
+@router.get(
+    "/datastore-laudos/{snapshot_id}/export",
+    summary="Exportar laudo pre-exclusao (CSV ou JSON)",
+)
+async def export_datastore_laudo(
+    snapshot_id: int,
+    format: Annotated[str, Query(description="Formato de saída: csv | json")] = "csv",
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> StreamingResponse:
+    return await export_datastore_snapshot(snapshot_id, format, db, _)
+
+
+@router.get(
+    "/jobs/{job_id}/executive-report",
+    summary="Gerar relatorio executivo de descomissionamento por datastore",
+    description="""
+Gera um relatorio executivo em Markdown para apoiar decisao de exclusao
+de datastore inteiro com base nos resultados de um job de scan.
+    """,
+)
+async def get_executive_report(
+    job_id: str,
+    request: Request,
+    datastore_name: Annotated[
+        str,
+        Query(min_length=1, description="Nome exato do datastore analisado."),
+    ],
+    datacenter: Annotated[
+        str | None,
+        Query(description="Datacenter opcional para filtrar o datastore."),
+    ] = None,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+) -> StreamingResponse:
+    job = await _get_job_or_404(job_id, db)
+    if job.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Job '{job_id}' com status '{job.status}'. "
+                "Aguarde status 'completed' para gerar relatorio executivo."
+            ),
+        )
+
+    datastore_clean = datastore_name.strip()
+    if not datastore_clean:
+        raise HTTPException(status_code=422, detail="Parametro 'datastore_name' nao pode ser vazio.")
+
+    datacenter_clean = datacenter.strip() if datacenter else None
+    if datacenter is not None and not datacenter_clean:
+        raise HTTPException(status_code=422, detail="Parametro 'datacenter' nao pode ser vazio.")
+
+    rows_stmt = (
+        select(
+            ZombieVmdkRecord.tipo_zombie,
+            ZombieVmdkRecord.tamanho_gb,
+            ZombieVmdkRecord.vcenter_name,
+            ZombieVmdkRecord.vcenter_host,
+            ZombieVmdkRecord.datacenter,
+        )
+        .where(
+            ZombieVmdkRecord.job_id == job_id,
+            func.lower(ZombieVmdkRecord.datastore) == datastore_clean.lower(),
+        )
+    )
+    if datacenter_clean:
+        rows_stmt = rows_stmt.where(func.lower(ZombieVmdkRecord.datacenter) == datacenter_clean.lower())
+
+    rows = (await db.execute(rows_stmt)).all()
+    if not rows:
+        dc_msg = f" no datacenter '{datacenter_clean}'" if datacenter_clean else ""
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Datastore '{datastore_clean}' nao encontrado{dc_msg} "
+                f"no job '{job_id}'."
+            ),
+        )
+
+    total_itens, total_size_gb, breakdown = aggregate_datastore_rows(
+        [(r.tipo_zombie, r.tamanho_gb) for r in rows]
+    )
+    vcenter_names = sorted({(r.vcenter_name or "").strip() for r in rows if (r.vcenter_name or "").strip()})
+    vcenter_hosts = sorted({(r.vcenter_host or "").strip() for r in rows if (r.vcenter_host or "").strip()})
+    datacenter_value = datacenter_clean or next(
+        ((r.datacenter or "").strip() for r in rows if (r.datacenter or "").strip()),
+        None,
+    )
+
+    content = build_datastore_executive_report_markdown(
+        job_id=job_id,
+        datastore_name=datastore_clean,
+        datacenter=datacenter_value,
+        total_itens=total_itens,
+        total_size_gb=total_size_gb,
+        breakdown=breakdown,
+        generated_at=datetime.now(timezone.utc),
+        vcenter_hosts=vcenter_hosts,
+        vcenter_names=vcenter_names,
+    )
+
+    await _audit_datastore_report(
+        db,
+        request=request,
+        analyst=user.get("sub", "unknown"),
+        action="DATASTORE_REPORT_MD",
+        datastore_name=datastore_clean,
+        vcenter_id=None,
+        status_value="generated_report_md",
+        detail=f"job_id={job_id}; total_itens={total_itens}; total_size_gb={total_size_gb:.3f}",
+    )
+
+    filename = f"relatorio_executivo_{job_id[:8]}_{_safe_report_filename(datastore_clean)}.md"
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

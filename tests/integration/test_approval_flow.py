@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test_zombiehunter.db")
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
 
 from unittest.mock import patch
 

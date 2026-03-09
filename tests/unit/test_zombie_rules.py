@@ -416,7 +416,7 @@ def test_readonly_mode_blocks_execute_endpoint():
     """READONLY_MODE=true → POST execute deve retornar 403."""
     from unittest.mock import patch
     import os
-    os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test_zombiehunter.db")
+    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
     with patch("app.core.approval.settings") as m:
         m.readonly_mode = True
         from fastapi.testclient import TestClient
@@ -433,7 +433,7 @@ def test_readonly_mode_blocks_execute_endpoint():
 def test_execute_without_dryrun_is_blocked():
     """Tentar executar sem ter chamado /dryrun antes → erro 400 com mensagem clara."""
     import os
-    os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test_zombiehunter.db")
+    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_zombiehunter.db"
     from fastapi.testclient import TestClient
     from main import app
     client = TestClient(app)

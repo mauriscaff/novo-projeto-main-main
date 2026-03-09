@@ -1,5 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_PROJECT_ROOT = Path(__file__).resolve().parent
+_DEFAULT_SQLITE_DB = (_PROJECT_ROOT / "vmdk_scanner.db").as_posix()
 
 
 class Settings(BaseSettings):
@@ -15,6 +20,75 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
+    @field_validator("debug", mode="before")
+    @classmethod
+    def _normalize_debug(cls, value):
+        """
+        Aceita aliases comuns de ambiente para evitar queda na inicializacao.
+        Ex.: DEBUG=release, DEBUG=prod -> False.
+        """
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            falsy = {
+                "0",
+                "false",
+                "f",
+                "no",
+                "n",
+                "off",
+                "release",
+                "prod",
+                "production",
+            }
+            truthy = {
+                "1",
+                "true",
+                "t",
+                "yes",
+                "y",
+                "on",
+                "debug",
+                "dev",
+                "development",
+            }
+            if normalized in falsy:
+                return False
+            if normalized in truthy:
+                return True
+        return value
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_database_url(cls, value):
+        if value is None:
+            return value
+        if not isinstance(value, str):
+            return value
+
+        raw = value.strip().strip('"').strip("'")
+        normalized = raw.replace("\\", "/")
+
+        if normalized.startswith("sqlite+aiosqlite:///./"):
+            rel = normalized.removeprefix("sqlite+aiosqlite:///./")
+            return f"sqlite+aiosqlite:///{(_PROJECT_ROOT / rel).as_posix()}"
+        if normalized.startswith("sqlite+aiosqlite:///.//"):
+            rel = normalized.removeprefix("sqlite+aiosqlite:///.//")
+            return f"sqlite+aiosqlite:///{(_PROJECT_ROOT / rel).as_posix()}"
+        if normalized.startswith("sqlite:///./"):
+            rel = normalized.removeprefix("sqlite:///./")
+            return f"sqlite:///{(_PROJECT_ROOT / rel).as_posix()}"
+        if normalized.startswith("sqlite:///.//"):
+            rel = normalized.removeprefix("sqlite:///.//")
+            return f"sqlite:///{(_PROJECT_ROOT / rel).as_posix()}"
+
+        return raw
+
     # Autenticação
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"
@@ -22,7 +96,9 @@ class Settings(BaseSettings):
     api_key: str = "change-me-in-production"
 
     # Banco de dados
-    database_url: str = "sqlite+aiosqlite:///./vmdk_scanner.db"
+    # Usa caminho absoluto para evitar "perda" aparente de dados quando o processo
+    # sobe a partir de diretórios diferentes.
+    database_url: str = f"sqlite+aiosqlite:///{_DEFAULT_SQLITE_DB}"
 
     # vCenter padrão (opcional)
     default_vcenter_host: str = ""
@@ -52,6 +128,7 @@ class Settings(BaseSettings):
     scan_datastore_timeout_sec: int = 900  # 15 minutos
     # Duração máxima total do job (segundos) — ao exceder, job é marcado como failed
     scan_job_max_duration_sec: int = 14400  # 4 horas
+    datastore_reports_verify_timeout_sec: int = 30
 
     # Mantido por compatibilidade retroativa — use orphan_days
     orphaned_threshold_days: int = 60
@@ -81,6 +158,11 @@ class Settings(BaseSettings):
     #
     # ⚠️  JAMAIS defina false como padrão neste código.
     readonly_mode: bool = True
+
+    # ── Governança opcional para descomissionamento de datastore ─────────────
+    # Quando True, bloqueia ação DELETE de VMDK no fluxo de approvals se não
+    # existir snapshot prévio para o datastore (relatório auditável).
+    governance_require_datastore_snapshot_for_delete: bool = False
 
 
 @lru_cache

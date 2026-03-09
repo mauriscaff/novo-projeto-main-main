@@ -1,0 +1,825 @@
+{% extends "base.html" %}
+
+{% block title %}Pos-Exclusao{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h4 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-clipboard-data text-zombie-blue" aria-hidden="true"></i>
+      Relatorio Pos-Exclusao
+    </h4>
+    <small class="text-muted-zh">
+      Verifique o que foi removido por datastore e o ganho de capacidade apos a varredura.
+    </small>
+  </div>
+</div>
+
+<div class="zh-card mb-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-funnel-fill text-zombie-blue"></i>
+    <span>Parametros da Verificacao</span>
+  </div>
+  <div class="card-body">
+    <form id="zh-post-form" class="row g-3 align-items-end" autocomplete="off">
+      <div class="col-12 col-md-5">
+        <label for="zh-vcenter-select" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          vCenter
+        </label>
+        <select id="zh-vcenter-select" class="form-select form-select-sm"
+          style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;">
+          <option value="">Todos os vCenters (opcional)</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <label for="zh-datastore-select" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Datastore
+        </label>
+        <select id="zh-datastore-select" class="form-select form-select-sm"
+          style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;">
+          <option value="">Selecione um datastore...</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label for="zh-evidence-limit" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">
+          Evidence limit
+        </label>
+        <input id="zh-evidence-limit" type="number" min="1" max="5000" value="200" class="form-control form-control-sm"
+          style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
+      </div>
+      <div class="col-12 col-md-1 d-grid">
+        <button id="zh-btn-verify" type="submit" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center gap-2">
+          <span class="spinner-border spinner-border-sm d-none" id="zh-post-spinner" role="status"></span>
+          <i class="bi bi-search" id="zh-post-icon"></i>
+          <span id="zh-post-btn-text">Verificar</span>
+        </button>
+      </div>
+      <div class="col-12 col-md-2 d-grid">
+        <button id="zh-btn-scan-verify" type="button" class="btn btn-sm btn-outline-info d-flex align-items-center justify-content-center gap-2">
+          <span class="spinner-border spinner-border-sm d-none" id="zh-post-scan-spinner" role="status"></span>
+          <i class="bi bi-arrow-repeat" id="zh-post-scan-icon"></i>
+          <span id="zh-post-scan-btn-text">Varrer + Verificar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="zh-post-error" class="alert alert-danger d-none py-2 mb-3" role="alert"></div>
+
+<div class="zh-card mb-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-bar-chart-fill text-zombie-blue"></i>
+    <span>Total Ja Excluido (Acumulado)</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-md-3">
+        <div class="zh-post-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">Verificacoes</div>
+          <div class="fs-4 fw-bold text-zombie-blue" id="zh-post-total-verifications">0</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="zh-post-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">Datastores Removidos</div>
+          <div class="fs-4 fw-bold text-zombie-green" id="zh-post-total-removed-datastores">0</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="zh-post-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">VMDKs Excluidos</div>
+          <div class="fs-4 fw-bold text-zombie-red" id="zh-post-total-deleted-vmdks">0</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="zh-post-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">GB Removidos</div>
+          <div class="fs-4 fw-bold text-zombie-yellow" id="zh-post-total-deleted-gb">0.000 GB</div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-2 small text-muted-zh" id="zh-post-total-updated-at">Historico sem verificacoes registradas.</div>
+  </div>
+</div>
+
+<div id="zh-post-result" class="row g-3 d-none">
+  <div class="col-12">
+    <div class="zh-card">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span class="d-flex align-items-center gap-2">
+          <i class="bi bi-check2-square text-zombie-green"></i>
+          Resultado da Verificacao
+        </span>
+        <small class="text-muted-zh" id="zh-post-timestamp">-</small>
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge text-bg-secondary" id="zh-post-datastore-badge">Datastore: -</span>
+          <span class="badge text-bg-secondary" id="zh-post-baseline-badge">Baseline: -</span>
+          <span class="badge text-bg-secondary" id="zh-post-verification-badge">Verificacao: -</span>
+          <span class="badge" id="zh-post-status-badge">Status: -</span>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-3">
+            <div class="zh-post-kpi p-3 h-100">
+              <div class="text-muted-zh small text-uppercase">VMDKs Excluidos</div>
+              <div class="fs-4 fw-bold text-zombie-red" id="zh-post-deleted-count">-</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="zh-post-kpi p-3 h-100">
+              <div class="text-muted-zh small text-uppercase">GB Removidos</div>
+              <div class="fs-4 fw-bold text-zombie-yellow" id="zh-post-deleted-gb">-</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="zh-post-kpi p-3 h-100">
+              <div class="text-muted-zh small text-uppercase">Ganho (%)</div>
+              <div class="fs-4 fw-bold text-zombie-blue" id="zh-post-gain-percent">-</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="zh-post-kpi p-3 h-100">
+              <div class="text-muted-zh small text-uppercase">Remanescentes</div>
+              <div class="fs-4 fw-bold text-zombie-green" id="zh-post-remaining-count">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-4">
+            <div class="zh-post-kpi p-3 h-100">
+              <div class="text-muted-zh small text-uppercase">Baseline</div>
+              <div class="fw-semibold" id="zh-post-baseline-size">-</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="zh-post-kpi p-3 h-100">
+              <div class="text-muted-zh small text-uppercase">Removido</div>
+              <div class="fw-semibold" id="zh-post-deleted-size">-</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="zh-post-kpi p-3 h-100">
+              <div class="text-muted-zh small text-uppercase">Remanescente</div>
+              <div class="fw-semibold" id="zh-post-remaining-size">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="text-muted-zh small mb-2">Breakdown removido por tipo zombie</div>
+          <div class="table-responsive">
+            <table class="table table-dark table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Tipo Zombie</th>
+                  <th class="text-end">Itens</th>
+                  <th class="text-end">GB</th>
+                </tr>
+              </thead>
+              <tbody id="zh-post-breakdown-body">
+                <tr>
+                  <td colspan="3" class="text-muted-zh">Sem dados.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div class="text-muted-zh small">Evidencias de VMDKs excluidos</div>
+          <div class="d-flex align-items-center gap-2">
+            <input id="zh-post-search" type="text" class="form-control form-control-sm"
+              placeholder="Filtrar por path/tipo/datacenter..."
+              style="width:320px;background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;" />
+            <button id="zh-post-export-json" type="button" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-filetype-json me-1"></i>Exportar JSON
+            </button>
+            <button id="zh-post-export-csv" type="button" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-filetype-csv me-1"></i>Exportar CSV
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-dark table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>VMDK Path</th>
+                <th>Tipo</th>
+                <th>Datacenter</th>
+                <th class="text-end">Tamanho (GB)</th>
+                <th>Last Seen Job</th>
+              </tr>
+            </thead>
+            <tbody id="zh-post-files-body">
+              <tr>
+                <td colspan="5" class="text-muted-zh">Sem evidencias para exibir.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .zh-post-kpi {
+    border: 1px solid var(--zh-border);
+    border-radius: 8px;
+    background-color: rgba(13, 17, 23, 0.65);
+  }
+
+  .zh-post-status-removed {
+    background-color: rgba(46, 160, 67, .2) !important;
+    border: 1px solid rgba(46, 160, 67, .4);
+    color: #7ee787 !important;
+  }
+
+  .zh-post-status-partial {
+    background-color: rgba(210, 153, 34, .22) !important;
+    border: 1px solid rgba(210, 153, 34, .45);
+    color: #f2cc60 !important;
+  }
+
+  .zh-post-status-none {
+    background-color: rgba(139, 148, 158, .2) !important;
+    border: 1px solid rgba(139, 148, 158, .45);
+    color: #c9d1d9 !important;
+  }
+</style>
+
+<script>
+  "use strict";
+
+  const form = document.getElementById("zh-post-form");
+  const vcenterSelect = document.getElementById("zh-vcenter-select");
+  const datastoreSelect = document.getElementById("zh-datastore-select");
+  const evidenceLimitInput = document.getElementById("zh-evidence-limit");
+  const verifyBtn = document.getElementById("zh-btn-verify");
+  const scanVerifyBtn = document.getElementById("zh-btn-scan-verify");
+  const spinner = document.getElementById("zh-post-spinner");
+  const icon = document.getElementById("zh-post-icon");
+  const btnText = document.getElementById("zh-post-btn-text");
+  const scanSpinner = document.getElementById("zh-post-scan-spinner");
+  const scanIcon = document.getElementById("zh-post-scan-icon");
+  const scanBtnText = document.getElementById("zh-post-scan-btn-text");
+  const errBox = document.getElementById("zh-post-error");
+  const resultWrap = document.getElementById("zh-post-result");
+  const searchInput = document.getElementById("zh-post-search");
+  const filesBody = document.getElementById("zh-post-files-body");
+  const breakdownBody = document.getElementById("zh-post-breakdown-body");
+  const exportJsonBtn = document.getElementById("zh-post-export-json");
+  const exportCsvBtn = document.getElementById("zh-post-export-csv");
+
+  const state = {
+    payload: null,
+    filteredVmdks: [],
+    knownVcenters: [],
+    knownDatastores: [],
+    runningScanJobId: null,
+  };
+
+  function apiHeaders() {
+    const headers = { Accept: "application/json" };
+    if (window.ZH_API_KEY) headers["X-API-Key"] = window.ZH_API_KEY;
+    return headers;
+  }
+
+  function showError(message) {
+    if (!message) {
+      errBox.classList.add("d-none");
+      errBox.textContent = "";
+      return;
+    }
+    errBox.classList.remove("alert-success");
+    errBox.classList.add("alert-danger");
+    errBox.textContent = message;
+    errBox.classList.remove("d-none");
+  }
+
+  function showSuccess(message) {
+    if (!message) return;
+    errBox.classList.remove("alert-danger");
+    errBox.classList.add("alert-success");
+    errBox.textContent = message;
+    errBox.classList.remove("d-none");
+  }
+
+  function setLoading(isLoading) {
+    verifyBtn.disabled = isLoading;
+    scanVerifyBtn.disabled = isLoading;
+    spinner.classList.toggle("d-none", !isLoading);
+    icon.classList.toggle("d-none", isLoading);
+    btnText.textContent = isLoading ? "Verificando..." : "Verificar";
+  }
+
+  function setScanLoading(isLoading, label) {
+    verifyBtn.disabled = isLoading;
+    scanVerifyBtn.disabled = isLoading;
+    scanSpinner.classList.toggle("d-none", !isLoading);
+    scanIcon.classList.toggle("d-none", isLoading);
+    scanBtnText.textContent = isLoading ? (label || "Varrendo...") : "Varrer + Verificar";
+  }
+
+  function getSelectedVcenterMeta() {
+    const option = vcenterSelect.selectedOptions?.[0];
+    if (!option || !option.value) return null;
+    const vcenterId = Number(option.value);
+    if (!Number.isFinite(vcenterId)) return null;
+    const host = String(option.dataset.host || "").trim();
+    const name = String(option.dataset.name || "").trim();
+    return { id: vcenterId, host, name };
+  }
+
+  function getSelectedDatastoreMeta() {
+    const option = datastoreSelect.selectedOptions?.[0];
+    if (!option || !option.value) return null;
+    const datastore = String(option.value || "").trim();
+    const host = String(option.dataset.host || "").trim();
+    return { datastore, host };
+  }
+
+  function getSelectedScope() {
+    const dsMeta = getSelectedDatastoreMeta();
+    const vcMeta = getSelectedVcenterMeta();
+    const datastore = dsMeta?.datastore || "";
+    const vcenterHost = (vcMeta?.host || dsMeta?.host || "").trim();
+    const evidenceLimit = Math.max(1, Math.min(5000, Number(evidenceLimitInput.value || 200)));
+    return { datastore, vcenterHost, evidenceLimit, vcMeta, dsMeta };
+  }
+
+  function friendlyError(statusCode, detail) {
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (statusCode === 404) return "Nao foi encontrado baseline/verification para esse datastore no escopo informado.";
+    if (statusCode === 422) return "Parametros invalidos. Revise o datastore e tente novamente.";
+    return "Falha ao verificar pos-exclusao no momento.";
+  }
+
+  async function refreshTotals(datastore, vcenterHost) {
+    try {
+      const params = new URLSearchParams();
+      if (datastore) params.set("datastore", datastore);
+      if (vcenterHost) params.set("vcenter_host", vcenterHost);
+      const suffix = params.toString() ? `?${params.toString()}` : "";
+      const resp = await fetch(`/api/v1/datastore-reports/datastore-deletion-verification/totals${suffix}`, {
+        headers: apiHeaders(),
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      document.getElementById("zh-post-total-verifications").textContent =
+        Number(data.total_verifications || 0).toLocaleString("pt-BR");
+      document.getElementById("zh-post-total-removed-datastores").textContent =
+        Number(data.total_datastores_removed || 0).toLocaleString("pt-BR");
+      document.getElementById("zh-post-total-deleted-vmdks").textContent =
+        Number(data.total_deleted_vmdks || 0).toLocaleString("pt-BR");
+      document.getElementById("zh-post-total-deleted-gb").textContent =
+        `${Number(data.total_deleted_size_gb || 0).toFixed(3)} GB`;
+      const updatedAt = data.last_verification_at
+        ? `Ultima consolidacao: ${window.zhFormatDate(data.last_verification_at)}`
+        : "Historico sem verificacoes registradas.";
+      document.getElementById("zh-post-total-updated-at").textContent = updatedAt;
+    } catch (_) {
+      // erro silencioso para nao quebrar o fluxo principal de verificacao
+    }
+  }
+
+  function setFilterLoading(isLoading) {
+    vcenterSelect.disabled = isLoading;
+    datastoreSelect.disabled = isLoading;
+    if (isLoading) {
+      vcenterSelect.innerHTML = `<option value="">Carregando vCenters...</option>`;
+      datastoreSelect.innerHTML = `<option value="">Carregando datastores...</option>`;
+    }
+  }
+
+  function escapeHtml(raw) {
+    return String(raw ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function normalizeHostForMatch(raw) {
+    const value = String(raw || "").trim().toLowerCase();
+    if (!value) return "";
+    const base = value.replace(/^https?:\/\//, "").split("/")[0].trim();
+    if (!base) return "";
+    if (base.includes(":") && base.split(":").length === 2) {
+      return base.split(":")[0].trim();
+    }
+    return base;
+  }
+
+  function renderVcenterOptions() {
+    const options = ['<option value="">Todos os vCenters (opcional)</option>'];
+    state.knownVcenters
+      .slice()
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR") || (a.host || "").localeCompare(b.host || "", "pt-BR"))
+      .forEach((vc) => {
+        const id = Number(vc.id);
+        const host = String(vc.host || "").trim();
+        if (!host || !Number.isFinite(id)) return;
+        const name = String(vc.name || host).trim();
+        options.push(
+          `<option value="${id}" data-host="${escapeHtml(host)}" data-name="${escapeHtml(name)}">` +
+          `${escapeHtml(name)} (${escapeHtml(host)})</option>`
+        );
+      });
+    vcenterSelect.innerHTML = options.join("");
+  }
+
+  function renderDatastoreOptions() {
+    const selectedHostRaw = String(vcenterSelect.selectedOptions?.[0]?.dataset?.host || "").trim();
+    const selectedHost = normalizeHostForMatch(selectedHostRaw);
+    const selectedName = String(vcenterSelect.selectedOptions?.[0]?.dataset?.name || "").trim().toLowerCase();
+    const seen = new Set();
+    const rows = state.knownDatastores
+      .filter((ds) => {
+        const name = String(ds.name || "").trim();
+        if (!name) return false;
+        if (!selectedHost && !selectedName) return true;
+        const dsHostRaw = String(ds.vcenter_host || "").trim();
+        const dsHost = normalizeHostForMatch(dsHostRaw);
+        const dsName = String(ds.vcenter_name || "").trim().toLowerCase();
+        return (
+          (!!selectedHost && dsHost === selectedHost) ||
+          (!!selectedName && dsName === selectedName)
+        );
+      })
+      .sort((a, b) => {
+        const byName = String(a.name || "").localeCompare(String(b.name || ""), "pt-BR");
+        if (byName !== 0) return byName;
+        return String(a.vcenter_host || "").localeCompare(String(b.vcenter_host || ""), "pt-BR");
+      });
+
+    const options = ['<option value="">Selecione um datastore...</option>'];
+    rows.forEach((ds) => {
+      const name = String(ds.name || "").trim();
+      const host = String(ds.vcenter_host || "").trim();
+      const uniqueKey = selectedHost ? name : `${name}@@${host}`;
+      if (seen.has(uniqueKey)) return;
+      seen.add(uniqueKey);
+      const label = selectedHost || !host ? name : `${name} (${host})`;
+      options.push(
+        `<option value="${escapeHtml(name)}" data-host="${escapeHtml(host)}">` +
+        `${escapeHtml(label)}</option>`
+      );
+    });
+
+    datastoreSelect.innerHTML = options.join("");
+    datastoreSelect.disabled = rows.length === 0;
+    if (!rows.length) {
+      datastoreSelect.innerHTML = '<option value="">Nenhum datastore encontrado para o filtro.</option>';
+    }
+  }
+
+  async function loadFilterData() {
+    setFilterLoading(true);
+    try {
+      const [vcentersResp, datastoresResp] = await Promise.all([
+        fetch("/api/v1/vcenters/", { headers: apiHeaders() }),
+        fetch("/api/v1/scan/datastores", { headers: apiHeaders() }),
+      ]);
+
+      if (!vcentersResp.ok || !datastoresResp.ok) {
+        if (vcentersResp.status === 401 || datastoresResp.status === 401) {
+          throw new Error("Credenciais invalidas ou ausentes para carregar vCenters/datastores.");
+        }
+        throw new Error("Falha ao carregar filtros da tela no momento.");
+      }
+
+      const vcentersPayload = await vcentersResp.json();
+      const datastoresPayload = await datastoresResp.json();
+      state.knownVcenters = Array.isArray(vcentersPayload) ? vcentersPayload : [];
+      state.knownDatastores = Array.isArray(datastoresPayload) ? datastoresPayload : [];
+
+      renderVcenterOptions();
+      renderDatastoreOptions();
+
+      if (!state.knownDatastores.length) {
+        showError("Ainda nao ha datastores no historico de varreduras. Rode uma varredura para popular a lista.");
+      }
+    } catch (err) {
+      showError(err?.message || "Nao foi possivel carregar lista de vCenters/datastores agora. Tente novamente em instantes.");
+      vcenterSelect.innerHTML = '<option value="">Falha ao carregar vCenters</option>';
+      datastoreSelect.innerHTML = '<option value="">Falha ao carregar datastores</option>';
+    } finally {
+      vcenterSelect.disabled = false;
+      if (!datastoreSelect.innerHTML.includes("Falha")) {
+        renderDatastoreOptions();
+      }
+    }
+  }
+
+  function statusLabel(status) {
+    if (status === "datastore_removed") return "Datastore Removido";
+    if (status === "partial_cleanup") return "Limpeza Parcial";
+    return "Sem Limpeza";
+  }
+
+  function statusClass(status) {
+    if (status === "datastore_removed") return "zh-post-status-removed";
+    if (status === "partial_cleanup") return "zh-post-status-partial";
+    return "zh-post-status-none";
+  }
+
+  function toCsv(rows) {
+    const headers = ["path", "tipo_zombie", "datacenter", "tamanho_gb", "last_seen_job_id"];
+    const esc = (val) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+    const lines = [headers.join(",")];
+    rows.forEach((r) => {
+      lines.push([
+        esc(r.path),
+        esc(r.tipo_zombie),
+        esc(r.datacenter),
+        esc(Number(r.tamanho_gb || 0).toFixed(3)),
+        esc(r.last_seen_job_id),
+      ].join(","));
+    });
+    return lines.join("\r\n");
+  }
+
+  function downloadBlob(content, mimeType, filename) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function renderBreakdown(payload) {
+    const countMap = payload.deleted_breakdown || {};
+    const sizeMap = payload.deleted_size_breakdown_gb || {};
+    const types = Array.from(new Set([...Object.keys(countMap), ...Object.keys(sizeMap)]));
+    const rows = types
+      .map((type) => ({
+        type,
+        count: Number(countMap[type] || 0),
+        size: Number(sizeMap[type] || 0),
+      }))
+      .filter((row) => row.count > 0 || row.size > 0)
+      .sort((a, b) => b.count - a.count || b.size - a.size);
+
+    if (!rows.length) {
+      breakdownBody.innerHTML = `<tr><td colspan="3" class="text-muted-zh">Sem dados de breakdown.</td></tr>`;
+      return;
+    }
+
+    breakdownBody.innerHTML = rows.map((row) => `
+      <tr>
+        <td>${row.type}</td>
+        <td class="text-end">${row.count.toLocaleString("pt-BR")}</td>
+        <td class="text-end">${row.size.toFixed(3)}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderFiles() {
+    const query = String(searchInput.value || "").trim().toLowerCase();
+    const all = Array.isArray(state.payload?.deleted_vmdks) ? state.payload.deleted_vmdks : [];
+    const rows = all
+      .filter((row) => {
+        if (!query) return true;
+        const hay = `${row.path || ""} ${row.tipo_zombie || ""} ${row.datacenter || ""}`.toLowerCase();
+        return hay.includes(query);
+      })
+      .sort((a, b) => Number(b.tamanho_gb || 0) - Number(a.tamanho_gb || 0));
+
+    state.filteredVmdks = rows;
+
+    if (!rows.length) {
+      filesBody.innerHTML = `<tr><td colspan="5" class="text-muted-zh">Nenhum VMDK excluido encontrado para o filtro informado.</td></tr>`;
+      return;
+    }
+
+    filesBody.innerHTML = rows.map((row) => `
+      <tr>
+        <td class="text-break">${row.path || "-"}</td>
+        <td>${row.tipo_zombie || "-"}</td>
+        <td>${row.datacenter || "-"}</td>
+        <td class="text-end">${Number(row.tamanho_gb || 0).toFixed(3)}</td>
+        <td><code>${row.last_seen_job_id || "-"}</code></td>
+      </tr>
+    `).join("");
+  }
+
+  function renderPayload(payload) {
+    state.payload = payload;
+    resultWrap.classList.remove("d-none");
+
+    document.getElementById("zh-post-timestamp").textContent = `Atualizado em ${window.zhFormatDate(new Date().toISOString())}`;
+    document.getElementById("zh-post-datastore-badge").textContent = `Datastore: ${payload.datastore || "-"}`;
+    document.getElementById("zh-post-baseline-badge").textContent = `Baseline: ${payload.baseline_job_id || "-"}`;
+    document.getElementById("zh-post-verification-badge").textContent = `Verificacao: ${payload.verification_job_id || "-"}`;
+
+    const statusBadge = document.getElementById("zh-post-status-badge");
+    statusBadge.className = `badge ${statusClass(payload.status)}`;
+    statusBadge.textContent = `Status: ${statusLabel(payload.status)}`;
+
+    document.getElementById("zh-post-deleted-count").textContent = Number(payload.deleted_vmdk_count || 0).toLocaleString("pt-BR");
+    document.getElementById("zh-post-deleted-gb").textContent = `${Number(payload.deleted_size_gb || 0).toFixed(3)} GB`;
+    document.getElementById("zh-post-gain-percent").textContent = `${Number(payload.size_gain_percent || 0).toFixed(2)}%`;
+    document.getElementById("zh-post-remaining-count").textContent = Number(payload.remaining_vmdk_count || 0).toLocaleString("pt-BR");
+
+    document.getElementById("zh-post-baseline-size").textContent =
+      `${Number(payload.baseline_size_gb || 0).toFixed(3)} GB (${Number(payload.baseline_size_tb || 0).toFixed(6)} TB)`;
+    document.getElementById("zh-post-deleted-size").textContent =
+      `${Number(payload.deleted_size_gb || 0).toFixed(3)} GB (${Number(payload.deleted_size_tb || 0).toFixed(6)} TB)`;
+    document.getElementById("zh-post-remaining-size").textContent =
+      `${Number(payload.remaining_size_gb || 0).toFixed(3)} GB (${Number(payload.remaining_size_tb || 0).toFixed(6)} TB)`;
+
+    renderBreakdown(payload);
+    renderFiles();
+  }
+
+  async function performVerification(scope) {
+    const datastore = String(scope?.datastore || "").trim();
+    const vcenterHost = String(scope?.vcenterHost || "").trim();
+    const evidenceLimit = Math.max(1, Math.min(5000, Number(scope?.evidenceLimit || 200)));
+    if (!datastore) {
+      throw new Error("Selecione um datastore para verificar.");
+    }
+
+    const params = new URLSearchParams({ datastore, evidence_limit: String(evidenceLimit) });
+    if (vcenterHost) params.set("vcenter_host", vcenterHost);
+
+    const resp = await fetch(`/api/v1/datastore-reports/datastore-deletion-verification?${params.toString()}`, {
+      headers: apiHeaders(),
+    });
+
+    const text = await resp.text();
+    let payload = {};
+    try {
+      payload = text ? JSON.parse(text) : {};
+    } catch (_) {
+      if (!resp.ok) throw new Error(`Falha na verificacao (HTTP ${resp.status}).`);
+    }
+
+    if (!resp.ok) {
+      throw new Error(friendlyError(resp.status, payload.detail));
+    }
+
+    renderPayload(payload);
+    await refreshTotals(datastore, vcenterHost);
+    return payload;
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function waitForScanCompletion(jobId, timeoutMs = 45 * 60 * 1000) {
+    const started = Date.now();
+    while ((Date.now() - started) < timeoutMs) {
+      const resp = await fetch(`/api/v1/scan/jobs/${encodeURIComponent(jobId)}`, {
+        headers: apiHeaders(),
+      });
+      const payload = resp.ok ? await resp.json() : {};
+      if (!resp.ok) {
+        throw new Error(friendlyError(resp.status, payload?.detail));
+      }
+
+      if (payload.status === "completed") return payload;
+      if (payload.status === "failed") {
+        const errors = Array.isArray(payload.error_messages) ? payload.error_messages.filter(Boolean) : [];
+        const detail = errors.length ? errors.join(" | ") : "A varredura terminou com falha.";
+        throw new Error(detail);
+      }
+      await sleep(2500);
+    }
+    throw new Error("Timeout aguardando conclusao da varredura. Consulte o status do job no painel de varredura.");
+  }
+
+  async function runScopedScanAndWait(scope) {
+    const datastore = String(scope?.datastore || "").trim();
+    if (!datastore) throw new Error("Selecione um datastore.");
+
+    const vcMeta = scope?.vcMeta;
+    let vcenterId = Number(vcMeta?.id);
+    if (!Number.isFinite(vcenterId)) {
+      const fallbackHost = String(scope?.vcenterHost || "").trim().toLowerCase();
+      if (fallbackHost) {
+        const fallbackVc = state.knownVcenters.find((vc) => String(vc.host || "").trim().toLowerCase() === fallbackHost);
+        if (fallbackVc && Number.isFinite(Number(fallbackVc.id))) {
+          vcenterId = Number(fallbackVc.id);
+        }
+      }
+    }
+
+    if (!Number.isFinite(vcenterId)) {
+      throw new Error("Selecione um vCenter para executar a varredura focada.");
+    }
+
+    const startResp = await fetch("/api/v1/scan/start-by-datastore", {
+      method: "POST",
+      headers: {
+        ...apiHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        vcenter_ids: [vcenterId],
+        datastores: [datastore],
+      }),
+    });
+
+    const startText = await startResp.text();
+    let startPayload = {};
+    try {
+      startPayload = startText ? JSON.parse(startText) : {};
+    } catch (_) {
+      if (!startResp.ok) throw new Error(`Falha ao iniciar varredura (HTTP ${startResp.status}).`);
+    }
+
+    if (!startResp.ok) {
+      throw new Error(friendlyError(startResp.status, startPayload?.detail));
+    }
+
+    const jobId = String(startPayload.job_id || "").trim();
+    if (!jobId) {
+      throw new Error("Nao foi possivel obter o job_id da varredura.");
+    }
+    state.runningScanJobId = jobId;
+    return await waitForScanCompletion(jobId);
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const scope = getSelectedScope();
+
+    showError(null);
+    setLoading(true);
+
+    try {
+      await performVerification(scope);
+    } catch (err) {
+      showError(err?.message || "Nao foi possivel verificar pos-exclusao.");
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  scanVerifyBtn.addEventListener("click", async () => {
+    const scope = getSelectedScope();
+    showError(null);
+    setScanLoading(true, "Varrendo...");
+
+    try {
+      const job = await runScopedScanAndWait(scope);
+      setScanLoading(true, "Comparando...");
+      await performVerification(scope);
+      const suffix = job?.job_id ? ` (job ${job.job_id})` : "";
+      showSuccess(`Varredura concluida${suffix} e verificacao atualizada com sucesso.`);
+    } catch (err) {
+      showError(err?.message || "Falha ao executar varredura e verificacao.");
+    } finally {
+      setScanLoading(false);
+    }
+  });
+
+  searchInput.addEventListener("input", renderFiles);
+  vcenterSelect.addEventListener("change", () => {
+    renderDatastoreOptions();
+    const scope = getSelectedScope();
+    refreshTotals(scope.datastore || null, scope.vcenterHost || null);
+  });
+  datastoreSelect.addEventListener("change", () => {
+    const scope = getSelectedScope();
+    refreshTotals(scope.datastore || null, scope.vcenterHost || null);
+  });
+
+  exportJsonBtn.addEventListener("click", () => {
+    if (!state.payload) return;
+    downloadBlob(
+      JSON.stringify(state.payload, null, 2),
+      "application/json;charset=utf-8",
+      "post_exclusao_relatorio.json",
+    );
+  });
+
+  exportCsvBtn.addEventListener("click", () => {
+    if (!state.filteredVmdks.length) {
+      showError("Nao ha evidencias filtradas para exportar em CSV.");
+      return;
+    }
+    downloadBlob(
+      toCsv(state.filteredVmdks),
+      "text/csv;charset=utf-8",
+      "post_exclusao_evidencias.csv",
+    );
+  });
+
+  loadFilterData().then(() => refreshTotals(null, null));
+</script>
+{% endblock %}

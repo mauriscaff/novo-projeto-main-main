@@ -34,6 +34,67 @@ class ScanStartRequest(BaseModel):
         ),
         examples=[["Datacenter-Producao", "Datacenter-DR"]],
     )
+    datastores: list[str] | None = Field(
+        default=None,
+        description=(
+            "Datastores (LUNs) a varrer nos Datacenters escolhidos. "
+            "Omita para varrer TODOS os Datastores."
+        ),
+        examples=[["ds-prod-01", "ds-backup-02"]],
+    )
+
+
+class ScanStartByDatastoreRequest(BaseModel):
+    """
+    Requisição para varredura com escopo explícito por datastore.
+    Diferente de ScanStartRequest, datastores é obrigatório.
+    """
+
+    vcenter_ids: list[int | str] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Lista de vCenters a varrer. Aceita IDs inteiros ou nomes (string). "
+            "Exemplo: [1, 2] ou [\"vcenter-prod\", \"vcenter-dr\"]"
+        ),
+        examples=[[1, 2]],
+    )
+    datastores: list[str] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Datastores (LUNs) a varrer. Obrigatório neste endpoint."
+        ),
+        examples=[["ds-prod-01", "ds-backup-02"]],
+    )
+    datacenters: list[str] | None = Field(
+        default=None,
+        description=(
+            "Datacenters a varrer em cada vCenter. "
+            "Omita para varrer TODOS os Datacenters de cada vCenter."
+        ),
+        examples=[["Datacenter-Producao", "Datacenter-DR"]],
+    )
+
+    @field_validator("datastores", "datacenters", mode="before")
+    @classmethod
+    def normalize_string_lists(cls, value):
+        if value is None:
+            return value
+        if not isinstance(value, list):
+            return value
+        cleaned: list[str] = []
+        for item in value:
+            text = str(item).strip()
+            if text:
+                cleaned.append(text)
+        return cleaned
+
+    @model_validator(mode="after")
+    def validate_required_datastores(self):
+        if not self.datastores:
+            raise ValueError("datastores deve conter ao menos um nome de datastore.")
+        return self
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -78,6 +139,7 @@ class ScanJobBase(BaseModel):
     job_id: str
     vcenter_ids: list[int | str]
     datacenters: list[str] | None
+    datastores: list[str] | None
     status: str
     started_at: datetime | None
     finished_at: datetime | None

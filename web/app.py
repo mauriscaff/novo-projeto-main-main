@@ -270,6 +270,11 @@ def web_scan_results_job(job_id: str):
     return render_template("scan_results.html", **ctx)
 
 
+@app.get("/operations/post-exclusion-report")
+def web_post_exclusion_report():
+    return render_template("post_exclusion_report.html", **_base_ctx())
+
+
 @app.get("/approvals")
 def web_approvals():
     return render_template("approvals.html", **_base_ctx())

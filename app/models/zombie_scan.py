@@ -7,7 +7,7 @@ o sistema legado de varredura por threshold de dias.
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Integer, JSON, String, Text, func
+from sqlalchemy import DateTime, Float, Index, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -27,6 +27,9 @@ class ZombieScanJob(Base):
 
     datacenters: Mapped[list | None] = mapped_column(JSON, nullable=True)
     """Nomes dos Datacenters varredos; NULL = todos os Datacenters de cada vCenter."""
+
+    datastores: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    """Nomes explícitos dos Datastores/LUNs a varrer; NULL = todos os Datastores dos Datacenters acima."""
 
     # Estado do job
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
@@ -55,6 +58,10 @@ class ZombieVmdkRecord(Base):
     """Resultado individual de um VMDK zombie detectado durante uma varredura."""
 
     __tablename__ = "zombie_vmdk_records"
+    __table_args__ = (
+        Index("ix_zombie_vmdk_job_datastore_path", "job_id", "datastore", "path"),
+        Index("ix_zombie_vmdk_job_datastore_tipo_size", "job_id", "datastore", "tipo_zombie", "tamanho_gb"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     job_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)

@@ -32,6 +32,7 @@ from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+_MISSING_DATASTORE_SCOPE_PREFIX = "Datastore(s) nao encontrado(s) no escopo informado:"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Progresso em tempo real (in-memory, thread-safe)
@@ -166,6 +167,14 @@ async def run_zombie_scan(
         await db.commit()
 
     errors: list[str] = []
+    requested_datastores_by_lower: dict[str, str] = {}
+    if target_datastores:
+        for ds in target_datastores:
+            cleaned = (ds or "").strip()
+            if cleaned:
+                requested_datastores_by_lower.setdefault(cleaned.lower(), cleaned)
+    normalized_target_datastores = list(requested_datastores_by_lower.values()) or None
+
     # Elementos: (vc_id, vc_name, vc_host, dc_name)
     scan_pairs: list[tuple[int, str, str, str]] = []
 
@@ -303,7 +312,7 @@ async def run_zombie_scan(
                     min_file_size_mb=settings.min_file_size_mb,
                     progress_callback=cb,
                     global_vmdk_paths=global_vmdk_paths,
-                    target_datastores=target_datastores, # Pass the new parameter
+                    target_datastores=normalized_target_datastores,
                 )
             except Exception as exc:
                 exc_str = str(exc)
@@ -323,7 +332,7 @@ async def run_zombie_scan(
                             min_file_size_mb=settings.min_file_size_mb,
                             progress_callback=cb,
                             global_vmdk_paths=global_vmdk_paths,
-                            target_datastores=target_datastores, # Pass the new parameter
+                            target_datastores=normalized_target_datastores,
                         )
                     except Exception as exc2:
                         msg = f"{vc_name}/{dc_name}: reconexão falhou — {exc2}"
@@ -412,6 +421,23 @@ async def run_zombie_scan(
                     errors.append(err)
                 all_metrics.extend(metrics)
 
+        if requested_datastores_by_lower:
+            scanned_by_lower = {
+                (m.datastore_name or "").strip().lower()
+                for m in all_metrics
+                if (m.datastore_name or "").strip()
+            }
+            missing_targets = [
+                requested_datastores_by_lower[k]
+                for k in requested_datastores_by_lower
+                if k not in scanned_by_lower
+            ]
+            if missing_targets:
+                errors.append(
+                    _MISSING_DATASTORE_SCOPE_PREFIX + " "
+                    + ", ".join(missing_targets)
+                )
+
         async with AsyncSessionLocal() as db:
             job = await db.get(ZombieScanJob, job_id)
             size_q = await db.execute(
@@ -420,7 +446,15 @@ async def run_zombie_scan(
                 )
             )
             total_size_gb = float(size_q.scalar_one())
-            job.status = "failed" if (errors and total_found == 0) else "completed"
+            had_successful_ds_scan = len(all_metrics) > 0
+            only_missing_scope_error = bool(errors) and all(
+                str(msg).startswith(_MISSING_DATASTORE_SCOPE_PREFIX) for msg in errors
+            )
+            job.status = (
+                "failed"
+                if (errors and not had_successful_ds_scan and not only_missing_scope_error)
+                else "completed"
+            )
             job.finished_at = datetime.now(timezone.utc)
             job.total_vmdks = total_found
             job.total_size_gb = total_size_gb

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, text
 
-from app.api.routes import auth, vcenter, scan, scanner, schedules, webhooks, dashboard, approvals
+from app.api.routes import approvals, auth, dashboard, datastore_reports, scan, scanner, schedules, vcenter, webhooks
 from app.core.scheduler import scheduler, start as scheduler_start, stop as scheduler_stop
 from app.core.vcenter.connection_manager import connection_manager
 from app.models.base import AsyncSessionLocal, init_db
@@ -93,6 +93,7 @@ app.include_router(auth.router,      prefix="/api/v1/auth",       tags=["Autenti
 app.include_router(vcenter.router,   prefix="/api/v1/vcenters",   tags=["vCenters"])
 app.include_router(scan.router,      prefix="/api/v1/scans",      tags=["Varredura VMDK (legado)"])
 app.include_router(scanner.router,   prefix="/api/v1/scan",       tags=["Varredura Zombie"])
+app.include_router(datastore_reports.router, prefix="/api/v1/datastore-reports", tags=["Datastore Reports"])
 app.include_router(schedules.router, prefix="/api/v1/schedules",  tags=["Agendamentos"])
 app.include_router(webhooks.router,   prefix="/api/v1/webhooks",   tags=["Webhooks"])
 app.include_router(dashboard.router,  prefix="/api/v1/dashboard",  tags=["Dashboard"])
@@ -172,6 +173,12 @@ async def web_scan_results_job(request: Request, job_id: str):
     ctx = await _base_ctx(request)
     ctx["job_id"] = job_id
     return templates.TemplateResponse("scan_results.html", ctx)
+
+
+@app.get("/operations/post-exclusion-report", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_post_exclusion_report(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("post_exclusion_report.html", ctx)
 
 
 @app.get("/approvals", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)

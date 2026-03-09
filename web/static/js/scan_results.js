@@ -27,6 +27,7 @@ const API_RESULTS = "/api/v1/scan/results";
 const API_VCENTERS = "/api/v1/vcenters";
 const API_APPROVALS = "/api/v1/approvals";
 const PAGE_SIZES = [25, 50, 100, 200];
+const LIVE_RESULTS_REFRESH_MS = 6000;
 
 /** Metadados de cada tipo zombie — cores por especificação */
 const ZM = {
@@ -86,6 +87,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 let _pollTimer = null;
 let _lastJobStatus = null;
 let _lastStepCount = 0;  // Para detectar novos passos sem re-renderizar tudo
+let _lastResultsRefreshTs = 0;
+let _resultsRefreshInFlight = false;
 
 async function _startJobPolling(jobId) {
   await _fetchJobStatus(jobId);
@@ -145,6 +148,7 @@ async function _fetchJobStatus(jobId) {
       // ── Painel de log de passos ────────────────────────────────────────────
       const steps = prog.steps || [];
       _renderProgressLog(steps);
+      _maybeRefreshRealtimeResults();
 
       // Agenda próxima verificação
       if (_pollTimer) clearTimeout(_pollTimer);
@@ -182,6 +186,19 @@ async function _fetchJobStatus(jobId) {
   } catch (_) { /* falha silenciosa */ }
 }
 
+function _maybeRefreshRealtimeResults() {
+  if (!dtInstance || _resultsRefreshInFlight || document.hidden) return;
+  const now = Date.now();
+  if ((now - _lastResultsRefreshTs) < LIVE_RESULTS_REFRESH_MS) return;
+
+  _resultsRefreshInFlight = true;
+  const unlockTimer = setTimeout(() => { _resultsRefreshInFlight = false; }, 10000);
+  dtInstance.ajax.reload(() => {
+    clearTimeout(unlockTimer);
+    _lastResultsRefreshTs = Date.now();
+    _resultsRefreshInFlight = false;
+  }, false);
+}
 // ── Painel de log de progresso ────────────────────────────────────────────────
 
 const _STEP_ICON = { info: "ℹ️", success: "✅", warning: "⚠️", error: "❌" };
@@ -623,18 +640,89 @@ function _injectExportButtons() {
   const wrapper = document.querySelector(".zh-export-btns");
   if (!wrapper || wrapper.querySelector(".zh-export-csv")) return;
 
-  const jobId = document.getElementById("f-job-id")?.value ?? "";
+  const _buildExportUrl = (fmt) => {
+    const jobId = String(document.getElementById("f-job-id")?.value ?? "").trim();
+    if (jobId) {
+      return `/api/v1/scan/results/${encodeURIComponent(jobId)}/export?format=${fmt}`;
+    }
+
+    const first = dtInstance?.row?.(0)?.data?.();
+    const fallbackJobId = String(first?.job_id ?? "").trim();
+    if (fallbackJobId) {
+      return `/api/v1/scan/results/${encodeURIComponent(fallbackJobId)}/export?format=${fmt}`;
+    }
+
+    return "";
+  };
+
+  const _extractFilename = (contentDisposition, fallbackName) => {
+    if (!contentDisposition) return fallbackName;
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      try { return decodeURIComponent(utf8Match[1]); } catch (_) { /* ignore */ }
+    }
+    const plainMatch = contentDisposition.match(/filename="?([^\";]+)"?/i);
+    return plainMatch?.[1] || fallbackName;
+  };
+
+  const _downloadExportWithAuth = async (url, fallbackName) => {
+    const resp = await fetch(url, {
+      headers: {
+        "X-API-Key": window.ZH_API_KEY || "",
+        Accept: "application/json, text/csv, application/octet-stream",
+      },
+    });
+
+    if (!resp.ok) {
+      let message = `Falha ao exportar (HTTP ${resp.status}).`;
+      try {
+        const ct = (resp.headers.get("content-type") || "").toLowerCase();
+        if (ct.includes("application/json")) {
+          const payload = await resp.json();
+          if (typeof payload?.detail === "string" && payload.detail.trim()) message = payload.detail;
+        } else {
+          const text = await resp.text();
+          if (text && text.trim()) message = text.trim();
+        }
+      } catch (_) { /* ignore parse errors */ }
+      throw new Error(message);
+    }
+
+    const filename = _extractFilename(
+      resp.headers.get("content-disposition") || "",
+      fallbackName
+    );
+    const blob = await resp.blob();
+    const fileUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = fileUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(fileUrl);
+  };
 
   const mkBtn = (fmt, icon, cls) => {
-    const btn = document.createElement("a");
+    const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = `btn btn-sm btn-outline-secondary zh-export-${fmt} d-flex align-items-center gap-1`;
     btn.style.cssText = "font-size:.75rem;padding:2px 8px;";
     btn.title = `Exportar ${fmt.toUpperCase()}`;
     btn.innerHTML = `<i class="bi ${icon}"></i> ${fmt.toUpperCase()}`;
-    btn.href = jobId
-      ? `/api/v1/scan/results/${jobId}/export?format=${fmt}`
-      : `/api/v1/scan/results/export?format=${fmt}`;
-    btn.target = "_blank";
+    btn.addEventListener("click", async () => {
+      try {
+        const exportUrl = _buildExportUrl(fmt);
+        if (!exportUrl) {
+          throw new Error("Nenhum job carregado para exportar. Rode/seleciona uma varredura e tente novamente.");
+        }
+        const fallback = `vmdk_zombie_export.${fmt}`;
+        await _downloadExportWithAuth(exportUrl, fallback);
+      } catch (err) {
+        const msg = err?.message || "Não foi possível exportar agora.";
+        if (typeof window.alert === "function") window.alert(msg);
+      }
+    });
     return btn;
   };
 

@@ -1,0 +1,1271 @@
+INFO:     Started server process [20276]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\errors.py", line 187, in __call__
+    raise exc
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\Downloads\novo-projeto-main-main\novo-projeto-main-main\main.py", line 154, in web_dashboard
+    return templates.TemplateResponse("dashboard.html", ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\templating.py", line 208, in TemplateResponse
+    template = self.get_template(name)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\templating.py", line 131, in get_template
+    return self.env.get_template(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\mscaff\Downloads\novo-projeto-main-main\novo-projeto-main-main\web\templates\dashboard.html", line 500, in template
+    const ZH_VCENTER_STATUS = {{ vcenter_status | tojson if vcenter_status else '[]' }};
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\errors.py", line 187, in __call__
+    raise exc
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\Downloads\novo-projeto-main-main\novo-projeto-main-main\main.py", line 154, in web_dashboard
+    return templates.TemplateResponse("dashboard.html", ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\templating.py", line 208, in TemplateResponse
+    template = self.get_template(name)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\templating.py", line 131, in get_template
+    return self.env.get_template(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+  File "C:\Users\mscaff\AppData\Local\Programs\Python\Python312\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\mscaff\Downloads\novo-projeto-main-main\novo-projeto-main-main\web\templates\dashboard.html", line 500, in template
+    const ZH_VCENTER_STATUS = {{ vcenter_status | tojson if vcenter_status else '[]' }};
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
+SKIP (recente 26 dias < 60) tamanho=390.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7968b863-d6cc-78fa-9959-e4434b799930S1382 - MS DOCKER MANAGER.vmdk
+SKIP (recente 0 dias < 60) tamanho=484.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-fe17-0950-16f5-e4434b79a100S0515 - FUNDESPORTE FILE SERVIDOR PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1143.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-6c5a-0a56-ef6f-e4434b79a0e0S0194 - SAD SEGRH FILE SERVER PROD_1.vmdk
+SKIP (recente 20 dias < 60) tamanho=200.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] b66d0465-84cd-fa2b-521d-e4434b799e80S0246 - SEFAZ KUBEWORKER DOCKER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=952.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 83616968-76dc-1070-e88f-e4434b799e80S0134 - CGE FILE SERVER PRODUÇÃO_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=602.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-5afc-7951-8b6b-e4434b79a100S531 - SEAD FILE SERVER VALE RENDA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1758.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-e4b5-844e-0018-e4434b79a100S0562 - FUNDTUR FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=10173.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 04296768-aa0d-59e9-148f-e4434b799e80S0078 - SEFAZ FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4178.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 04296768-aa0d-59e9-148f-e4434b799e80S0078 - SEFAZ FILE SERVER PROD_1.vmdk
+SKIP (recente 20 dias < 60) tamanho=200.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] cc639e62-16a6-8ca4-f5d3-e4434b79a0e0S1478 - SEFAZ KUBEWORKER.vmdk
+SKIP (recente 0 dias < 60) tamanho=442.9 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] b6a56a68-d2be-d55f-e65a-e4434b799e80S0039 - FUNTRAB FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4826.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-c439-8759-74e5-e4434b79a0e0S0353 - SEFAZ FILE SERVER IMAGENS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=10208.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-fab8-1cd3-a62f-e4434b799930S1083 - MS REPOSITORIO SISTEMAS PROD_12.vmdk
+SKIP (recente 0 dias < 60) tamanho=330.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-fab8-1cd3-a62f-e4434b799930S1083 - MS REPOSITORIO SISTEMAS PROD_11.vmdk
+SKIP (recente 0 dias < 60) tamanho=2160.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-3c92-f56a-c727-e4434b79a0e0S0195 - AGEPREV FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2215.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-62ec-a670-92da-e4434b79a100S0574 - FCMS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=108.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-62ec-a670-92da-e4434b79a100S0574 - FCMS FILE SERVER PROD.vmdk
+SKIP (recente 33 dias < 60) tamanho=200.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 71a9c563-ac00-e9ad-c185-e4434b79a070S1058 - SEFAZ KUBEWORKER KANIKO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1277.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-e241-ffd2-f45e-e4434b799930S0523- IAGRO FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=481.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 891e6768-d09e-5849-2031-e4434b799e80S0347 - SEFAZ%2fPGE FILE SERVER INTERIOR PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4161.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] ee907a68-6047-8aac-78e2-e4434b799e80S1060 - SES FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5929.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] ee907a68-6047-8aac-78e2-e4434b799e80S1060 - SES FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2785.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] f4b88767-2205-fe0b-56ed-e4434b79a100S0653 - SEFAZ NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2792.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 891e6768-fe69-cd4b-0ec7-e4434b799e80S0692 - DPGE FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2515.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 891e6768-fe69-cd4b-0ec7-e4434b799e80S0692 - DPGE FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1726.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] fc776668-b40c-822d-adc1-e4434b799e80S354 - SEAD FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=204.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_11.vmdk
+SKIP (recente 0 dias < 60) tamanho=204.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_15.vmdk
+SKIP (recente 0 dias < 60) tamanho=102.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=102.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_12.vmdk
+SKIP (recente 0 dias < 60) tamanho=408.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_16.vmdk
+SKIP (recente 0 dias < 60) tamanho=3293.9 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4c796d68-b8d0-af31-bd86-e4434b799930S0044 - HRMS FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1157.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-aa7e-fbd2-3ffd-e4434b799930S0524 - SEMAGRO FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2894.9 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-ccc9-f64f-9946-e4434b79a100S0419 - PGE FILE SERVER PROD_1.vmdk
+SKIP (recente 34 dias < 60) tamanho=200.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 82f48c62-ce6e-96b4-32b7-e4434b799930TEMPLATE - AlmaLinux 8 VXRAIL.vmdk
+SKIP (recente 0 dias < 60) tamanho=3446.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-d89c-8659-1015-e4434b79a0e0S0533 - SAD FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=261.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 17eca95f-3260-758b-24b2-e4434b79a0e0VxRail_Manager(New).vmdk
+SKIP (recente 0 dias < 60) tamanho=261.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 17eca95f-3260-758b-24b2-e4434b79a0e0VxRail_Manager(New)_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4208.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] f7e61563-7445-b059-4f30-e4434b79a0e0S0448 - SEFAZ NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5223.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5571.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=333.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=1207.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_3.vmdk
+[DTC-SGI] [7/7] Datastore 'VeeamBackup_s0550' inacessível — pulando.
+[BRASILIA] [1/1] Datastore 'S1727 - DST A' inacessível — pulando.
+[DTC-SGI] [1/57] Datastore 'S1302 - DST A' inacessível — pulando.
+[DTC-SGI] [2/57] Datastore 'STA_LUN_17' inacessível — pulando.
+SKIP (recente 46 dias < 60) tamanho=108.5 GB: [S1603 - DST B] CP20087 - CLUSTER NIFI ETLs/CP20087 - CLUSTER NIFI ETLs_1.vmdk
+SKIP (recente 46 dias < 60) tamanho=427.6 GB: [S1603 - DST B] CP20048 - CLUSTER NIFI INTEGRACAO/CP20048 - CLUSTER NIFI INTEGRACAO_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=226.3 GB: [S1610 - DST B] CP20134 - CLUSTER STARROCKS2 (FE)/CP20134 - CLUSTER STARROCKS2 (FE)_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=1154.9 GB: [S1610 - DST B] CP20140%09CLUSTER STARROCKS2 (CN)/CP20140%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=1165.0 GB: [S1610 - DST B] CP20141%09CLUSTER STARROCKS2 (CN)/CP20141%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 33 dias < 60) tamanho=1024.0 GB: [S0002 - DST B] S0133 - AGEPEN FILE SERVER PROD/S0133 - AGEPEN FILE SERVER PROD_1.vmdk
+SKIP (recente 57 dias < 60) tamanho=224.0 GB: [S1608 - DST B] CP20132 - CLUSTER STARROCKS2 (FE)_1/CP20132 - CLUSTER STARROCKS2 (FE)_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=1166.8 GB: [S1608 - DST B] CP20136%09CLUSTER STARROCKS2 (CN)/CP20136%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=1148.0 GB: [S1608 - DST B] CP20137%09CLUSTER STARROCKS2 (CN)/CP20137%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 44 dias < 60) tamanho=500.0 GB: [S1607 - DST B] CP20052 - CLUSTER NIFI INTEGRACAO/CP20052 - CLUSTER NIFI INTEGRACAO_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=221.7 GB: [STB_LUN_02] S1464 - SED BI QLIK SENSE PROD/S1464 - SED BI QLIK SENSE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=4436.5 GB: [STB_LUN_02] S0517 - IMASUL FILE SERVER PROD/S0517 - IMASUL FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=139.3 GB: [STB_LUN_02] S1707 - SEGOV NFS SECOM PROD/S1707 - SEGOV NFS SECOM PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=800.0 GB: [STB_LUN_02] S1707 - SEGOV NFS SECOM PROD/S1707 - SEGOV NFS SECOM PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_02] S1707 - SEGOV NFS SECOM PROD/S1707 - SEGOV NFS SECOM PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=143.3 GB: [STB_LUN_02] S1930 - MS SQL COTIN PROD/S1930 - MS SQL COTIN PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=101.2 GB: [STB_LUN_02] S1930 - MS SQL COTIN PROD/S1930 - MS SQL COTIN PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2374.8 GB: [STB_LUN_02] S1930 - MS SQL COTIN PROD/S1930 - MS SQL COTIN PROD_1.vmdk
+SKIP (recente 28 dias < 60) tamanho=1882.0 GB: [STB_LUN_02] S1636 - IMASUL ARCGIS REPOSITORIO PROD/S1636 - IMASUL ARCGIS REPOSITORIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_02] S1636 - IMASUL ARCGIS REPOSITORIO PROD/S1636 - IMASUL ARCGIS REPOSITORIO PROD_2.vmdk
+SKIP (recente 47 dias < 60) tamanho=499.9 GB: [S1604 - DST B] CP20049 - CLUSTER NIFI INTEGRACAO/CP20049 - CLUSTER NIFI INTEGRACAO_1.vmdk
+[DTC-SGI] [21/75] Datastore 'VeeamBackup_s0552.ms' inacessível — pulando.
+[DTC-SGI] [29/75] Datastore 'VeeamBackup_s0550' inacessível — pulando.
+SKIP (recente 39 dias < 60) tamanho=3062.0 GB: [S1821 - DST B] CP20076 - CLUSTER MINIO PROD1/CP20076 - CLUSTER MINIO PROD1_2.vmdk
+SKIP (recente 39 dias < 60) tamanho=2968.0 GB: [S1821 - DST B] CP20076 - CLUSTER MINIO PROD1/CP20076 - CLUSTER MINIO PROD1_1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2955.2 GB: [S1821 - DST B] CP20080 - CLUSTER MINIO PROD1/CP20080 - CLUSTER MINIO PROD1_3.vmdk
+SKIP (recente 39 dias < 60) tamanho=2959.3 GB: [S1821 - DST B] CP20080 - CLUSTER MINIO PROD1/CP20080 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2978.2 GB: [S1821 - DST B] CP20074 - CLUSTER MINIO PROD1/CP20074 - CLUSTER MINIO PROD1_2.vmdk
+SKIP (recente 39 dias < 60) tamanho=2975.2 GB: [S1821 - DST B] CP20074 - CLUSTER MINIO PROD1/CP20074 - CLUSTER MINIO PROD1_1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2971.3 GB: [S1821 - DST B] CP20083 - CLUSTER MINIO PROD1/CP20083 - CLUSTER MINIO PROD1_3.vmdk
+SKIP (recente 39 dias < 60) tamanho=2976.9 GB: [S1821 - DST B] CP20083 - CLUSTER MINIO PROD1/CP20083 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 0 dias < 60) tamanho=136.0 GB: [STB_LUN_07] S0940 - SAD UNIVERSALRH WEBLOGIC PROD/S0940 - SAD UNIVERSALRH WEBLOGIC PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=120.0 GB: [STB_LUN_07] S0326 - SGI GERENCIAMENTO DBA PROD/S0326 - SGI GERENCIAMENTO DBA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=146.6 GB: [STB_LUN_07] S0817 - IMASUL SISTEMA CERBERUS PROD/S0817 - IMASUL SISTEMA CERBERUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=197.3 GB: [STB_LUN_07] S0817 - IMASUL SISTEMA CERBERUS PROD/S0817 - IMASUL SISTEMA CERBERUS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=116.1 GB: [STB_LUN_07] S0363 - SGI WFE SHAREPOINT PROD/S0363 - SGI WFE SHAREPOINT PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STB_LUN_07] S1010 - SEFAZ INFRA ZIMBRA MBOX2 PROD/S1010 - SEFAZ INFRA ZIMBRA MBOX2 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3357.1 GB: [STB_LUN_07] S0204 - SED FILE SERVER PROD/S0204 - SED FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STB_LUN_07] S1762 - CSIC IPM SQL SERVER PROD/S1762 - CSIC IPM SQL SERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=650.0 GB: [STB_LUN_07] S1762 - CSIC IPM SQL SERVER PROD/S1762 - CSIC IPM SQL SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STB_LUN_07] S1762 - CSIC IPM SQL SERVER PROD/S1762 - CSIC IPM SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STB_LUN_07] S0275 - PROCON MINIO NFS PROD/S0275 - PROCON MINIO NFS PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=289.5 GB: [STB_LUN_07] S1531 - COTIN ANACONDA PROD/S1531 - COTIN ANACONDA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1766.4 GB: [STB_LUN_07] S0047 - SGI FILE SERVER PROD/S0047 - SGI FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STB_LUN_07] S0833 - SGI NFS E-KRONOS PROD/S0833 - SGI NFS E-KRONOS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=199.8 GB: [STB_LUN_07] S0891 - SEFAZ ITC008 PROD/S0891 - SEFAZ ITC008 PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=739.6 GB: [STB_LUN_07] S0891 - SEFAZ ITC008 PROD/S0891 - SEFAZ ITC008 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STB_LUN_07] S0059 - SAD SISTEMA RH-BIRH DWRH PROD/S0059 - SAD SISTEMA RH-BIRH DWRH PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=251.2 GB: [STB_LUN_07] S0483 - PROCON FILE SERVER PROD/S0483 - PROCON FILE SERVER PROD_1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2973.0 GB: [S1820 - DST B] CP20077 - CLUSTER MINIO PROD1/CP20077 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2966.6 GB: [S1820 - DST B] CP20077 - CLUSTER MINIO PROD1/CP20077 - CLUSTER MINIO PROD1_1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2965.2 GB: [S1820 - DST B] CP20079 - CLUSTER MINIO PROD1/CP20079 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2955.6 GB: [S1820 - DST B] CP20079 - CLUSTER MINIO PROD1/CP20079 - CLUSTER MINIO PROD1_1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2963.6 GB: [S1820 - DST B] CP20073 - CLUSTER MINIO PROD1/CP20073 - CLUSTER MINIO PROD1_6.vmdk
+SKIP (recente 39 dias < 60) tamanho=2966.8 GB: [S1820 - DST B] CP20073 - CLUSTER MINIO PROD1/CP20073 - CLUSTER MINIO PROD1_5.vmdk
+SKIP (recente 39 dias < 60) tamanho=2974.1 GB: [S1820 - DST B] CP20082 - CLUSTER MINIO PROD1/CP20082 - CLUSTER MINIO PROD1_3.vmdk
+SKIP (recente 39 dias < 60) tamanho=2972.4 GB: [S1820 - DST B] CP20082 - CLUSTER MINIO PROD1/CP20082 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4012.3 GB: [STB_LUN_06] S276 - DPGE FILE SERVER PROD/S276 - DPGE FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=204.2 GB: [STB_LUN_06] S276 - DPGE FILE SERVER PROD/S276 - DPGE FILE SERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=850.4 GB: [STB_LUN_06] S276 - DPGE FILE SERVER PROD/S276 - DPGE FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_06] S1142 - SEMADESC ARCGIS PROD/S1142 - SEMADESC ARCGIS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5122.0 GB: [STB_LUN_06] S1142 - SEMADESC ARCGIS PROD/S1142 - SEMADESC ARCGIS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=313.1 GB: [STB_LUN_06] S0513 - SGI EAST GITLABS PROD/S0513 - SGI EAST GITLABS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=152.5 GB: [STB_LUN_06] S0518 - SEFAZ AGENFA FTP MIA PROD/S0518 - SEFAZ AGENFA FTP MIA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=101.3 GB: [STB_LUN_06] S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD/S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD_1.vmdk
+SKIP (recente 5 dias < 60) tamanho=312.8 GB: [STB_LUN_06] S0513 - SGI EAST GITLABS PROD_restored_restored/S0513 - SGI EAST GITLABS PROD_restored_restored.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_06] S0199 - GEOI2 MINIO NFS PROD/S0199 - GEOI2 MINIO NFS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STB_LUN_06] S0199 - GEOI2 MINIO NFS PROD/S0199 - GEOI2 MINIO NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=613.1 GB: [STB_LUN_06] S1765 - SEJUSP BCADASTRO PROD/S1765 - SEJUSP BCADASTRO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=306.9 GB: [STB_LUN_06] S1765 - SEJUSP BCADASTRO PROD/S1765 - SEJUSP BCADASTRO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=298.7 GB: [STB_LUN_06] S0010 - DPGE IMPRESSAO PROD/S0010 - DPGE IMPRESSAO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=132.5 GB: [STB_LUN_06] S0530 - SEAD FILE SERVER VALE UNIVERSIDADE PROD/S0530 - SEAD FILE SERVER VALE UNIVERSIDADE PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STB_LUN_06] S1831 - SEGOV ZABBIX DB PROD/S1831 - SEGOV ZABBIX DB PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=448.9 GB: [STB_LUN_06] S1115 - CIOPS FILE SERVER PROD/S1115 - CIOPS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_06] S0456 - SETDIG REPORT SERVER 22 PROD/S0456 - SETDIG REPORT SERVER 22 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=499.9 GB: [STB_LUN_06] S0312 - SEFAZ IBM SPSS MODELER PREMIUM PROD/S0312 - SEFAZ IBM SPSS MODELER PREMIUM PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=809.8 GB: [STB_LUN_06] S0101 - SGI FILE SERVER PROD/S0101 - SGI FILE SERVER PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=300.0 GB: [STB_LUN_01] S1693 - IMASUL LICENCIAMENTO AMBIENTAL PROD/S1693 - IMASUL LICENCIAMENTO AMBIENTAL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=494.1 GB: [STB_LUN_01] S1474 - DETRAN CLGED PROD/S1474 - DETRAN CLGED PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=700.0 GB: [STB_LUN_01] S1692 - IMASUL APLIC GEORREFERENCIADAS PROD/S1692 - IMASUL APLIC GEORREFERENCIADAS PROD_1.vmdk
+SKIP (recente 2 dias < 60) tamanho=346.3 GB: [STB_LUN_01] S1315 - SEFAZ QLIKVIEW REPOSITORIO PROD/S1315 - SEFAZ QLIKVIEW REPOSITORIO PROD_1.vmdk
+SKIP (recente 20 dias < 60) tamanho=2887.0 GB: [STB_LUN_01] S1905 - MBOX2 WEBMAIL PROD/S1905 - MBOX2 WEBMAIL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=118.8 GB: [STB_LUN_01] S1230 - DPGE NOC PROD/S1230 - DPGE NOC PROD.vmdk
+SKIP (recente 21 dias < 60) tamanho=3163.3 GB: [STB_LUN_01] S1904 - MBOX1 WEBMAIL PROD/S1904 - MBOX1 WEBMAIL PROD_1.vmdk
+SKIP (recente 42 dias < 60) tamanho=200.0 GB: [STB_LUN_01] S0502 - COTIN SQL SERVER HOM/S0502 - COTIN SQL SERVER HOM_3.vmdk
+SKIP (recente 42 dias < 60) tamanho=5120.0 GB: [STB_LUN_01] S0502 - COTIN SQL SERVER HOM/S0502 - COTIN SQL SERVER HOM_4.vmdk
+SKIP (recente 42 dias < 60) tamanho=3788.8 GB: [STB_LUN_01] S0502 - COTIN SQL SERVER HOM/S0502 - COTIN SQL SERVER HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4437.5 GB: [STB_LUN_03] S1210 - SEINFRA FILE SERVER PROD/S1210 - SEINFRA FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3795.6 GB: [STB_LUN_03] S1210 - SEINFRA FILE SERVER PROD/S1210 - SEINFRA FILE SERVER PROD_2.vmdk
+SKIP (recente 56 dias < 60) tamanho=1150.4 GB: [S1611 - DST B] CP20142%09CLUSTER STARROCKS2 (CN)/CP20142%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=1157.8 GB: [S1611 - DST B] CP20143%09CLUSTER STARROCKS2 (CN)/CP20143%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 51 dias < 60) tamanho=433.7 GB: [S0127 - DST B] S0919 - COTIN TABLEAU PROD/S0919 - COTIN TABLEAU PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=6657.0 GB: [S0127 - DST B] S0914 - COTIN SQL SERVER PROD/S0914 - COTIN SQL SERVER PROD_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=1145.4 GB: [S1609 - DST B] CP20139%09CLUSTER STARROCKS2 (CN)/CP20139%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 57 dias < 60) tamanho=249.6 GB: [S1609 - DST B] CP20133 - CLUSTER STARROCKS2 (FE)/CP20133 - CLUSTER STARROCKS2 (FE)_1.vmdk
+SKIP (recente 56 dias < 60) tamanho=1143.2 GB: [S1609 - DST B] CP20138%09CLUSTER STARROCKS2 (CN)/CP20138%09CLUSTER STARROCKS2 (CN)_1.vmdk
+SKIP (recente 26 dias < 60) tamanho=390.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7968b863-d6cc-78fa-9959-e4434b799930S1382 - MS DOCKER MANAGER.vmdk
+SKIP (recente 0 dias < 60) tamanho=484.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-fe17-0950-16f5-e4434b79a100S0515 - FUNDESPORTE FILE SERVIDOR PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1143.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-6c5a-0a56-ef6f-e4434b79a0e0S0194 - SAD SEGRH FILE SERVER PROD_1.vmdk
+SKIP (recente 20 dias < 60) tamanho=200.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] b66d0465-84cd-fa2b-521d-e4434b799e80S0246 - SEFAZ KUBEWORKER DOCKER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=952.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 83616968-76dc-1070-e88f-e4434b799e80S0134 - CGE FILE SERVER PRODUÇÃO_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=602.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-5afc-7951-8b6b-e4434b79a100S531 - SEAD FILE SERVER VALE RENDA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1758.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-e4b5-844e-0018-e4434b79a100S0562 - FUNDTUR FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=10173.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 04296768-aa0d-59e9-148f-e4434b799e80S0078 - SEFAZ FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4178.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 04296768-aa0d-59e9-148f-e4434b799e80S0078 - SEFAZ FILE SERVER PROD_1.vmdk
+SKIP (recente 20 dias < 60) tamanho=200.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] cc639e62-16a6-8ca4-f5d3-e4434b79a0e0S1478 - SEFAZ KUBEWORKER.vmdk
+SKIP (recente 0 dias < 60) tamanho=442.9 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] b6a56a68-d2be-d55f-e65a-e4434b799e80S0039 - FUNTRAB FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4826.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-c439-8759-74e5-e4434b79a0e0S0353 - SEFAZ FILE SERVER IMAGENS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=10208.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-fab8-1cd3-a62f-e4434b799930S1083 - MS REPOSITORIO SISTEMAS PROD_12.vmdk
+SKIP (recente 0 dias < 60) tamanho=330.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-fab8-1cd3-a62f-e4434b799930S1083 - MS REPOSITORIO SISTEMAS PROD_11.vmdk
+SKIP (recente 0 dias < 60) tamanho=2160.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-3c92-f56a-c727-e4434b79a0e0S0195 - AGEPREV FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2215.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-62ec-a670-92da-e4434b79a100S0574 - FCMS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=108.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-62ec-a670-92da-e4434b79a100S0574 - FCMS FILE SERVER PROD.vmdk
+SKIP (recente 33 dias < 60) tamanho=200.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 71a9c563-ac00-e9ad-c185-e4434b79a070S1058 - SEFAZ KUBEWORKER KANIKO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1277.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-e241-ffd2-f45e-e4434b799930S0523- IAGRO FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=481.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 891e6768-d09e-5849-2031-e4434b799e80S0347 - SEFAZ%2fPGE FILE SERVER INTERIOR PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4161.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] ee907a68-6047-8aac-78e2-e4434b799e80S1060 - SES FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5929.7 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] ee907a68-6047-8aac-78e2-e4434b799e80S1060 - SES FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2785.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] f4b88767-2205-fe0b-56ed-e4434b79a100S0653 - SEFAZ NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2792.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 891e6768-fe69-cd4b-0ec7-e4434b799e80S0692 - DPGE FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2515.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 891e6768-fe69-cd4b-0ec7-e4434b799e80S0692 - DPGE FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1726.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] fc776668-b40c-822d-adc1-e4434b799e80S354 - SEAD FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=204.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_11.vmdk
+SKIP (recente 0 dias < 60) tamanho=204.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_15.vmdk
+SKIP (recente 0 dias < 60) tamanho=102.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=102.0 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_12.vmdk
+SKIP (recente 0 dias < 60) tamanho=408.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] e4607466-4eb1-e6f2-ddec-e4434b79a070S1589 - SGI VSA VXRAIL PROD (fLQnXbi)_16.vmdk
+SKIP (recente 0 dias < 60) tamanho=3293.9 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4c796d68-b8d0-af31-bd86-e4434b799930S0044 - HRMS FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1157.8 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 4ab16a68-aa7e-fbd2-3ffd-e4434b799930S0524 - SEMAGRO FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2894.9 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] dd606968-ccc9-f64f-9946-e4434b79a100S0419 - PGE FILE SERVER PROD_1.vmdk
+SKIP (recente 34 dias < 60) tamanho=200.6 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 82f48c62-ce6e-96b4-32b7-e4434b799930TEMPLATE - AlmaLinux 8 VXRAIL.vmdk
+SKIP (recente 0 dias < 60) tamanho=3446.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 7bd26768-d89c-8659-1015-e4434b79a0e0S0533 - SAD FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=261.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 17eca95f-3260-758b-24b2-e4434b79a0e0VxRail_Manager(New).vmdk
+SKIP (recente 0 dias < 60) tamanho=261.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] 17eca95f-3260-758b-24b2-e4434b79a0e0VxRail_Manager(New)_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4208.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] f7e61563-7445-b059-4f30-e4434b79a0e0S0448 - SEFAZ NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5223.3 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5571.5 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=333.2 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=1207.1 GB: [VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689] bad28767-6e77-eada-fea3-e4434b79a0e0S0096 - SEFAZ NFS COTIN PROD_3.vmdk
+[DTC-SGI] [7/7] Datastore 'VeeamBackup_s0550' inacessível — pulando.
+SKIP (recente 39 dias < 60) tamanho=2959.5 GB: [S1822 - DST B] CP20081 - CLUSTER MINIO PROD1/CP20081 - CLUSTER MINIO PROD1_3.vmdk
+SKIP (recente 39 dias < 60) tamanho=2951.9 GB: [S1822 - DST B] CP20081 - CLUSTER MINIO PROD1/CP20081 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2971.3 GB: [S1822 - DST B] CP20078 - CLUSTER MINIO PROD1/CP20078 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2958.2 GB: [S1822 - DST B] CP20078 - CLUSTER MINIO PROD1/CP20078 - CLUSTER MINIO PROD1_1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2974.4 GB: [S1822 - DST B] CP20075 - CLUSTER MINIO PROD1/CP20075 - CLUSTER MINIO PROD1_6.vmdk
+SKIP (recente 39 dias < 60) tamanho=2978.0 GB: [S1822 - DST B] CP20075 - CLUSTER MINIO PROD1/CP20075 - CLUSTER MINIO PROD1_1.vmdk
+SKIP (recente 39 dias < 60) tamanho=2962.1 GB: [S1822 - DST B] CP20084 - CLUSTER MINIO PROD1/CP20084 - CLUSTER MINIO PROD1_3.vmdk
+SKIP (recente 39 dias < 60) tamanho=2967.5 GB: [S1822 - DST B] CP20084 - CLUSTER MINIO PROD1/CP20084 - CLUSTER MINIO PROD1.vmdk
+SKIP (recente 3 dias < 60) tamanho=232.1 GB: [STB_LUN_04] S1159 - SGI REPOSITORIO PROCESSO PROD/S1159 - SGI REPOSITORIO PROCESSO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=100.2 GB: [STB_LUN_04] S0179 - SGI ESST NETWRIX AUDITOR FILE SERVER PROD/S0179 - SGI ESST NETWRIX AUDITOR FILE SERVER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=140.0 GB: [STB_LUN_04] S0943 - SAD UNIVERSALRH WEBLOGIC PROD/S0943 - SAD UNIVERSALRH WEBLOGIC PROD_1.vmdk
+SKIP (recente 25 dias < 60) tamanho=10240.0 GB: [STB_LUN_04] S1257 - MS GRAYLOG DATA NODE PROD/S1257 - MS GRAYLOG DATA NODE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=533.1 GB: [STB_LUN_10] S1261 - SGI SERVIDOR BD UDIC PROD/S1261 - SGI SERVIDOR BD UDIC PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=199.7 GB: [STB_LUN_10] S1261 - SGI SERVIDOR BD UDIC PROD/S1261 - SGI SERVIDOR BD UDIC PROD_2.vmdk
+SKIP (recente 5 dias < 60) tamanho=294.5 GB: [STB_LUN_10] S0042 - SGI ESST INVENTARIO DE HARDWARE PROD/S0042 - SGI ESST INVENTARIO DE HARDWARE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STB_LUN_10] S1761 - SGI CSIC DATA LAKE PROD/S1761 - SGI CSIC DATA LAKE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_10] S1761 - SGI CSIC DATA LAKE PROD/S1761 - SGI CSIC DATA LAKE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_10] S1761 - SGI CSIC DATA LAKE PROD/S1761 - SGI CSIC DATA LAKE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2560.0 GB: [STB_LUN_10] S1412 - SEGOV NFS DOCKER PROD/S1412 - SEGOV NFS DOCKER PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STB_LUN_10] S1412 - SEGOV NFS DOCKER PROD/S1412 - SEGOV NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STB_LUN_10] S1412 - SEGOV NFS DOCKER PROD/S1412 - SEGOV NFS DOCKER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1832.4 GB: [STB_LUN_10] S1013 - SGI SQL 2019 PROD/S1013 - SGI SQL 2019 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4096.0 GB: [STB_LUN_10] S1013 - SGI SQL 2019 PROD/S1013 - SGI SQL 2019 PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=119.4 GB: [STB_LUN_10] S0751 - SGI ESST KASPERSKY PROD/S0751 - SGI ESST KASPERSKY PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=710.7 GB: [STA_LUN_02] S0788 - PGE SISTEMA SOFTPLAN BD ORACLE HOM/S0788 - PGE SISTEMA SOFTPLAN BD ORACLE HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=431.7 GB: [STA_LUN_02] S1271 - SGI ESST NETWRIX AD PROD/S1271 - SGI ESST NETWRIX AD PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=115.3 GB: [STA_LUN_02] S0733 - SGI INFRA KIBANA ELASTICSEARCH PROXY PROD/S0733 - SGI INFRA KIBANA ELASTICSEARCH PROXY PROD.vmdk
+SKIP (recente 12 dias < 60) tamanho=550.0 GB: [STA_LUN_02] S1701 - SGI VCENTER 6.7 PROD/S1701 - SGI VCENTER 6.7 PROD_7.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_02] S1242 - SGI EAST SCOM 2012 R2 BD SQL PROD/S1242 - SGI EAST SCOM 2012 R2 BD SQL PROD_2.vmdk
+SKIP (recente 10 dias < 60) tamanho=3387.7 GB: [STA_LUN_02] S1908 - MBOX5 WEBMAIL PROD/S1908 - MBOX5 WEBMAIL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=2048.0 GB: [STA_LUN_02] S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD/S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD_2.vmdk
+SKIP (recente 1 dias < 60) tamanho=1024.0 GB: [STA_LUN_02] S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD/S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=149.2 GB: [STB_LUN_05] S1518 - SGI ESST SQL-KASPERSKY PROD/S1518 - SGI ESST SQL-KASPERSKY PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STB_LUN_05] S1922 - SEGOV MISP PROD/S1922 - SEGOV MISP PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=174.2 GB: [STB_LUN_05] S0031 - SGI MINIO NFS PROD/S0031 - SGI MINIO NFS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_05] S0031 - SGI MINIO NFS PROD/S0031 - SGI MINIO NFS PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=2713.6 GB: [STB_LUN_05] S0117 - SES FILE SERVER PROD/S0117 - SES FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=135.6 GB: [STB_LUN_05] S1517 - SGI ESST SQL-KASPERSKY PROD/S1517 - SGI ESST SQL-KASPERSKY PROD_4.vmdk
+SKIP (recente 1 dias < 60) tamanho=947.5 GB: [STB_LUN_05] S1441 - SGI INFRA SONICWALL GMS UMA PROD/S1441 - SGI INFRA SONICWALL GMS UMA PROD.vmdk
+SKIP (recente 3 dias < 60) tamanho=900.0 GB: [STA_LUN_04] S1163 - CBMMS BD ORACLE PROD/S1163 - CBMMS BD ORACLE PROD_1.vmdk
+SKIP (recente 3 dias < 60) tamanho=500.0 GB: [STA_LUN_04] S1163 - CBMMS BD ORACLE PROD/S1163 - CBMMS BD ORACLE PROD_2.vmdk
+SKIP (recente 32 dias < 60) tamanho=460.5 GB: [STA_LUN_04] S1502 - SGI INFRA ZIMBRA MBOX PROD/S1502 - SGI INFRA ZIMBRA MBOX PROD.vmdk
+SKIP (recente 42 dias < 60) tamanho=422.2 GB: [STA_LUN_04] S1596 - SEJUSP BI GEO SIGO PROD/S1596 - SEJUSP BI GEO SIGO PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=1992.1 GB: [STA_LUN_04] S0120 - HRMS ORACLE MV PROD_CLONE/S0120 - HRMS ORACLE MV PROD_CLONE_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=977.3 GB: [STA_LUN_04] S0120 - HRMS ORACLE MV PROD_CLONE/S0120 - HRMS ORACLE MV PROD_CLONE_2.vmdk
+SKIP (recente 19 dias < 60) tamanho=2602.7 GB: [STA_LUN_04] S1907 - MBOX4 WEBMAIL PROD/S1907 - MBOX4 WEBMAIL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=134.0 GB: [STA_LUN_04] S250 - IAGRO DIGITALIZACAO PROD/S250 - IAGRO DIGITALIZACAO PROD_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=190.6 GB: [STA_LUN_04] S0832 - SEFAZ QLIK CATALOG PROD/S0832 - SEFAZ QLIK CATALOG PROD.vmdk
+SKIP (recente 2 dias < 60) tamanho=149.1 GB: [STA_LUN_04] S0776 - DPGE ALFRESCO HOM/S0776 - DPGE ALFRESCO HOM.vmdk
+SKIP (recente 2 dias < 60) tamanho=158.8 GB: [STA_LUN_04] S0922 - DPGE PETICIONAMENTO PROD/S0922 - DPGE PETICIONAMENTO PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=124.9 GB: [STA_LUN_04] S0505 - HRMS ORACLE BI - PROD/S0505 - HRMS ORACLE BI - PROD_1.vmdk
+SKIP (recente 42 dias < 60) tamanho=256.0 GB: [STA_LUN_04] S0589 - IMASUL ARCGIS DB PROD/S0589 - IMASUL ARCGIS DB PROD_2.vmdk
+SKIP (recente 42 dias < 60) tamanho=156.7 GB: [STA_LUN_04] S0589 - IMASUL ARCGIS DB PROD/S0589 - IMASUL ARCGIS DB PROD.vmdk
+SKIP (recente 42 dias < 60) tamanho=500.0 GB: [STA_LUN_04] S0589 - IMASUL ARCGIS DB PROD/S0589 - IMASUL ARCGIS DB PROD_1.vmdk
+SKIP (recente 4 dias < 60) tamanho=179.7 GB: [STA_LUN_04] S1106 - SGI GITLAB RUNNER PROD/S1106 - SGI GITLAB RUNNER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=459.5 GB: [STA_LUN_04] S0860 - SGI SQL SERVER 2012 UGTI DESEN/S0860 - SGI SQL SERVER 2012 UGTI DESEN_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=234.3 GB: [STA_LUN_04] S0277 - SAD AACPDAPPLS LOTUS CI OFICIO PROD/S0277 - SAD AACPDAPPLS LOTUS CI OFICIO PROD_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=200.0 GB: [STA_LUN_04] S1134 - COTIN TS SERVER PROD/S1134 - COTIN TS SERVER PROD.vmdk
+SKIP (recente 2 dias < 60) tamanho=121.7 GB: [STA_LUN_04] S1041 - HRMS PEP MV PROD/S1041 - HRMS PEP MV PROD.vmdk
+SKIP (recente 2 dias < 60) tamanho=104.9 GB: [STA_LUN_04] S1041 - HRMS PEP MV PROD/S1041 - HRMS PEP MV PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_08] S2000 - SGI VCENTER 7 PROD/S2000 - SGI VCENTER 7 PROD_12.vmdk
+SKIP (recente 0 dias < 60) tamanho=900.0 GB: [STB_LUN_08] S0414 - SGI HARBOR REPOSITORIO PROD/S0414 - SGI HARBOR REPOSITORIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3532.8 GB: [STB_LUN_08] S0076 - MS SQL CTE PROD/S0076 - MS SQL CTE PROD_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=300.0 GB: [STB_LUN_08] S0009 - MS SERVICEDESK PLUS HOM/S0009 - MS SERVICEDESK PLUS HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STB_LUN_08] S0009 - MS SERVICEDESK PLUS HOM/S0009 - MS SERVICEDESK PLUS HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1066.2 GB: [STB_LUN_08] S1529 - SED BANCO DE DADOS SGDE PROD/S1529 - SED BANCO DE DADOS SGDE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STB_LUN_08] S0406 - MS SQL NFCOM PROD/S0406 - MS SQL NFCOM PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=394.3 GB: [STB_LUN_08] S0055 - SEFAZ DF-e NEXUS PROD/S0055 - SEFAZ DF-e NEXUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=246.9 GB: [STB_LUN_08] S0055 - SEFAZ DF-e NEXUS PROD/S0055 - SEFAZ DF-e NEXUS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=199.9 GB: [STB_LUN_08] S0348 - FUNDECT FILE SERVER PROD/S0348 - FUNDECT FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=806.9 GB: [STB_LUN_08] S1136 - PROCON SISTEMA SINDEC PROD/S1136 - PROCON SISTEMA SINDEC PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STB_LUN_08] S1730 - SEFAZ NFS SGPP/S1730 - SEFAZ NFS SGPP_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1996.7 GB: [STB_LUN_08] S0926 - CHOQUE PM FILE SERVER PROD/S0926 - CHOQUE PM FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=109.9 GB: [STB_LUN_08] S1465 - AGRAER SMARTSHARE PROD/S1465 - AGRAER SMARTSHARE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STB_LUN_08] S0228 - MS SQL NF3E PROD/S0228 - MS SQL NF3E PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STB_LUN_08] S0228 - MS SQL NF3E PROD/S0228 - MS SQL NF3E PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_09] S0687 - SEGOV MINIO NFS PROD/S0687 - SEGOV MINIO NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_09] S0687 - SEGOV MINIO NFS PROD/S0687 - SEGOV MINIO NFS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_09] S0687 - SEGOV MINIO NFS PROD/S0687 - SEGOV MINIO NFS PROD_3.vmdk
+[DTC-SGI] [12/57] Datastore 'S1296 - DST A' inacessível — pulando.
+SKIP (recente 6 dias < 60) tamanho=106.7 GB: [STA_LUN_01] S0734 - SEGOV ELLOS FRONT-END PROD/S0734 - SEGOV ELLOS FRONT-END PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=600.0 GB: [STA_LUN_01] S1747 - CGE ANALYTCS PROD/S1747 - CGE ANALYTCS PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=150.0 GB: [STA_LUN_01] S1747 - CGE ANALYTCS PROD/S1747 - CGE ANALYTCS PROD.vmdk
+SKIP (recente 25 dias < 60) tamanho=4096.0 GB: [STA_LUN_01] S0795 - SGI ZIMBRA MBOX1 E-MAIL GOVERNAMENTAL PROD/S0795 - SGI ZIMBRA MBOX1 E-MAIL GOVERNAMENTAL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=147.8 GB: [STA_LUN_01] S254 - SEJUSP SISTEMA I2 PROD/S254 - SEJUSP SISTEMA I2 PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=172.8 GB: [STA_LUN_01] S1507 - IMASUL SIRIEMA POSTGRESQL POSTGIS PROD/S1507 - IMASUL SIRIEMA POSTGRESQL POSTGIS PROD.vmdk
+SKIP (recente 26 dias < 60) tamanho=131.5 GB: [STA_LUN_01] S0238 - CGE SISTEMA TECH SUPPLY PROD/S0238 - CGE SISTEMA TECH SUPPLY PROD.vmdk
+SKIP (recente 26 dias < 60) tamanho=432.6 GB: [STA_LUN_01] S0238 - CGE SISTEMA TECH SUPPLY PROD/S0238 - CGE SISTEMA TECH SUPPLY PROD_1.vmdk
+SKIP (recente 24 dias < 60) tamanho=3072.0 GB: [STA_LUN_01] S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD/S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD_1.vmdk
+SKIP (recente 24 dias < 60) tamanho=2047.9 GB: [STA_LUN_01] S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD/S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD_2.vmdk
+SKIP (recente 11 dias < 60) tamanho=4140.8 GB: [STA_LUN_01] S1906 - MBOX3 WEBMAIL PROD/S1906 - MBOX3 WEBMAIL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_01] S1269 - SES SIMWEB E SINASCWEB PROD/S1269 - SES SIMWEB E SINASCWEB PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=2004.1 GB: [STA_LUN_01] S0070 - SGI INFRA MBOX ZIMBRA PROD/S0070 - SGI INFRA MBOX ZIMBRA PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=1992.1 GB: [STA_LUN_01] S0120 - HRMS ORACLE MV PROD/S0120 - HRMS ORACLE MV PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=977.3 GB: [STA_LUN_01] S0120 - HRMS ORACLE MV PROD/S0120 - HRMS ORACLE MV PROD_2.vmdk
+[DTC-SGI] [36/75] Datastore 'VeeamBackup_S1299' inacessível — pulando.
+[DTC-SGI] [19/57] Datastore 'S1295 - DST A' inacessível — pulando.
+[DTC-SGI] [20/57] Datastore 'S1297 - DST A' inacessível — pulando.
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_17] S0411 - MS SQL SERVER NFE PROD/S0411 - MS SQL SERVER NFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_17] S0411 - MS SQL SERVER NFE PROD/S0411 - MS SQL SERVER NFE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=5427.2 GB: [STA_LUN_17] S0411 - MS SQL SERVER NFE PROD/S0411 - MS SQL SERVER NFE PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=4096.0 GB: [STA_LUN_17] S0411 - MS SQL SERVER NFE PROD/S0411 - MS SQL SERVER NFE PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=9216.0 GB: [STA_LUN_17] S0411 - MS SQL SERVER NFE PROD/S0411 - MS SQL SERVER NFE PROD_7.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_17] S0411 - MS SQL SERVER NFE PROD/S0411 - MS SQL SERVER NFE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4096.0 GB: [STA_LUN_17] S0411 - MS SQL SERVER NFE PROD/S0411 - MS SQL SERVER NFE PROD_6.vmdk
+SKIP (recente 6 dias < 60) tamanho=550.0 GB: [STA_LUN_17] S2001 - SGI VCENTER 8 PROD/S2001 - SGI VCENTER 8 PROD_7.vmdk
+SKIP (recente 6 dias < 60) tamanho=500.0 GB: [STA_LUN_17] S2001 - SGI VCENTER 8 PROD/S2001 - SGI VCENTER 8 PROD_16.vmdk
+SKIP (recente 6 dias < 60) tamanho=550.0 GB: [STA_LUN_17] S2001 - SGI VCENTER 8 PROD/S2001 - SGI VCENTER 8 PROD_13.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STA_LUN_17] S1803 - MS E-MS SQL PROD/S1803 - MS E-MS SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2621.4 GB: [STA_LUN_17] S1803 - MS E-MS SQL PROD/S1803 - MS E-MS SQL PROD_1.vmdk
+SKIP (recente 30 dias < 60) tamanho=200.0 GB: [STA_LUN_06] S1925 - DPGE DATABASE HOM N/S1925 - DPGE DATABASE HOM N_3.vmdk
+SKIP (recente 30 dias < 60) tamanho=200.0 GB: [STA_LUN_06] S1925 - DPGE DATABASE HOM N/S1925 - DPGE DATABASE HOM N_2.vmdk
+SKIP (recente 30 dias < 60) tamanho=500.0 GB: [STA_LUN_06] S1925 - DPGE DATABASE HOM N/S1925 - DPGE DATABASE HOM N_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=2048.0 GB: [STA_LUN_06] S0145 - SGI EAST ELK PROD/S0145 - SGI EAST ELK PROD_1.vmdk
+SKIP (recente 11 dias < 60) tamanho=600.0 GB: [STA_LUN_06] S0488 - POC VARONIS - INDEXADOR/S0488 - POC VARONIS - INDEXADOR.vmdk
+SKIP (recente 28 dias < 60) tamanho=579.3 GB: [STA_LUN_06] S0126 - SGI DEV QLIK SENSE(CLONE S0875)/S0126 - SGI DEV QLIK SENSE(CLONE S0875)_4.vmdk
+SKIP (recente 25 dias < 60) tamanho=398.1 GB: [STA_LUN_06] S0826 - MS DYNATRACE PROD/S0826 - MS DYNATRACE PROD_1.vmdk
+SKIP (recente 21 dias < 60) tamanho=500.0 GB: [STA_LUN_06] S0802 - SGI EKRONOS ORACLE PROD/S0802 - SGI EKRONOS ORACLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=350.0 GB: [STA_LUN_06] S1148 - IMASUL SICAR BD HOM/S1148 - IMASUL SICAR BD HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=403.2 GB: [STA_LUN_06] S0822 - MS DYNATRACE PROD/S0822 - MS DYNATRACE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_16] S0355 - CGE SISTEMA ACL PROD/S0355 - CGE SISTEMA ACL PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=4049.5 GB: [STA_LUN_16] S1879 - MS SQL SERVER INTEGRACAO HOM/S1879 - MS SQL SERVER INTEGRACAO HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_16] S1879 - MS SQL SERVER INTEGRACAO HOM/S1879 - MS SQL SERVER INTEGRACAO HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_16] S1879 - MS SQL SERVER INTEGRACAO HOM/S1879 - MS SQL SERVER INTEGRACAO HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=105.2 GB: [STA_LUN_16] S0634 - SEGOV ELLOS HOM/S0634 - SEGOV ELLOS HOM.vmdk
+SKIP (recente 7 dias < 60) tamanho=500.0 GB: [STA_LUN_16] S1199 - SES DB POSTGRESQL PROD/S1199 - SES DB POSTGRESQL PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_16] S0864 - STI DUMP DATABASE PROD/S0864 - STI DUMP DATABASE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_16] S0864 - STI DUMP DATABASE PROD/S0864 - STI DUMP DATABASE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_16] S0864 - STI DUMP DATABASE PROD/S0864 - STI DUMP DATABASE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=100.2 GB: [STA_LUN_16] S0704 - SESIC SISTEMA DE BILHETAGEM PROD/S0704 - SESIC SISTEMA DE BILHETAGEM PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1017.2 GB: [STA_LUN_16] S0164 - SEGOV NFS MOODLE PROD/S0164 - SEGOV NFS MOODLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4892.3 GB: [STA_LUN_16] S0164 - SEGOV NFS MOODLE PROD/S0164 - SEGOV NFS MOODLE PROD.vmdk
+SKIP (recente 2 dias < 60) tamanho=204.0 GB: [STA_LUN_16] S1228 - SGI DBA CATALOGO DE BACKUP ORACLE PROD/S1228 - SGI DBA CATALOGO DE BACKUP ORACLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=301.0 GB: [STA_LUN_16] S0953 - SGI MSSQL HOM/S0953 - SGI MSSQL HOM_1.vmdk
+SKIP (recente 5 dias < 60) tamanho=350.0 GB: [STA_LUN_16] S0371 - IMASUL SICAR BD PROD/S0371 - IMASUL SICAR BD PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=179.9 GB: [STA_LUN_05] S1314 - SEFAZ QLIKVIEW PUBLISHER PROD/S1314 - SEFAZ QLIKVIEW PUBLISHER PROD.vmdk
+SKIP (recente 2 dias < 60) tamanho=199.6 GB: [STA_LUN_05] S1834 - MS POSTGRESQL14 DEV HOM/S1834 - MS POSTGRESQL14 DEV HOM_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=250.0 GB: [STA_LUN_05] S1580 - SGI VREALIZE PROD_1/S1580 - SGI VREALIZE PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STA_LUN_05] S1580 - SGI VREALIZE PROD_1/S1580 - SGI VREALIZE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_05] S1740 - SEGOV ANALYTICS BD PIWIK PROD/S1740 - SEGOV ANALYTICS BD PIWIK PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=10240.0 GB: [STA_LUN_05] S0935 - DETRAN NFS PROD/S0935 - DETRAN NFS PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=187.1 GB: [STA_LUN_05] S0873 - SEGOV KUBEWORKER DOCKER PROD/S0873 - SEGOV KUBEWORKER DOCKER PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=300.0 GB: [STA_LUN_05] S0633 - IMASUL CLUSTER DE APLICACOES DO LICENCIAMENTO PROD/S0633 - IMASUL CLUSTER DE APLICACOES DO LICENCIAMENTO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=127.1 GB: [STA_LUN_05] S0831 - SEFAZ GEOANALYTICS PROD/S0831 - SEFAZ GEOANALYTICS PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=105.0 GB: [STA_LUN_05] S1357 - SGI VIRTUAL APPLIANCE CRUZOC PROD/S1357 - SGI VIRTUAL APPLIANCE CRUZOC PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=169.4 GB: [STA_LUN_05] S1714 - SGI INFRA ZIMBRA MAIL PREFEITURAS PROD/S1714 - SGI INFRA ZIMBRA MAIL PREFEITURAS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_05] S1141 - SEFAZ POSTGRESQL PENTAHO SGF PRODUCAO/S1141 - SEFAZ POSTGRESQL PENTAHO SGF PRODUCAO_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=115.7 GB: [STA_LUN_05] S1718 - MS MYSQL MOODLE PROD/S1718 - MS MYSQL MOODLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=236.9 GB: [STA_LUN_05] S1180 - IAGRO CCO QLIKSENSE PROD/S1180 - IAGRO CCO QLIKSENSE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=114.2 GB: [STA_LUN_05] S1180 - IAGRO CCO QLIKSENSE PROD/S1180 - IAGRO CCO QLIKSENSE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=411.6 GB: [STA_LUN_05] S0040 - IMASUL SISLA HOM/S0040 - IMASUL SISLA HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=349.9 GB: [STA_LUN_05] S1220 - SEFAZ TABLEAU PROD/S1220 - SEFAZ TABLEAU PROD.vmdk
+SKIP (recente 2 dias < 60) tamanho=186.6 GB: [STA_LUN_05] S0522 - SES SGDB MYSQL PROD/S0522 - SES SGDB MYSQL PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=103.3 GB: [STA_LUN_05] S1535 - SGI ESST KASPERSKY PROD/S1535 - SGI ESST KASPERSKY PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=161.0 GB: [STA_LUN_05] S1535 - SGI ESST KASPERSKY PROD/S1535 - SGI ESST KASPERSKY PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=240.0 GB: [STA_LUN_05] S1292 - SGI ESST NETWRIX FS PROD/S1292 - SGI ESST NETWRIX FS PROD.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STA_LUN_05] S0915 - MS MYSQL SITES PROD/S0915 - MS MYSQL SITES PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=828.6 GB: [STA_LUN_11] S691 - SEGOV FILE SERVER PROD/S691 - SEGOV FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=265.2 GB: [STA_LUN_11] S0937 - SEJUSP NFS DOCKER PROD/S0937 - SEJUSP NFS DOCKER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_11] S0937 - SEJUSP NFS DOCKER PROD/S0937 - SEJUSP NFS DOCKER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2104.7 GB: [STA_LUN_11] S0937 - SEJUSP NFS DOCKER PROD/S0937 - SEJUSP NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=209.6 GB: [STA_LUN_11] S1516 - MS ESST SQL-KASPERSKY PROD/S1516 - MS ESST SQL-KASPERSKY PROD_4.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STA_LUN_11] S0608 - SAD SISTEMA SIGA HOM/S0608 - SAD SISTEMA SIGA HOM.vmdk
+SKIP (recente 7 dias < 60) tamanho=500.0 GB: [STA_LUN_11] S0608 - SAD SISTEMA SIGA HOM/S0608 - SAD SISTEMA SIGA HOM_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=210.0 GB: [STA_LUN_11] S0608 - SAD SISTEMA SIGA HOM/S0608 - SAD SISTEMA SIGA HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_11] S1977 - SQL SERVER PROD/S1977 - SQL SERVER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=1638.4 GB: [STA_LUN_11] S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW/S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_11] S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW/S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_11] S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW/S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=380.0 GB: [STA_LUN_11] S0449 - SGI SERVICEDESK PROD/S0449 - SGI SERVICEDESK PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1536.0 GB: [STA_LUN_09] S0853 - SEFAZ NFS SIGLO PROD/S0853 - SEFAZ NFS SIGLO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_09] S0853 - SEFAZ NFS SIGLO PROD/S0853 - SEFAZ NFS SIGLO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=109.9 GB: [STA_LUN_09] S0342 - SGI WFE SHAREPOINT PROD/S0342 - SGI WFE SHAREPOINT PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=700.0 GB: [STA_LUN_09] S1928 - IMASUL SUPRESSAO DB ORACLE PROD/S1928 - IMASUL SUPRESSAO DB ORACLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_09] S0600 - SGI DBA IDERA PROD/S0600 - SGI DBA IDERA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_09] S0841 - DPGE FILE SERVER INTERIOR PROD/S0841 - DPGE FILE SERVER INTERIOR PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STA_LUN_09] S0841 - DPGE FILE SERVER INTERIOR PROD/S0841 - DPGE FILE SERVER INTERIOR PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=576.1 GB: [STA_LUN_09] S0493 - SGI ALFRESCO FILESERVER PROD/S0493 - SGI ALFRESCO FILESERVER PROD_3.vmdk
+SKIP (recente 7 dias < 60) tamanho=1023.9 GB: [STA_LUN_09] S0493 - SGI ALFRESCO FILESERVER PROD/S0493 - SGI ALFRESCO FILESERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1320.8 GB: [STA_LUN_09] S1155 - AGEPEN SIAPEN REPOSITORIO PROD/S1155 - AGEPEN SIAPEN REPOSITORIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1414.0 GB: [STA_LUN_09] S1191 - SEJUSP SSP FILE SERVER PROD/S1191 - SEJUSP SSP FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_09] S1014 - COTIN SQL FREEFLOW/S1014 - COTIN SQL FREEFLOW_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_09] S1014 - COTIN SQL FREEFLOW/S1014 - COTIN SQL FREEFLOW_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_09] S1014 - COTIN SQL FREEFLOW/S1014 - COTIN SQL FREEFLOW_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_09] S0425 - MS SQL SERVER NFE PROD/S0425 - MS SQL SERVER NFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=209.6 GB: [STA_LUN_11] S1516 - MS ESST SQL-KASPERSKY PROD/S1516 - MS ESST SQL-KASPERSKY PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=828.6 GB: [STA_LUN_11] S691 - SEGOV FILE SERVER PROD/S691 - SEGOV FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2104.7 GB: [STA_LUN_11] S0937 - SEJUSP NFS DOCKER PROD/S0937 - SEJUSP NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=265.2 GB: [STA_LUN_11] S0937 - SEJUSP NFS DOCKER PROD/S0937 - SEJUSP NFS DOCKER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_11] S0937 - SEJUSP NFS DOCKER PROD/S0937 - SEJUSP NFS DOCKER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=380.0 GB: [STA_LUN_11] S0449 - SGI SERVICEDESK PROD/S0449 - SGI SERVICEDESK PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=500.0 GB: [STA_LUN_11] S0608 - SAD SISTEMA SIGA HOM/S0608 - SAD SISTEMA SIGA HOM_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=210.0 GB: [STA_LUN_11] S0608 - SAD SISTEMA SIGA HOM/S0608 - SAD SISTEMA SIGA HOM_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STA_LUN_11] S0608 - SAD SISTEMA SIGA HOM/S0608 - SAD SISTEMA SIGA HOM.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_11] S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW/S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=1638.4 GB: [STA_LUN_11] S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW/S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_11] S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW/S1876 - SAD SISTEMA RH-BIRH DWRH PROD_NEW_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_11] S1977 - SQL SERVER PROD/S1977 - SQL SERVER PROD_6.vmdk
+SKIP (recente 1 dias < 60) tamanho=3099.8 GB: [STA_LUN_0000] S0104 - IMASUL SEMAIMAP GEOPROCESSAMENTO PROD/S0104 - IMASUL SEMAIMAP GEOPROCESSAMENTO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_0000] S0227 - SEGOV NFS WP DOCKER PROD/S0227 - SEGOV NFS WP DOCKER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1500.0 GB: [STA_LUN_0000] S0227 - SEGOV NFS WP DOCKER PROD/S0227 - SEGOV NFS WP DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=6417.6 GB: [STA_LUN_0000] S0701 - SEJUSP SQL CADG PROD/S0701 - SEJUSP SQL CADG PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=561.5 GB: [STA_LUN_0000] S0701 - SEJUSP SQL CADG PROD/S0701 - SEJUSP SQL CADG PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_0000] S033 - AGEHAB FILE SERVER PROD/S033 - AGEHAB FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1050.0 GB: [STA_LUN_0000] S033 - AGEHAB FILE SERVER PROD/S033 - AGEHAB FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=136.0 GB: [STA_LUN_0000] S0942 - SAD UNIVERSALRH WEBLOGIC PROD/S0942 - SAD UNIVERSALRH WEBLOGIC PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=179.9 GB: [STA_LUN_0000] S1055 - PGE SISTEMA PGENET SOFTPLAN HOM/S1055 - PGE SISTEMA PGENET SOFTPLAN HOM.vmdk
+SKIP (recente 0 dias < 60) tamanho=190.4 GB: [STA_LUN_0000] S0340 - SES SERVIDOR EAD PROD/S0340 - SES SERVIDOR EAD PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3584.0 GB: [STA_LUN_0000] S0087 - SEJUSP CADG CG HOM/S0087 - SEJUSP CADG CG HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=102.5 GB: [STA_LUN_0000] S0352 - SGI TFSDB01 TFS 2015 BD HOM/S0352 - SGI TFSDB01 TFS 2015 BD HOM.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_0000] S1763 - SGI BANCO DE DADOS CIOFICIO PROD/S1763 - SGI BANCO DE DADOS CIOFICIO PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_0000] S1763 - SGI BANCO DE DADOS CIOFICIO PROD/S1763 - SGI BANCO DE DADOS CIOFICIO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2457.6 GB: [STA_LUN_0000] S1763 - SGI BANCO DE DADOS CIOFICIO PROD/S1763 - SGI BANCO DE DADOS CIOFICIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=327.5 GB: [STA_LUN_12] S1262 - SGI SERVIDOR BD UDIC STAGING AREA PROD/S1262 - SGI SERVIDOR BD UDIC STAGING AREA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=179.9 GB: [STA_LUN_12] S481 - MS SERVIDOR APLICACOES EXECUTAVEIS PROD/S481 - MS SERVIDOR APLICACOES EXECUTAVEIS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_12] S1863 - MSSQL SERVER IPVA PROD/S1863 - MSSQL SERVER IPVA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=129.2 GB: [STA_LUN_12] S0680 - SGI SERVICEDESK BD PROD_restored/S0680 - SGI SERVICEDESK BD PROD_restored_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=126.9 GB: [STA_LUN_12] S119 - HRMS MV SOUL AP PROD/S119 - HRMS MV SOUL AP PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=249.6 GB: [STA_LUN_12] S0642 - MS SQL 2008 ITC008 PROD/S0642 - MS SQL 2008 ITC008 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=115.3 GB: [STA_LUN_12] S0642 - MS SQL 2008 ITC008 PROD/S0642 - MS SQL 2008 ITC008 PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_12] S0664 - MS SQL RELATORIOS SPF PROD/S0664 - MS SQL RELATORIOS SPF PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=132.4 GB: [STA_LUN_12] S0200 - SED BD ORACLE PROD/S0200 - SED BD ORACLE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=700.0 GB: [STA_LUN_12] S0376 - MS E-MS SQL HOM/S0376 - MS E-MS SQL HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_12] S1746 - IAGRO MINIO PROD/S1746 - IAGRO MINIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STA_LUN_12] S1746 - IAGRO MINIO PROD/S1746 - IAGRO MINIO PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STA_LUN_12] S1746 - IAGRO MINIO PROD/S1746 - IAGRO MINIO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=314.3 GB: [STA_LUN_12] S1638 - IMASUL ARCGIS HOM/S1638 - IMASUL ARCGIS HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=900.0 GB: [STA_LUN_12] S1348 - AGEPREV SISPREV HOM/S1348 - AGEPREV SISPREV HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=138.3 GB: [STA_LUN_12] S1637 - IMASUL ARCGIS SQL PROD/S1637 - IMASUL ARCGIS SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=103.6 GB: [STA_LUN_12] S0103 - IMASUL SISLA PROD/S0103 - IMASUL SISLA PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=134.1 GB: [STA_LUN_12] S0445 - SEFAZ TED SERVER SINTEGRA PROD/S0445 - SEFAZ TED SERVER SINTEGRA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=100.3 GB: [STA_LUN_12] S0314 - IAGRO DIGITALIZACAO PROD/S0314 - IAGRO DIGITALIZACAO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1523.0 GB: [STA_LUN_12] S1325 - SGI ESST NETWRIX SQL SERVER PROD/S1325 - SGI ESST NETWRIX SQL SERVER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=127.9 GB: [STA_LUN_12] S1423 - SEFAZ TABLEAU DESEN/S1423 - SEFAZ TABLEAU DESEN.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_12] S1980 - SQL SERVER PROD/S1980 - SQL SERVER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_12] S1274 - STI BD SQL HOM/S1274 - STI BD SQL HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_12] S1274 - STI BD SQL HOM/S1274 - STI BD SQL HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_12] S1274 - STI BD SQL HOM/S1274 - STI BD SQL HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=477.3 GB: [STA_LUN_12] S1485 - SEFAZ ACAO FISCAL TABLEAU PROD/S1485 - SEFAZ ACAO FISCAL TABLEAU PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=376.5 GB: [STA_LUN_12] S1639 - IMASUL ARCGIS PORTAL PROD/S1639 - IMASUL ARCGIS PORTAL PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=257.8 GB: [STA_LUN_14] S158 - SEFAZ SQL DW MICROSTRATEGY PROD/S158 - SEFAZ SQL DW MICROSTRATEGY PROD_1.vmdk
+SKIP (recente 12 dias < 60) tamanho=101.3 GB: [STA_LUN_14] S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD(CLONE)/S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD(CLONE)_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2457.6 GB: [STA_LUN_14] S0372 - SGI SQL 2019 DIGIX/S0372 - SGI SQL 2019 DIGIX_1.vmdk
+SKIP (recente 3 dias < 60) tamanho=500.0 GB: [STA_LUN_14] S0090 - SETDIG VEEAM BACKUP/S0090 - SETDIG VEEAM BACKUP_1.vmdk
+SKIP (recente 53 dias < 60) tamanho=500.0 GB: [STA_LUN_14] S0000/S0000_1.vmdk
+SKIP (recente 53 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0000/S0000_3.vmdk
+SKIP (recente 53 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0000/S0000_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=800.0 GB: [STA_LUN_14] S0112 - MS SQL BPE PROD/S0112 - MS SQL BPE PROD_1.vmdk
+SKIP (recente 27 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0097 - SETDIG BD RESTORE/S0097 - SETDIG BD RESTORE_2.vmdk
+SKIP (recente 26 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0097 - SETDIG BD RESTORE/S0097 - SETDIG BD RESTORE_3.vmdk
+SKIP (recente 26 dias < 60) tamanho=2000.0 GB: [STA_LUN_14] S0097 - SETDIG BD RESTORE/S0097 - SETDIG BD RESTORE_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=519.3 GB: [STA_LUN_14] S0154 - SEJUSP SISTEMA CADG SUR PROD/S0154 - SEJUSP SISTEMA CADG SUR PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=250.0 GB: [STA_LUN_14] S0154 - SEJUSP SISTEMA CADG SUR PROD/S0154 - SEJUSP SISTEMA CADG SUR PROD_1.vmdk
+SKIP (recente 53 dias < 60) tamanho=256.0 GB: [STA_LUN_14] S1915 - MS MYSQL MOODLE PROD/S1915 - MS MYSQL MOODLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=411.6 GB: [STA_LUN_05] S0040 - IMASUL SISLA HOM/S0040 - IMASUL SISLA HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_05] S1141 - SEFAZ POSTGRESQL PENTAHO SGF PRODUCAO/S1141 - SEFAZ POSTGRESQL PENTAHO SGF PRODUCAO_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=10240.0 GB: [STA_LUN_05] S0935 - DETRAN NFS PROD/S0935 - DETRAN NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_05] S1740 - SEGOV ANALYTICS BD PIWIK PROD/S1740 - SEGOV ANALYTICS BD PIWIK PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STA_LUN_05] S1580 - SGI VREALIZE PROD_1/S1580 - SGI VREALIZE PROD_3.vmdk
+SKIP (recente 7 dias < 60) tamanho=250.0 GB: [STA_LUN_05] S1580 - SGI VREALIZE PROD_1/S1580 - SGI VREALIZE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=103.3 GB: [STA_LUN_05] S1535 - SGI ESST KASPERSKY PROD/S1535 - SGI ESST KASPERSKY PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=161.0 GB: [STA_LUN_05] S1535 - SGI ESST KASPERSKY PROD/S1535 - SGI ESST KASPERSKY PROD_1.vmdk
+SKIP (recente 2 dias < 60) tamanho=186.6 GB: [STA_LUN_05] S0522 - SES SGDB MYSQL PROD/S0522 - SES SGDB MYSQL PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=240.0 GB: [STA_LUN_05] S1292 - SGI ESST NETWRIX FS PROD/S1292 - SGI ESST NETWRIX FS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=169.4 GB: [STA_LUN_05] S1714 - SGI INFRA ZIMBRA MAIL PREFEITURAS PROD/S1714 - SGI INFRA ZIMBRA MAIL PREFEITURAS PROD.vmdk
+SKIP (recente 7 dias < 60) tamanho=187.1 GB: [STA_LUN_05] S0873 - SEGOV KUBEWORKER DOCKER PROD/S0873 - SEGOV KUBEWORKER DOCKER PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=300.0 GB: [STA_LUN_05] S0633 - IMASUL CLUSTER DE APLICACOES DO LICENCIAMENTO PROD/S0633 - IMASUL CLUSTER DE APLICACOES DO LICENCIAMENTO PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STA_LUN_05] S0915 - MS MYSQL SITES PROD/S0915 - MS MYSQL SITES PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=349.9 GB: [STA_LUN_05] S1220 - SEFAZ TABLEAU PROD/S1220 - SEFAZ TABLEAU PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=179.9 GB: [STA_LUN_05] S1314 - SEFAZ QLIKVIEW PUBLISHER PROD/S1314 - SEFAZ QLIKVIEW PUBLISHER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=236.9 GB: [STA_LUN_05] S1180 - IAGRO CCO QLIKSENSE PROD/S1180 - IAGRO CCO QLIKSENSE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=114.2 GB: [STA_LUN_05] S1180 - IAGRO CCO QLIKSENSE PROD/S1180 - IAGRO CCO QLIKSENSE PROD.vmdk
+SKIP (recente 6 dias < 60) tamanho=115.7 GB: [STA_LUN_05] S1718 - MS MYSQL MOODLE PROD/S1718 - MS MYSQL MOODLE PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=105.0 GB: [STA_LUN_05] S1357 - SGI VIRTUAL APPLIANCE CRUZOC PROD/S1357 - SGI VIRTUAL APPLIANCE CRUZOC PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=127.1 GB: [STA_LUN_05] S0831 - SEFAZ GEOANALYTICS PROD/S0831 - SEFAZ GEOANALYTICS PROD_1.vmdk
+SKIP (recente 2 dias < 60) tamanho=199.6 GB: [STA_LUN_05] S1834 - MS POSTGRESQL14 DEV HOM/S1834 - MS POSTGRESQL14 DEV HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=130.0 GB: [STA_LUN_13] S0628 - SGI BD SERVICEDESK PLUS PROD/S0628 - SGI BD SERVICEDESK PLUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_13] S0237 - SED MINIO NFS PROD/S0237 - SED MINIO NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4846.6 GB: [STA_LUN_13] S0237 - SED MINIO NFS PROD/S0237 - SED MINIO NFS PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_13] S0237 - SED MINIO NFS PROD/S0237 - SED MINIO NFS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=149.7 GB: [STA_LUN_13] S1265 - SGI ESST NETWRIX FS PROD/S1265 - SGI ESST NETWRIX FS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=173.0 GB: [STA_LUN_13] S0654 - SAD NFS DOCKER PROD/S0654 - SAD NFS DOCKER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STA_LUN_13] S0654 - SAD NFS DOCKER PROD/S0654 - SAD NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1370.6 GB: [STA_LUN_10] S1367 - SEJUSP BD DW BI GEOESTATISTICA PROD/S1367 - SEJUSP BD DW BI GEOESTATISTICA PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=150.0 GB: [STA_LUN_10] S2002 - SGI VCENTER 8 INTERIOR PROD/S2002 - SGI VCENTER 8 INTERIOR PROD_16.vmdk
+SKIP (recente 7 dias < 60) tamanho=150.0 GB: [STA_LUN_10] S0226 - IMASUL DB LICENCIAMENTO PROD/S0226 - IMASUL DB LICENCIAMENTO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=105.2 GB: [STA_LUN_10] S0495 - MS SISTEMAS DOTNET PROD/S0495 - MS SISTEMAS DOTNET PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=621.5 GB: [STA_LUN_10] S0875 - SGI DEV QLIK SENSE_1/S0875 - SGI DEV QLIK SENSE.vmdk
+SKIP (recente 0 dias < 60) tamanho=2096.3 GB: [STA_LUN_10] S1369 - SEINFRA FILE SERVER PROD/S1369 - SEINFRA FILE SERVER PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=1000.0 GB: [STA_LUN_10] S1384 - SEJUSP ALFRESCO FILESERVER PROD/S1384 - SEJUSP ALFRESCO FILESERVER PROD_2.vmdk
+SKIP (recente 1 dias < 60) tamanho=1000.0 GB: [STA_LUN_10] S1384 - SEJUSP ALFRESCO FILESERVER PROD/S1384 - SEJUSP ALFRESCO FILESERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=146.3 GB: [STA_LUN_10] S0599 - MS APLICACOES PHP PROD/S0599 - MS APLICACOES PHP PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STA_LUN_10] S0278 - SGI SQL SERVER ARRECADACAO HOM/S0278 - SGI SQL SERVER ARRECADACAO HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_10] S0278 - SGI SQL SERVER ARRECADACAO HOM/S0278 - SGI SQL SERVER ARRECADACAO HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_10] S0278 - SGI SQL SERVER ARRECADACAO HOM/S0278 - SGI SQL SERVER ARRECADACAO HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=213.1 GB: [STA_LUN_10] S1640 - IMASUL ARCGIS PORTAL PROD/S1640 - IMASUL ARCGIS PORTAL PROD.vmdk
+[DTC-SGI] [29/57] Datastore 'STA_LUN_0000' inacessível — pulando.
+SKIP (recente 3 dias < 60) tamanho=950.0 GB: [STA_LUN_07] S0697 - SGI GMS OI PROD/S0697 - SGI GMS OI PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S0316 - NOC ZABBIX DB PROD/S0316 - NOC ZABBIX DB PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1524.0 GB: [STA_LUN_07] S1181 - SEJUSP CBMMS FILE SERVER PROD/S1181 - SEJUSP CBMMS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_07] S0509 - SEGOV SESUITE PROD/S0509 - SEGOV SESUITE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=600.0 GB: [STA_LUN_07] S0509 - SEGOV SESUITE PROD/S0509 - SEGOV SESUITE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=182.8 GB: [STA_LUN_07] S1149 - SEJUSP FILE SERVER INTERIOR PROD/S1149 - SEJUSP FILE SERVER INTERIOR PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_07] S0716 - MS ELK DATA PORTAL UNICO PROD/S0716 - MS ELK DATA PORTAL UNICO PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S0540 - SGI ALFRESCO EDOC PROD/S0540 - SGI ALFRESCO EDOC PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=1023.2 GB: [STA_LUN_07] S1410 - SEFAZ APLICACAO COINF PROD/S1410 - SEFAZ APLICACAO COINF PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S1342 - DPGE FILE SERVER CASEG PROD/S1342 - DPGE FILE SERVER CASEG PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S1198 - SEJUSP DGPC FILE SERVER PROD/S1198 - SEJUSP DGPC FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=735.0 GB: [STA_LUN_07] S1288 - SED FILE SERVER IMAGENS PROD/S1288 - SED FILE SERVER IMAGENS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=419.5 GB: [STA_LUN_07] S0609 - INMETRO FILE SERVER PROD/S0609 - INMETRO FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_07] S0300 - DPGE SQL SERVER PROD/S0300 - DPGE SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_07] S0300 - DPGE SQL SERVER PROD/S0300 - DPGE SQL SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_07] S0300 - DPGE SQL SERVER PROD/S0300 - DPGE SQL SERVER PROD_3.vmdk
+SKIP (recente 12 dias < 60) tamanho=402.3 GB: [STA_LUN_07] S0825 - MS DYNATRACE PROD/S0825 - MS DYNATRACE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_12] S0664 - MS SQL RELATORIOS SPF PROD/S0664 - MS SQL RELATORIOS SPF PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=900.0 GB: [STA_LUN_12] S1348 - AGEPREV SISPREV HOM/S1348 - AGEPREV SISPREV HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_12] S1274 - STI BD SQL HOM/S1274 - STI BD SQL HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_12] S1274 - STI BD SQL HOM/S1274 - STI BD SQL HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_12] S1274 - STI BD SQL HOM/S1274 - STI BD SQL HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_12] S1863 - MSSQL SERVER IPVA PROD/S1863 - MSSQL SERVER IPVA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=376.5 GB: [STA_LUN_12] S1639 - IMASUL ARCGIS PORTAL PROD/S1639 - IMASUL ARCGIS PORTAL PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=129.2 GB: [STA_LUN_12] S0680 - SGI SERVICEDESK BD PROD_restored/S0680 - SGI SERVICEDESK BD PROD_restored_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=179.9 GB: [STA_LUN_12] S481 - MS SERVIDOR APLICACOES EXECUTAVEIS PROD/S481 - MS SERVIDOR APLICACOES EXECUTAVEIS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1523.0 GB: [STA_LUN_12] S1325 - SGI ESST NETWRIX SQL SERVER PROD/S1325 - SGI ESST NETWRIX SQL SERVER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_12] S1746 - IAGRO MINIO PROD/S1746 - IAGRO MINIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STA_LUN_12] S1746 - IAGRO MINIO PROD/S1746 - IAGRO MINIO PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STA_LUN_12] S1746 - IAGRO MINIO PROD/S1746 - IAGRO MINIO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=700.0 GB: [STA_LUN_12] S0376 - MS E-MS SQL HOM/S0376 - MS E-MS SQL HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=100.3 GB: [STA_LUN_12] S0314 - IAGRO DIGITALIZACAO PROD/S0314 - IAGRO DIGITALIZACAO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=132.4 GB: [STA_LUN_12] S0200 - SED BD ORACLE PROD/S0200 - SED BD ORACLE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=103.6 GB: [STA_LUN_12] S0103 - IMASUL SISLA PROD/S0103 - IMASUL SISLA PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=134.1 GB: [STA_LUN_12] S0445 - SEFAZ TED SERVER SINTEGRA PROD/S0445 - SEFAZ TED SERVER SINTEGRA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_12] S1980 - SQL SERVER PROD/S1980 - SQL SERVER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=127.9 GB: [STA_LUN_12] S1423 - SEFAZ TABLEAU DESEN/S1423 - SEFAZ TABLEAU DESEN.vmdk
+SKIP (recente 0 dias < 60) tamanho=477.3 GB: [STA_LUN_12] S1485 - SEFAZ ACAO FISCAL TABLEAU PROD/S1485 - SEFAZ ACAO FISCAL TABLEAU PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=249.6 GB: [STA_LUN_12] S0642 - MS SQL 2008 ITC008 PROD/S0642 - MS SQL 2008 ITC008 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=115.3 GB: [STA_LUN_12] S0642 - MS SQL 2008 ITC008 PROD/S0642 - MS SQL 2008 ITC008 PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=327.5 GB: [STA_LUN_12] S1262 - SGI SERVIDOR BD UDIC STAGING AREA PROD/S1262 - SGI SERVIDOR BD UDIC STAGING AREA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=138.3 GB: [STA_LUN_12] S1637 - IMASUL ARCGIS SQL PROD/S1637 - IMASUL ARCGIS SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=126.9 GB: [STA_LUN_12] S119 - HRMS MV SOUL AP PROD/S119 - HRMS MV SOUL AP PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=314.3 GB: [STA_LUN_12] S1638 - IMASUL ARCGIS HOM/S1638 - IMASUL ARCGIS HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4812.8 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=157.7 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=3584.0 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=786.9 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1484.8 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=2047.8 GB: [STA_LUN_08] S0296 - DETRAN FILE SERVER IMAGENS PROD/S0296 - DETRAN FILE SERVER IMAGENS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=652.1 GB: [STA_LUN_08] S0417 - SEGOV FILE SERVER EPE PROD/S0417 - SEGOV FILE SERVER EPE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=232.0 GB: [STA_LUN_08] S1101 - MS HUB DFS FILE SERVER PROD/S1101 - MS HUB DFS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=667.1 GB: [STA_LUN_08] S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD/S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2991.9 GB: [STA_LUN_08] S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD/S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_08] S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD/S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=1459.6 GB: [STA_LUN_08] S0304 - SEJUSP FILE SERVER INSTITUTO DE CRIMINALISTICA PC PROD/S0304 - SEJUSP FILE SERVER INSTITUTO DE CRIMINALISTICA PC PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_08] S0575 - SGI WSUS PROD/S0575 - SGI WSUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_08] S0575 - SGI WSUS PROD/S0575 - SGI WSUS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=561.8 GB: [STA_LUN_08] S1914 - SGI TFS AZURE DEVOPS 2022 PROD/S1914 - SGI TFS AZURE DEVOPS 2022 PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1536.0 GB: [STA_LUN_08] S0247 - PGE NFS PROD/S0247 - PGE NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4049.5 GB: [STA_LUN_16] S1879 - MS SQL SERVER INTEGRACAO HOM/S1879 - MS SQL SERVER INTEGRACAO HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_16] S1879 - MS SQL SERVER INTEGRACAO HOM/S1879 - MS SQL SERVER INTEGRACAO HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_16] S1879 - MS SQL SERVER INTEGRACAO HOM/S1879 - MS SQL SERVER INTEGRACAO HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=100.2 GB: [STA_LUN_16] S0704 - SESIC SISTEMA DE BILHETAGEM PROD/S0704 - SESIC SISTEMA DE BILHETAGEM PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=301.0 GB: [STA_LUN_16] S0953 - SGI MSSQL HOM/S0953 - SGI MSSQL HOM_1.vmdk
+SKIP (recente 5 dias < 60) tamanho=350.0 GB: [STA_LUN_16] S0371 - IMASUL SICAR BD PROD/S0371 - IMASUL SICAR BD PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4892.3 GB: [STA_LUN_16] S0164 - SEGOV NFS MOODLE PROD/S0164 - SEGOV NFS MOODLE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1017.2 GB: [STA_LUN_16] S0164 - SEGOV NFS MOODLE PROD/S0164 - SEGOV NFS MOODLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=105.2 GB: [STA_LUN_16] S0634 - SEGOV ELLOS HOM/S0634 - SEGOV ELLOS HOM.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_16] S0355 - CGE SISTEMA ACL PROD/S0355 - CGE SISTEMA ACL PROD_3.vmdk
+SKIP (recente 7 dias < 60) tamanho=500.0 GB: [STA_LUN_16] S1199 - SES DB POSTGRESQL PROD/S1199 - SES DB POSTGRESQL PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_16] S0864 - STI DUMP DATABASE PROD/S0864 - STI DUMP DATABASE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_16] S0864 - STI DUMP DATABASE PROD/S0864 - STI DUMP DATABASE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_16] S0864 - STI DUMP DATABASE PROD/S0864 - STI DUMP DATABASE PROD_2.vmdk
+SKIP (recente 2 dias < 60) tamanho=204.0 GB: [STA_LUN_16] S1228 - SGI DBA CATALOGO DE BACKUP ORACLE PROD/S1228 - SGI DBA CATALOGO DE BACKUP ORACLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2047.8 GB: [STA_LUN_08] S0296 - DETRAN FILE SERVER IMAGENS PROD/S0296 - DETRAN FILE SERVER IMAGENS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4812.8 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_08] S0700 - SEJUSP SQL BD SIGO PROD/S0700 - SEJUSP SQL BD SIGO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_08] S0575 - SGI WSUS PROD/S0575 - SGI WSUS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_08] S0575 - SGI WSUS PROD/S0575 - SGI WSUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1536.0 GB: [STA_LUN_08] S0247 - PGE NFS PROD/S0247 - PGE NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=652.1 GB: [STA_LUN_08] S0417 - SEGOV FILE SERVER EPE PROD/S0417 - SEGOV FILE SERVER EPE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=232.0 GB: [STA_LUN_08] S1101 - MS HUB DFS FILE SERVER PROD/S1101 - MS HUB DFS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=157.7 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1484.8 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=786.9 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3584.0 GB: [STA_LUN_08] S0286 - SEJUSP REPOSITORIO SIGO PRD/S0286 - SEJUSP REPOSITORIO SIGO PRD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=562.0 GB: [STA_LUN_08] S1914 - SGI TFS AZURE DEVOPS 2022 PROD/S1914 - SGI TFS AZURE DEVOPS 2022 PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=667.1 GB: [STA_LUN_08] S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD/S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2991.9 GB: [STA_LUN_08] S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD/S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_08] S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD/S0528 - PGE SISTEMA SOFTPLAN BD ORACLE PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=1459.6 GB: [STA_LUN_08] S0304 - SEJUSP FILE SERVER INSTITUTO DE CRIMINALISTICA PC PROD/S0304 - SEJUSP FILE SERVER INSTITUTO DE CRIMINALISTICA PC PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_09] S0425 - MS SQL SERVER NFE PROD/S0425 - MS SQL SERVER NFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1536.0 GB: [STA_LUN_09] S0853 - SEFAZ NFS SIGLO PROD/S0853 - SEFAZ NFS SIGLO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_09] S0853 - SEFAZ NFS SIGLO PROD/S0853 - SEFAZ NFS SIGLO PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=1023.9 GB: [STA_LUN_09] S0493 - SGI ALFRESCO FILESERVER PROD/S0493 - SGI ALFRESCO FILESERVER PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=576.1 GB: [STA_LUN_09] S0493 - SGI ALFRESCO FILESERVER PROD/S0493 - SGI ALFRESCO FILESERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1320.8 GB: [STA_LUN_09] S1155 - AGEPEN SIAPEN REPOSITORIO PROD/S1155 - AGEPEN SIAPEN REPOSITORIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STA_LUN_09] S0600 - SGI DBA IDERA PROD/S0600 - SGI DBA IDERA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1413.8 GB: [STA_LUN_09] S1191 - SEJUSP SSP FILE SERVER PROD/S1191 - SEJUSP SSP FILE SERVER PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=700.0 GB: [STA_LUN_09] S1928 - IMASUL SUPRESSAO DB ORACLE PROD/S1928 - IMASUL SUPRESSAO DB ORACLE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=109.9 GB: [STA_LUN_09] S0342 - SGI WFE SHAREPOINT PROD/S0342 - SGI WFE SHAREPOINT PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_09] S1014 - COTIN SQL FREEFLOW/S1014 - COTIN SQL FREEFLOW_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_09] S1014 - COTIN SQL FREEFLOW/S1014 - COTIN SQL FREEFLOW_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_09] S1014 - COTIN SQL FREEFLOW/S1014 - COTIN SQL FREEFLOW_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_09] S0841 - DPGE FILE SERVER INTERIOR PROD/S0841 - DPGE FILE SERVER INTERIOR PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STA_LUN_09] S0841 - DPGE FILE SERVER INTERIOR PROD/S0841 - DPGE FILE SERVER INTERIOR PROD_1.vmdk
+SKIP (recente 12 dias < 60) tamanho=101.3 GB: [STA_LUN_14] S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD(CLONE)/S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD(CLONE)_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=257.8 GB: [STA_LUN_14] S158 - SEFAZ SQL DW MICROSTRATEGY PROD/S158 - SEFAZ SQL DW MICROSTRATEGY PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=250.0 GB: [STA_LUN_14] S0154 - SEJUSP SISTEMA CADG SUR PROD/S0154 - SEJUSP SISTEMA CADG SUR PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=519.3 GB: [STA_LUN_14] S0154 - SEJUSP SISTEMA CADG SUR PROD/S0154 - SEJUSP SISTEMA CADG SUR PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=2457.6 GB: [STA_LUN_14] S0372 - SGI SQL 2019 DIGIX/S0372 - SGI SQL 2019 DIGIX_1.vmdk
+SKIP (recente 3 dias < 60) tamanho=500.0 GB: [STA_LUN_14] S0090 - SETDIG VEEAM BACKUP/S0090 - SETDIG VEEAM BACKUP_1.vmdk
+SKIP (recente 53 dias < 60) tamanho=500.0 GB: [STA_LUN_14] S0000/S0000_1.vmdk
+SKIP (recente 53 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0000/S0000_2.vmdk
+SKIP (recente 53 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0000/S0000_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=800.0 GB: [STA_LUN_14] S0112 - MS SQL BPE PROD/S0112 - MS SQL BPE PROD_1.vmdk
+SKIP (recente 53 dias < 60) tamanho=256.0 GB: [STA_LUN_14] S1915 - MS MYSQL MOODLE PROD/S1915 - MS MYSQL MOODLE PROD_1.vmdk
+SKIP (recente 26 dias < 60) tamanho=2000.0 GB: [STA_LUN_14] S0097 - SETDIG BD RESTORE/S0097 - SETDIG BD RESTORE_1.vmdk
+SKIP (recente 26 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0097 - SETDIG BD RESTORE/S0097 - SETDIG BD RESTORE_3.vmdk
+SKIP (recente 27 dias < 60) tamanho=200.0 GB: [STA_LUN_14] S0097 - SETDIG BD RESTORE/S0097 - SETDIG BD RESTORE_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=492.4 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=492.4 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1568.8 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=1009.5 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_15] S1878 - MS SQL SERVER INTEGRACAO PROD/S1878 - MS SQL SERVER INTEGRACAO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2879.5 GB: [STA_LUN_15] S1878 - MS SQL SERVER INTEGRACAO PROD/S1878 - MS SQL SERVER INTEGRACAO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=105.8 GB: [STA_LUN_15] S1074 - AGEPREV SISPREV BD PROD/S1074 - AGEPREV SISPREV BD PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1126.4 GB: [STA_LUN_15] S1074 - AGEPREV SISPREV BD PROD/S1074 - AGEPREV SISPREV BD PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_15] S1273 - STI BD SQL PROD/S1273 - STI BD SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_15] S1273 - STI BD SQL PROD/S1273 - STI BD SQL PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_15] S1273 - STI BD SQL PROD/S1273 - STI BD SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=120.2 GB: [STA_LUN_15] S0532 - SEFAZ ICMS TRANSPARENTE APLICACAO PROD/S0532 - SEFAZ ICMS TRANSPARENTE APLICACAO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_15] S0715 - MS ELK DATA PORTAL UNICO PROD/S0715 - MS ELK DATA PORTAL UNICO PROD_1.vmdk
+SKIP (recente 32 dias < 60) tamanho=670.1 GB: [STA_LUN_15] S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD/S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=685.1 GB: [STA_LUN_15] S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD_restored/S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD_restored.vmdk
+SKIP (recente 0 dias < 60) tamanho=1921.5 GB: [STA_LUN_15] S0561 - SGI ALFRESCO FILESERVER PROD/S0561 - SGI ALFRESCO FILESERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=576.0 GB: [STA_LUN_15] S0561 - SGI ALFRESCO FILESERVER PROD/S0561 - SGI ALFRESCO FILESERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=107.3 GB: [STA_LUN_15] S0029 - STI ZIMBRA PREITURA PROD/S0029 - STI ZIMBRA PREITURA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=688.3 GB: [STA_LUN_15] S0511 - AGEPAN FILE SERVER PROD/S0511 - AGEPAN FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=640.0 GB: [STA_LUN_15] S0299 - SEJUSP REPOSITORIO SIGO PROD/S0299 - SEJUSP REPOSITORIO SIGO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=893.8 GB: [STA_LUN_15] S1152 - AGEPEN SIAPEN BD PROD/S1152 - AGEPEN SIAPEN BD PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_15] S0529 - SEJUSP POLICIA CIVIL FILE SERVER PROD/S0529 - SEJUSP POLICIA CIVIL FILE SERVER PROD_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=200.0 GB: [STA_LUN_03] S1476 - SEGOV ELLOS MONGODB HOM/S1476 - SEGOV ELLOS MONGODB HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=282.9 GB: [STA_LUN_03] S1440 - SEGOV SOFTEXPERT PROD/S1440 - SEGOV SOFTEXPERT PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=500.0 GB: [STA_LUN_03] S0395 - SGI DATA DISCOVERY ONE TRUST PROD/S0395 - SGI DATA DISCOVERY ONE TRUST PROD.vmdk
+SKIP (recente 7 dias < 60) tamanho=300.0 GB: [STA_LUN_03] S0335 - IMASUL SICAR APP PROD/S0335 - IMASUL SICAR APP PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=242.5 GB: [STA_LUN_03] S1222 - SGI INFRA EMAIL SECURITY SONICWALL PROD/S1222 - SGI INFRA EMAIL SECURITY SONICWALL PROD.vmdk
+SKIP (recente 10 dias < 60) tamanho=1224.3 GB: [STA_LUN_03] S0359 - SGI SQL 2022 HOM/S0359 - SGI SQL 2022 HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STA_LUN_13] S0654 - SAD NFS DOCKER PROD/S0654 - SAD NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=173.0 GB: [STA_LUN_13] S0654 - SAD NFS DOCKER PROD/S0654 - SAD NFS DOCKER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=130.0 GB: [STA_LUN_13] S0628 - SGI BD SERVICEDESK PLUS PROD/S0628 - SGI BD SERVICEDESK PLUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=149.7 GB: [STA_LUN_13] S1265 - SGI ESST NETWRIX FS PROD/S1265 - SGI ESST NETWRIX FS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_13] S0237 - SED MINIO NFS PROD/S0237 - SED MINIO NFS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4846.7 GB: [STA_LUN_13] S0237 - SED MINIO NFS PROD/S0237 - SED MINIO NFS PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STA_LUN_13] S0237 - SED MINIO NFS PROD/S0237 - SED MINIO NFS PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=2048.0 GB: [STA_LUN_06] S0145 - SGI EAST ELK PROD/S0145 - SGI EAST ELK PROD_1.vmdk
+SKIP (recente 28 dias < 60) tamanho=579.3 GB: [STA_LUN_06] S0126 - SGI DEV QLIK SENSE(CLONE S0875)/S0126 - SGI DEV QLIK SENSE(CLONE S0875)_4.vmdk
+SKIP (recente 11 dias < 60) tamanho=600.0 GB: [STA_LUN_06] S0488 - POC VARONIS - INDEXADOR/S0488 - POC VARONIS - INDEXADOR.vmdk
+SKIP (recente 0 dias < 60) tamanho=403.3 GB: [STA_LUN_06] S0822 - MS DYNATRACE PROD/S0822 - MS DYNATRACE PROD_1.vmdk
+SKIP (recente 30 dias < 60) tamanho=200.0 GB: [STA_LUN_06] S1925 - DPGE DATABASE HOM N/S1925 - DPGE DATABASE HOM N_2.vmdk
+SKIP (recente 30 dias < 60) tamanho=200.0 GB: [STA_LUN_06] S1925 - DPGE DATABASE HOM N/S1925 - DPGE DATABASE HOM N_3.vmdk
+SKIP (recente 30 dias < 60) tamanho=500.0 GB: [STA_LUN_06] S1925 - DPGE DATABASE HOM N/S1925 - DPGE DATABASE HOM N_1.vmdk
+SKIP (recente 21 dias < 60) tamanho=500.0 GB: [STA_LUN_06] S0802 - SGI EKRONOS ORACLE PROD/S0802 - SGI EKRONOS ORACLE PROD_1.vmdk
+SKIP (recente 25 dias < 60) tamanho=398.4 GB: [STA_LUN_06] S0826 - MS DYNATRACE PROD/S0826 - MS DYNATRACE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=350.0 GB: [STA_LUN_06] S1148 - IMASUL SICAR BD HOM/S1148 - IMASUL SICAR BD HOM_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=200.0 GB: [STA_LUN_03] S1476 - SEGOV ELLOS MONGODB HOM/S1476 - SEGOV ELLOS MONGODB HOM_2.vmdk
+SKIP (recente 10 dias < 60) tamanho=1224.3 GB: [STA_LUN_03] S0359 - SGI SQL 2022 HOM/S0359 - SGI SQL 2022 HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=282.9 GB: [STA_LUN_03] S1440 - SEGOV SOFTEXPERT PROD/S1440 - SEGOV SOFTEXPERT PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=242.5 GB: [STA_LUN_03] S1222 - SGI INFRA EMAIL SECURITY SONICWALL PROD/S1222 - SGI INFRA EMAIL SECURITY SONICWALL PROD.vmdk
+SKIP (recente 7 dias < 60) tamanho=300.0 GB: [STA_LUN_03] S0335 - IMASUL SICAR APP PROD/S0335 - IMASUL SICAR APP PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=500.0 GB: [STA_LUN_03] S0395 - SGI DATA DISCOVERY ONE TRUST PROD/S0395 - SGI DATA DISCOVERY ONE TRUST PROD.vmdk
+[DTC-SGI] [38/57] Datastore 'VeeamBackup_s0552.ms' inacessível — pulando.
+[DTC-SGI] [39/57] Datastore 'VeeamBackup_s0550' inacessível — pulando.
+SKIP (recente 0 dias < 60) tamanho=3655.6 GB: [STC_LUN_01] S0884 - DETRAN MINIO NFS PROD/S0884 - DETRAN MINIO NFS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STC_LUN_01] S0884 - DETRAN MINIO NFS PROD/S0884 - DETRAN MINIO NFS PROD_1.vmdk
+SKIP (recente 3 dias < 60) tamanho=950.0 GB: [STA_LUN_07] S0697 - SGI GMS OI PROD/S0697 - SGI GMS OI PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=735.0 GB: [STA_LUN_07] S1288 - SED FILE SERVER IMAGENS PROD/S1288 - SED FILE SERVER IMAGENS PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=1023.2 GB: [STA_LUN_07] S1410 - SEFAZ APLICACAO COINF PROD/S1410 - SEFAZ APLICACAO COINF PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_07] S0509 - SEGOV SESUITE PROD/S0509 - SEGOV SESUITE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=600.0 GB: [STA_LUN_07] S0509 - SEGOV SESUITE PROD/S0509 - SEGOV SESUITE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_07] S0716 - MS ELK DATA PORTAL UNICO PROD/S0716 - MS ELK DATA PORTAL UNICO PROD_1.vmdk
+SKIP (recente 12 dias < 60) tamanho=402.5 GB: [STA_LUN_07] S0825 - MS DYNATRACE PROD/S0825 - MS DYNATRACE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S0316 - NOC ZABBIX DB PROD/S0316 - NOC ZABBIX DB PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1524.0 GB: [STA_LUN_07] S1181 - SEJUSP CBMMS FILE SERVER PROD/S1181 - SEJUSP CBMMS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S1342 - DPGE FILE SERVER CASEG PROD/S1342 - DPGE FILE SERVER CASEG PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S1198 - SEJUSP DGPC FILE SERVER PROD/S1198 - SEJUSP DGPC FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=419.5 GB: [STA_LUN_07] S0609 - INMETRO FILE SERVER PROD/S0609 - INMETRO FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_07] S0300 - DPGE SQL SERVER PROD/S0300 - DPGE SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_07] S0300 - DPGE SQL SERVER PROD/S0300 - DPGE SQL SERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_07] S0300 - DPGE SQL SERVER PROD/S0300 - DPGE SQL SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=182.8 GB: [STA_LUN_07] S1149 - SEJUSP FILE SERVER INTERIOR PROD/S1149 - SEJUSP FILE SERVER INTERIOR PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=1024.0 GB: [STA_LUN_07] S0540 - SGI ALFRESCO EDOC PROD/S0540 - SGI ALFRESCO EDOC PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=10240.0 GB: [STC_LUN_06] S1924 - STI DUMP DATABASE PROD/S1924 - STI DUMP DATABASE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STC_LUN_06] S0838 - SETDIG VEEAM ENTERPRISE MANAGER PROD/S0838 - SETDIG VEEAM ENTERPRISE MANAGER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STC_LUN_06] S1475 - SEGOV ELLOS MONGODB PROD/S1475 - SEGOV ELLOS MONGODB PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STC_LUN_06] S1475 - SEGOV ELLOS MONGODB PROD/S1475 - SEGOV ELLOS MONGODB PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=4834.0 GB: [STC_LUN_06] S1909 - MS GRAYLOG-INFRA DATA NODE PROD/S1909 - MS GRAYLOG-INFRA DATA NODE PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=900.0 GB: [STC_LUN_05] S0657 - SAD SISTEMA SIGA MONGODB PROD/S0657 - SAD SISTEMA SIGA MONGODB PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=1126.4 GB: [STC_LUN_05] S0657 - SAD SISTEMA SIGA MONGODB PROD/S0657 - SAD SISTEMA SIGA MONGODB PROD_3.vmdk
+SKIP (recente 7 dias < 60) tamanho=2252.8 GB: [STC_LUN_05] S0657 - SAD SISTEMA SIGA MONGODB PROD/S0657 - SAD SISTEMA SIGA MONGODB PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=7439.8 GB: [STC_LUN_05] S0465 - MS ELASTICSEARCH SERVER PROD/S0465 - MS ELASTICSEARCH SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_15] S0715 - MS ELK DATA PORTAL UNICO PROD/S0715 - MS ELK DATA PORTAL UNICO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_15] S1273 - STI BD SQL PROD/S1273 - STI BD SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_15] S1273 - STI BD SQL PROD/S1273 - STI BD SQL PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_15] S1273 - STI BD SQL PROD/S1273 - STI BD SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=685.1 GB: [STA_LUN_15] S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD_restored/S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD_restored.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STA_LUN_15] S1878 - MS SQL SERVER INTEGRACAO PROD/S1878 - MS SQL SERVER INTEGRACAO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2879.5 GB: [STA_LUN_15] S1878 - MS SQL SERVER INTEGRACAO PROD/S1878 - MS SQL SERVER INTEGRACAO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=120.2 GB: [STA_LUN_15] S0532 - SEFAZ ICMS TRANSPARENTE APLICACAO PROD/S0532 - SEFAZ ICMS TRANSPARENTE APLICACAO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=107.3 GB: [STA_LUN_15] S0029 - STI ZIMBRA PREITURA PROD/S0029 - STI ZIMBRA PREITURA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1921.5 GB: [STA_LUN_15] S0561 - SGI ALFRESCO FILESERVER PROD/S0561 - SGI ALFRESCO FILESERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=576.0 GB: [STA_LUN_15] S0561 - SGI ALFRESCO FILESERVER PROD/S0561 - SGI ALFRESCO FILESERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=640.0 GB: [STA_LUN_15] S0299 - SEJUSP REPOSITORIO SIGO PROD/S0299 - SEJUSP REPOSITORIO SIGO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=893.8 GB: [STA_LUN_15] S1152 - AGEPEN SIAPEN BD PROD/S1152 - AGEPEN SIAPEN BD PROD_1.vmdk
+SKIP (recente 32 dias < 60) tamanho=670.1 GB: [STA_LUN_15] S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD/S1721 - SGI ESST LEPIDE AUDITOR SQL SERVER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=492.4 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=492.4 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1568.8 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=1009.5 GB: [STA_LUN_15] S1381 - IMASUL FILE SERVER SIRIEMA PROD/S1381 - IMASUL FILE SERVER SIRIEMA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=105.8 GB: [STA_LUN_15] S1074 - AGEPREV SISPREV BD PROD/S1074 - AGEPREV SISPREV BD PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1126.4 GB: [STA_LUN_15] S1074 - AGEPREV SISPREV BD PROD/S1074 - AGEPREV SISPREV BD PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=688.3 GB: [STA_LUN_15] S0511 - AGEPAN FILE SERVER PROD/S0511 - AGEPAN FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STA_LUN_15] S0529 - SEJUSP POLICIA CIVIL FILE SERVER PROD/S0529 - SEJUSP POLICIA CIVIL FILE SERVER PROD_1.vmdk
+SKIP (recente 33 dias < 60) tamanho=600.0 GB: [STC_LUN_03] S0486 - POC VARONIS - APP E BANCO SQL/S0486 - POC VARONIS - APP E BANCO SQL_1.vmdk
+SKIP (recente 40 dias < 60) tamanho=500.0 GB: [STC_LUN_03] S0665 - MS BANCO DE DADOS MYSQL PROD/S0665 - MS BANCO DE DADOS MYSQL PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=4831.5 GB: [STC_LUN_03] S1911 - MS GRAYLOG-INFRA DATA NODE PROD/S1911 - MS GRAYLOG-INFRA DATA NODE PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=143.0 GB: [STC_LUN_03] S0016 - SEFAZ LOG INSIGHT PROD/S0016 - SEFAZ LOG INSIGHT PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=387.6 GB: [STC_LUN_03] S918 - SGI SERVICEDESK PLUS PROD/S918 - SGI SERVICEDESK PLUS PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=150.0 GB: [STA_LUN_10] S0226 - IMASUL DB LICENCIAMENTO PROD/S0226 - IMASUL DB LICENCIAMENTO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2096.3 GB: [STA_LUN_10] S1369 - SEINFRA FILE SERVER PROD/S1369 - SEINFRA FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=146.3 GB: [STA_LUN_10] S0599 - MS APLICACOES PHP PROD/S0599 - MS APLICACOES PHP PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1370.6 GB: [STA_LUN_10] S1367 - SEJUSP BD DW BI GEOESTATISTICA PROD/S1367 - SEJUSP BD DW BI GEOESTATISTICA PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STA_LUN_10] S0278 - SGI SQL SERVER ARRECADACAO HOM/S0278 - SGI SQL SERVER ARRECADACAO HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_10] S0278 - SGI SQL SERVER ARRECADACAO HOM/S0278 - SGI SQL SERVER ARRECADACAO HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STA_LUN_10] S0278 - SGI SQL SERVER ARRECADACAO HOM/S0278 - SGI SQL SERVER ARRECADACAO HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=621.5 GB: [STA_LUN_10] S0875 - SGI DEV QLIK SENSE_1/S0875 - SGI DEV QLIK SENSE.vmdk
+SKIP (recente 0 dias < 60) tamanho=105.2 GB: [STA_LUN_10] S0495 - MS SISTEMAS DOTNET PROD/S0495 - MS SISTEMAS DOTNET PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=213.1 GB: [STA_LUN_10] S1640 - IMASUL ARCGIS PORTAL PROD/S1640 - IMASUL ARCGIS PORTAL PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=1000.0 GB: [STA_LUN_10] S1384 - SEJUSP ALFRESCO FILESERVER PROD/S1384 - SEJUSP ALFRESCO FILESERVER PROD_2.vmdk
+SKIP (recente 1 dias < 60) tamanho=1000.0 GB: [STA_LUN_10] S1384 - SEJUSP ALFRESCO FILESERVER PROD/S1384 - SEJUSP ALFRESCO FILESERVER PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=150.0 GB: [STA_LUN_10] S2002 - SGI VCENTER 8 INTERIOR PROD/S2002 - SGI VCENTER 8 INTERIOR PROD_16.vmdk
+SKIP (recente 0 dias < 60) tamanho=101.2 GB: [STB_LUN_02] S1930 - MS SQL COTIN PROD/S1930 - MS SQL COTIN PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=143.3 GB: [STB_LUN_02] S1930 - MS SQL COTIN PROD/S1930 - MS SQL COTIN PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2374.8 GB: [STB_LUN_02] S1930 - MS SQL COTIN PROD/S1930 - MS SQL COTIN PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=139.3 GB: [STB_LUN_02] S1707 - SEGOV NFS SECOM PROD/S1707 - SEGOV NFS SECOM PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=800.0 GB: [STB_LUN_02] S1707 - SEGOV NFS SECOM PROD/S1707 - SEGOV NFS SECOM PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_02] S1707 - SEGOV NFS SECOM PROD/S1707 - SEGOV NFS SECOM PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=221.7 GB: [STB_LUN_02] S1464 - SED BI QLIK SENSE PROD/S1464 - SED BI QLIK SENSE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=4435.3 GB: [STB_LUN_02] S0517 - IMASUL FILE SERVER PROD/S0517 - IMASUL FILE SERVER PROD_1.vmdk
+SKIP (recente 28 dias < 60) tamanho=1882.0 GB: [STB_LUN_02] S1636 - IMASUL ARCGIS REPOSITORIO PROD/S1636 - IMASUL ARCGIS REPOSITORIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_02] S1636 - IMASUL ARCGIS REPOSITORIO PROD/S1636 - IMASUL ARCGIS REPOSITORIO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3795.6 GB: [STB_LUN_03] S1210 - SEINFRA FILE SERVER PROD/S1210 - SEINFRA FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4438.5 GB: [STB_LUN_03] S1210 - SEINFRA FILE SERVER PROD/S1210 - SEINFRA FILE SERVER PROD_1.vmdk
+SKIP (recente 3 dias < 60) tamanho=232.1 GB: [STB_LUN_04] S1159 - SGI REPOSITORIO PROCESSO PROD/S1159 - SGI REPOSITORIO PROCESSO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=100.2 GB: [STB_LUN_04] S0179 - SGI ESST NETWRIX AUDITOR FILE SERVER PROD/S0179 - SGI ESST NETWRIX AUDITOR FILE SERVER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=140.0 GB: [STB_LUN_04] S0943 - SAD UNIVERSALRH WEBLOGIC PROD/S0943 - SAD UNIVERSALRH WEBLOGIC PROD_1.vmdk
+SKIP (recente 25 dias < 60) tamanho=10240.0 GB: [STB_LUN_04] S1257 - MS GRAYLOG DATA NODE PROD/S1257 - MS GRAYLOG DATA NODE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=900.0 GB: [STC_LUN_04] S1978 - SQL SERVER PROD/S1978 - SQL SERVER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STC_LUN_04] S1979 - SQL SERVER PROD/S1979 - SQL SERVER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STC_LUN_04] S1916 - DPGE ARQUIVOS SIGA SQL PROD/S1916 - DPGE ARQUIVOS SIGA SQL PROD_6.vmdk
+SKIP (recente 7 dias < 60) tamanho=150.0 GB: [STC_LUN_04] S1695 - IMASUL CLUSTER DE APLICACOES GEORREF. PROD/S1695 - IMASUL CLUSTER DE APLICACOES GEORREF. PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=5024.4 GB: [STC_LUN_04] S1910 - MS GRAYLOG-INFRA DATA NODE PROD/S1910 - MS GRAYLOG-INFRA DATA NODE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=650.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3584.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=1536.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=600.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=125.4 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_7.vmdk
+SKIP (recente 0 dias < 60) tamanho=1566.8 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.3 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4096.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=4300.8 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=4907.7 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=4608.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=4300.8 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_7.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=5068.0 GB: [STD_LUN_06] S0403 - MS SQL ITC003 PROD/S0403 - MS SQL ITC003 PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=240.4 GB: [STD_LUN_06] S0403 - MS SQL ITC003 PROD/S0403 - MS SQL ITC003 PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1280.0 GB: [STD_LUN_06] S0403 - MS SQL ITC003 PROD/S0403 - MS SQL ITC003 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=850.4 GB: [STB_LUN_06] S276 - DPGE FILE SERVER PROD/S276 - DPGE FILE SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=204.2 GB: [STB_LUN_06] S276 - DPGE FILE SERVER PROD/S276 - DPGE FILE SERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=4012.3 GB: [STB_LUN_06] S276 - DPGE FILE SERVER PROD/S276 - DPGE FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_06] S0456 - SETDIG REPORT SERVER 22 PROD/S0456 - SETDIG REPORT SERVER 22 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=448.9 GB: [STB_LUN_06] S1115 - CIOPS FILE SERVER PROD/S1115 - CIOPS FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=101.3 GB: [STB_LUN_06] S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD/S0129 - SEFAZ RVS BAIXA PLATAFORMA PROD_1.vmdk
+SKIP (recente 5 dias < 60) tamanho=312.8 GB: [STB_LUN_06] S0513 - SGI EAST GITLABS PROD_restored_restored/S0513 - SGI EAST GITLABS PROD_restored_restored.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_06] S0199 - GEOI2 MINIO NFS PROD/S0199 - GEOI2 MINIO NFS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STB_LUN_06] S0199 - GEOI2 MINIO NFS PROD/S0199 - GEOI2 MINIO NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=613.1 GB: [STB_LUN_06] S1765 - SEJUSP BCADASTRO PROD/S1765 - SEJUSP BCADASTRO PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=306.9 GB: [STB_LUN_06] S1765 - SEJUSP BCADASTRO PROD/S1765 - SEJUSP BCADASTRO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=298.7 GB: [STB_LUN_06] S0010 - DPGE IMPRESSAO PROD/S0010 - DPGE IMPRESSAO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=132.5 GB: [STB_LUN_06] S0530 - SEAD FILE SERVER VALE UNIVERSIDADE PROD/S0530 - SEAD FILE SERVER VALE UNIVERSIDADE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=152.5 GB: [STB_LUN_06] S0518 - SEFAZ AGENFA FTP MIA PROD/S0518 - SEFAZ AGENFA FTP MIA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_06] S1142 - SEMADESC ARCGIS PROD/S1142 - SEMADESC ARCGIS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5122.0 GB: [STB_LUN_06] S1142 - SEMADESC ARCGIS PROD/S1142 - SEMADESC ARCGIS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=313.1 GB: [STB_LUN_06] S0513 - SGI EAST GITLABS PROD/S0513 - SGI EAST GITLABS PROD.vmdk
+SKIP (recente 7 dias < 60) tamanho=200.0 GB: [STB_LUN_06] S1831 - SEGOV ZABBIX DB PROD/S1831 - SEGOV ZABBIX DB PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=809.8 GB: [STB_LUN_06] S0101 - SGI FILE SERVER PROD/S0101 - SGI FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=499.9 GB: [STB_LUN_06] S0312 - SEFAZ IBM SPSS MODELER PREMIUM PROD/S0312 - SEFAZ IBM SPSS MODELER PREMIUM PROD.vmdk
+SKIP (recente 5 dias < 60) tamanho=5734.4 GB: [STD_LUN_02] S0676 - SGI SQL 2019 HOM/S0676 - SGI SQL 2019 HOM_1.vmdk
+SKIP (recente 5 dias < 60) tamanho=6144.0 GB: [STD_LUN_02] S0676 - SGI SQL 2019 HOM/S0676 - SGI SQL 2019 HOM.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5000.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=5000.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=4547.9 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=2342.1 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_07] S0284 - NOTA PREMIADA SQL  PROD/S0284 - NOTA PREMIADA SQL  PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S0284 - NOTA PREMIADA SQL  PROD/S0284 - NOTA PREMIADA SQL  PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S0284 - NOTA PREMIADA SQL  PROD/S0284 - NOTA PREMIADA SQL  PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STD_LUN_07] S1326 - SEFAZ SQL SERVER CRDDIA PROD/S1326 - SEFAZ SQL SERVER CRDDIA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STD_LUN_07] S1326 - SEFAZ SQL SERVER CRDDIA PROD/S1326 - SEFAZ SQL SERVER CRDDIA PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STD_LUN_07] S1326 - SEFAZ SQL SERVER CRDDIA PROD/S1326 - SEFAZ SQL SERVER CRDDIA PROD_3.vmdk
+SKIP (recente 32 dias < 60) tamanho=1024.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_3.vmdk
+SKIP (recente 32 dias < 60) tamanho=250.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_2.vmdk
+SKIP (recente 32 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_1.vmdk
+SKIP (recente 32 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STD_LUN_07] S1224 - AGEPREV CENSO PREV SQL SERVER PROD/S1224 - AGEPREV CENSO PREV SQL SERVER PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=2560.0 GB: [STD_LUN_07] S1224 - AGEPREV CENSO PREV SQL SERVER PROD/S1224 - AGEPREV CENSO PREV SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S1076 - SEFAZ CLUSTER SQL PROD/S1076 - SEFAZ CLUSTER SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STD_LUN_07] S1076 - SEFAZ CLUSTER SQL PROD/S1076 - SEFAZ CLUSTER SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1450.0 GB: [STD_LUN_08] S1243 - SEFAZ DIVIDA ATIVA SQL PROD/S1243 - SEFAZ DIVIDA ATIVA SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S1243 - SEFAZ DIVIDA ATIVA SQL PROD/S1243 - SEFAZ DIVIDA ATIVA SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=455.8 GB: [STD_LUN_08] S0325 - SGI FWSYSLOG PROD/S0325 - SGI FWSYSLOG PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=121.4 GB: [STD_LUN_08] S0393 - SEJUSP SISTEMA CODIS 8 PROD/S0393 - SEJUSP SISTEMA CODIS 8 PROD.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_8.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_4.vmdk
+SKIP (recente 49 dias < 60) tamanho=2512.5 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_9.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_5.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_1.vmdk
+SKIP (recente 49 dias < 60) tamanho=356.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC.vmdk
+SKIP (recente 35 dias < 60) tamanho=2048.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_6.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_2.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_7.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=700.0 GB: [STD_LUN_08] S0698 - SGI SQL PROD/S0698 - SGI SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2251.9 GB: [STD_LUN_08] S0402 - MS SQL ITC002 PROD/S0402 - MS SQL ITC002 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STD_LUN_08] S1086 - MS SQL SERVER SPF PROD/S1086 - MS SQL SERVER SPF PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STD_LUN_08] S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD/S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_08] S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD/S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0374 - MS DB HOMITC SQL HOM/S0374 - MS DB HOMITC SQL HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0374 - MS DB HOMITC SQL HOM/S0374 - MS DB HOMITC SQL HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=800.0 GB: [STD_LUN_05] S0374 - MS DB HOMITC SQL HOM/S0374 - MS DB HOMITC SQL HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2560.0 GB: [STD_LUN_05] S1811 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1811 - SGI SQL SEVER SPDS SMP PRODUÇÃO_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_05] S1508 - MS SQL SERVER CSIC PROD/S1508 - MS SQL SERVER CSIC PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S1508 - MS SQL SERVER CSIC PROD/S1508 - MS SQL SERVER CSIC PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S1508 - MS SQL SERVER CSIC PROD/S1508 - MS SQL SERVER CSIC PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_05] S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=1228.8 GB: [STD_LUN_05] S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STD_LUN_05] S0385 - IAGRO SQL SERVER PROD/S0385 - IAGRO SQL SERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STD_LUN_05] S0385 - IAGRO SQL SERVER PROD/S0385 - IAGRO SQL SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2099.2 GB: [STD_LUN_05] S0385 - IAGRO SQL SERVER PROD/S0385 - IAGRO SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STD_LUN_05] S0150 - NFCE INTEGRACAO SQL PROD/S0150 - NFCE INTEGRACAO SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0150 - NFCE INTEGRACAO SQL PROD/S0150 - NFCE INTEGRACAO SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0150 - NFCE INTEGRACAO SQL PROD/S0150 - NFCE INTEGRACAO SQL PROD_3.vmdk
+SKIP (recente 35 dias < 60) tamanho=2048.0 GB: [STD_LUN_05] S0945 - SAD UNIVERSALRH BD ORACLE PROD/S0945 - SAD UNIVERSALRH BD ORACLE PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0285 - NFE PRODUTOR SQL PROD/S0285 - NFE PRODUTOR SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_05] S0285 - NFE PRODUTOR SQL PROD/S0285 - NFE PRODUTOR SQL PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2304.0 GB: [STD_LUN_05] S0285 - NFE PRODUTOR SQL PROD/S0285 - NFE PRODUTOR SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0665 - MS BANCO DE DADOS MYSQL PROD/S0665 - MS BANCO DE DADOS MYSQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_03] S0019 - MS SQL BDFAZ APOIO PROD/S0019 - MS SQL BDFAZ APOIO PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0019 - MS SQL BDFAZ APOIO PROD/S0019 - MS SQL BDFAZ APOIO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STD_LUN_04] S1077 - BANCO eFRO E AUXILIARES PROD_1/S1077 - BANCO eFRO E AUXILIARES PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_04] S1077 - BANCO eFRO E AUXILIARES PROD_1/S1077 - BANCO eFRO E AUXILIARES PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_04] S1077 - BANCO eFRO E AUXILIARES PROD_1/S1077 - BANCO eFRO E AUXILIARES PROD_3.vmdk
+SKIP (recente 23 dias < 60) tamanho=10240.0 GB: [STD_LUN_04] S1246 - MS GRAYLOG DATA NODE PROD/S1246 - MS GRAYLOG DATA NODE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STD_LUN_04] S1079 - SEFAZ SQL EFD PROD/S1079 - SEFAZ SQL EFD PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STD_LUN_04] S1079 - SEFAZ SQL EFD PROD/S1079 - SEFAZ SQL EFD PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2457.6 GB: [STD_LUN_04] S1079 - SEFAZ SQL EFD PROD/S1079 - SEFAZ SQL EFD PROD_1.vmdk
+SKIP (recente 23 dias < 60) tamanho=10240.0 GB: [STD_LUN_04] S1204 - MS GRAYLOG DATA NODE PROD/S1204 - MS GRAYLOG DATA NODE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=170.0 GB: [STD_LUN_04] S1913 - HRMS ORACLE MV PROD/S1913 - HRMS ORACLE MV PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=2713.6 GB: [STB_LUN_05] S0117 - SES FILE SERVER PROD/S0117 - SES FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=149.2 GB: [STB_LUN_05] S1518 - SGI ESST SQL-KASPERSKY PROD/S1518 - SGI ESST SQL-KASPERSKY PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=174.7 GB: [STB_LUN_05] S0031 - SGI MINIO NFS PROD/S0031 - SGI MINIO NFS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_05] S0031 - SGI MINIO NFS PROD/S0031 - SGI MINIO NFS PROD_4.vmdk
+SKIP (recente 1 dias < 60) tamanho=947.5 GB: [STB_LUN_05] S1441 - SGI INFRA SONICWALL GMS UMA PROD/S1441 - SGI INFRA SONICWALL GMS UMA PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STB_LUN_05] S1922 - SEGOV MISP PROD/S1922 - SEGOV MISP PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=135.6 GB: [STB_LUN_05] S1517 - SGI ESST SQL-KASPERSKY PROD/S1517 - SGI ESST SQL-KASPERSKY PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=4418.1 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=3493.1 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5113.3 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1612.7 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP.vmdk
+SKIP (recente 0 dias < 60) tamanho=4505.6 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=101.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=6246.4 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_7.vmdk
+SKIP (recente 7 dias < 60) tamanho=120.0 GB: [STB_LUN_07] S0326 - SGI GERENCIAMENTO DBA PROD/S0326 - SGI GERENCIAMENTO DBA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3358.0 GB: [STB_LUN_07] S0204 - SED FILE SERVER PROD/S0204 - SED FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STB_LUN_07] S0833 - SGI NFS E-KRONOS PROD/S0833 - SGI NFS E-KRONOS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STB_LUN_07] S1010 - SEFAZ INFRA ZIMBRA MBOX2 PROD/S1010 - SEFAZ INFRA ZIMBRA MBOX2 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=116.1 GB: [STB_LUN_07] S0363 - SGI WFE SHAREPOINT PROD/S0363 - SGI WFE SHAREPOINT PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=146.6 GB: [STB_LUN_07] S0817 - IMASUL SISTEMA CERBERUS PROD/S0817 - IMASUL SISTEMA CERBERUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=197.3 GB: [STB_LUN_07] S0817 - IMASUL SISTEMA CERBERUS PROD/S0817 - IMASUL SISTEMA CERBERUS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=136.0 GB: [STB_LUN_07] S0940 - SAD UNIVERSALRH WEBLOGIC PROD/S0940 - SAD UNIVERSALRH WEBLOGIC PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=251.2 GB: [STB_LUN_07] S0483 - PROCON FILE SERVER PROD/S0483 - PROCON FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STB_LUN_07] S0059 - SAD SISTEMA RH-BIRH DWRH PROD/S0059 - SAD SISTEMA RH-BIRH DWRH PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=739.6 GB: [STB_LUN_07] S0891 - SEFAZ ITC008 PROD/S0891 - SEFAZ ITC008 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=199.8 GB: [STB_LUN_07] S0891 - SEFAZ ITC008 PROD/S0891 - SEFAZ ITC008 PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=289.5 GB: [STB_LUN_07] S1531 - COTIN ANACONDA PROD/S1531 - COTIN ANACONDA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1766.4 GB: [STB_LUN_07] S0047 - SGI FILE SERVER PROD/S0047 - SGI FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STB_LUN_07] S1762 - CSIC IPM SQL SERVER PROD/S1762 - CSIC IPM SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=650.0 GB: [STB_LUN_07] S1762 - CSIC IPM SQL SERVER PROD/S1762 - CSIC IPM SQL SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STB_LUN_07] S1762 - CSIC IPM SQL SERVER PROD/S1762 - CSIC IPM SQL SERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STB_LUN_07] S0275 - PROCON MINIO NFS PROD/S0275 - PROCON MINIO NFS PROD_1.vmdk
+SKIP (recente 24 dias < 60) tamanho=2047.9 GB: [STA_LUN_01] S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD/S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD_2.vmdk
+SKIP (recente 24 dias < 60) tamanho=3072.0 GB: [STA_LUN_01] S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD/S1069 - SGI ZIMBRA MBOX3 E-MAIL GOVERNAMENTAL PROD_1.vmdk
+SKIP (recente 11 dias < 60) tamanho=4140.8 GB: [STA_LUN_01] S1906 - MBOX3 WEBMAIL PROD/S1906 - MBOX3 WEBMAIL PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=106.9 GB: [STA_LUN_01] S0734 - SEGOV ELLOS FRONT-END PROD/S0734 - SEGOV ELLOS FRONT-END PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_01] S1269 - SES SIMWEB E SINASCWEB PROD/S1269 - SES SIMWEB E SINASCWEB PROD.vmdk
+SKIP (recente 26 dias < 60) tamanho=432.6 GB: [STA_LUN_01] S0238 - CGE SISTEMA TECH SUPPLY PROD/S0238 - CGE SISTEMA TECH SUPPLY PROD_1.vmdk
+SKIP (recente 26 dias < 60) tamanho=131.5 GB: [STA_LUN_01] S0238 - CGE SISTEMA TECH SUPPLY PROD/S0238 - CGE SISTEMA TECH SUPPLY PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=172.8 GB: [STA_LUN_01] S1507 - IMASUL SIRIEMA POSTGRESQL POSTGIS PROD/S1507 - IMASUL SIRIEMA POSTGRESQL POSTGIS PROD.vmdk
+SKIP (recente 25 dias < 60) tamanho=4096.0 GB: [STA_LUN_01] S0795 - SGI ZIMBRA MBOX1 E-MAIL GOVERNAMENTAL PROD/S0795 - SGI ZIMBRA MBOX1 E-MAIL GOVERNAMENTAL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=147.8 GB: [STA_LUN_01] S254 - SEJUSP SISTEMA I2 PROD/S254 - SEJUSP SISTEMA I2 PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=2004.1 GB: [STA_LUN_01] S0070 - SGI INFRA MBOX ZIMBRA PROD/S0070 - SGI INFRA MBOX ZIMBRA PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=977.3 GB: [STA_LUN_01] S0120 - HRMS ORACLE MV PROD/S0120 - HRMS ORACLE MV PROD_2.vmdk
+SKIP (recente 1 dias < 60) tamanho=1992.1 GB: [STA_LUN_01] S0120 - HRMS ORACLE MV PROD/S0120 - HRMS ORACLE MV PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=150.0 GB: [STA_LUN_01] S1747 - CGE ANALYTCS PROD/S1747 - CGE ANALYTCS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=600.0 GB: [STA_LUN_01] S1747 - CGE ANALYTCS PROD/S1747 - CGE ANALYTCS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=199.9 GB: [STB_LUN_08] S0348 - FUNDECT FILE SERVER PROD/S0348 - FUNDECT FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_08] S2000 - SGI VCENTER 7 PROD/S2000 - SGI VCENTER 7 PROD_12.vmdk
+SKIP (recente 0 dias < 60) tamanho=806.9 GB: [STB_LUN_08] S1136 - PROCON SISTEMA SINDEC PROD/S1136 - PROCON SISTEMA SINDEC PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=109.9 GB: [STB_LUN_08] S1465 - AGRAER SMARTSHARE PROD/S1465 - AGRAER SMARTSHARE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1996.7 GB: [STB_LUN_08] S0926 - CHOQUE PM FILE SERVER PROD/S0926 - CHOQUE PM FILE SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=900.0 GB: [STB_LUN_08] S0414 - SGI HARBOR REPOSITORIO PROD/S0414 - SGI HARBOR REPOSITORIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3532.8 GB: [STB_LUN_08] S0076 - MS SQL CTE PROD/S0076 - MS SQL CTE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STB_LUN_08] S0406 - MS SQL NFCOM PROD/S0406 - MS SQL NFCOM PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=246.9 GB: [STB_LUN_08] S0055 - SEFAZ DF-e NEXUS PROD/S0055 - SEFAZ DF-e NEXUS PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=394.3 GB: [STB_LUN_08] S0055 - SEFAZ DF-e NEXUS PROD/S0055 - SEFAZ DF-e NEXUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1066.2 GB: [STB_LUN_08] S1529 - SED BANCO DE DADOS SGDE PROD/S1529 - SED BANCO DE DADOS SGDE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STB_LUN_08] S0009 - MS SERVICEDESK PLUS HOM/S0009 - MS SERVICEDESK PLUS HOM_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=300.0 GB: [STB_LUN_08] S0009 - MS SERVICEDESK PLUS HOM/S0009 - MS SERVICEDESK PLUS HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STB_LUN_08] S0228 - MS SQL NF3E PROD/S0228 - MS SQL NF3E PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STB_LUN_08] S0228 - MS SQL NF3E PROD/S0228 - MS SQL NF3E PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STB_LUN_08] S1730 - SEFAZ NFS SGPP/S1730 - SEFAZ NFS SGPP_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_09] S0687 - SEGOV MINIO NFS PROD/S0687 - SEGOV MINIO NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_09] S0687 - SEGOV MINIO NFS PROD/S0687 - SEGOV MINIO NFS PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STB_LUN_09] S0687 - SEGOV MINIO NFS PROD/S0687 - SEGOV MINIO NFS PROD_3.vmdk
+SKIP (recente 2 dias < 60) tamanho=104.9 GB: [STA_LUN_04] S1041 - HRMS PEP MV PROD/S1041 - HRMS PEP MV PROD_1.vmdk
+SKIP (recente 2 dias < 60) tamanho=121.7 GB: [STA_LUN_04] S1041 - HRMS PEP MV PROD/S1041 - HRMS PEP MV PROD.vmdk
+SKIP (recente 32 dias < 60) tamanho=460.5 GB: [STA_LUN_04] S1502 - SGI INFRA ZIMBRA MBOX PROD/S1502 - SGI INFRA ZIMBRA MBOX PROD.vmdk
+SKIP (recente 1 dias < 60) tamanho=234.3 GB: [STA_LUN_04] S0277 - SAD AACPDAPPLS LOTUS CI OFICIO PROD/S0277 - SAD AACPDAPPLS LOTUS CI OFICIO PROD_1.vmdk
+SKIP (recente 2 dias < 60) tamanho=158.8 GB: [STA_LUN_04] S0922 - DPGE PETICIONAMENTO PROD/S0922 - DPGE PETICIONAMENTO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=459.5 GB: [STA_LUN_04] S0860 - SGI SQL SERVER 2012 UGTI DESEN/S0860 - SGI SQL SERVER 2012 UGTI DESEN_1.vmdk
+SKIP (recente 6 dias < 60) tamanho=200.0 GB: [STA_LUN_04] S1134 - COTIN TS SERVER PROD/S1134 - COTIN TS SERVER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=134.0 GB: [STA_LUN_04] S250 - IAGRO DIGITALIZACAO PROD/S250 - IAGRO DIGITALIZACAO PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=1992.1 GB: [STA_LUN_04] S0120 - HRMS ORACLE MV PROD_CLONE/S0120 - HRMS ORACLE MV PROD_CLONE_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=977.3 GB: [STA_LUN_04] S0120 - HRMS ORACLE MV PROD_CLONE/S0120 - HRMS ORACLE MV PROD_CLONE_2.vmdk
+SKIP (recente 4 dias < 60) tamanho=179.7 GB: [STA_LUN_04] S1106 - SGI GITLAB RUNNER PROD/S1106 - SGI GITLAB RUNNER PROD.vmdk
+SKIP (recente 42 dias < 60) tamanho=500.0 GB: [STA_LUN_04] S0589 - IMASUL ARCGIS DB PROD/S0589 - IMASUL ARCGIS DB PROD_1.vmdk
+SKIP (recente 42 dias < 60) tamanho=156.7 GB: [STA_LUN_04] S0589 - IMASUL ARCGIS DB PROD/S0589 - IMASUL ARCGIS DB PROD.vmdk
+SKIP (recente 42 dias < 60) tamanho=256.0 GB: [STA_LUN_04] S0589 - IMASUL ARCGIS DB PROD/S0589 - IMASUL ARCGIS DB PROD_2.vmdk
+SKIP (recente 3 dias < 60) tamanho=900.0 GB: [STA_LUN_04] S1163 - CBMMS BD ORACLE PROD/S1163 - CBMMS BD ORACLE PROD_1.vmdk
+SKIP (recente 3 dias < 60) tamanho=500.0 GB: [STA_LUN_04] S1163 - CBMMS BD ORACLE PROD/S1163 - CBMMS BD ORACLE PROD_2.vmdk
+SKIP (recente 19 dias < 60) tamanho=2602.7 GB: [STA_LUN_04] S1907 - MBOX4 WEBMAIL PROD/S1907 - MBOX4 WEBMAIL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=124.9 GB: [STA_LUN_04] S0505 - HRMS ORACLE BI - PROD/S0505 - HRMS ORACLE BI - PROD_1.vmdk
+SKIP (recente 2 dias < 60) tamanho=149.1 GB: [STA_LUN_04] S0776 - DPGE ALFRESCO HOM/S0776 - DPGE ALFRESCO HOM.vmdk
+SKIP (recente 6 dias < 60) tamanho=190.6 GB: [STA_LUN_04] S0832 - SEFAZ QLIK CATALOG PROD/S0832 - SEFAZ QLIK CATALOG PROD.vmdk
+SKIP (recente 42 dias < 60) tamanho=422.2 GB: [STA_LUN_04] S1596 - SEJUSP BI GEO SIGO PROD/S1596 - SEJUSP BI GEO SIGO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_10] S1761 - SGI CSIC DATA LAKE PROD/S1761 - SGI CSIC DATA LAKE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STB_LUN_10] S1761 - SGI CSIC DATA LAKE PROD/S1761 - SGI CSIC DATA LAKE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STB_LUN_10] S1761 - SGI CSIC DATA LAKE PROD/S1761 - SGI CSIC DATA LAKE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4096.0 GB: [STB_LUN_10] S1013 - SGI SQL 2019 PROD/S1013 - SGI SQL 2019 PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1832.5 GB: [STB_LUN_10] S1013 - SGI SQL 2019 PROD/S1013 - SGI SQL 2019 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2560.0 GB: [STB_LUN_10] S1412 - SEGOV NFS DOCKER PROD/S1412 - SEGOV NFS DOCKER PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STB_LUN_10] S1412 - SEGOV NFS DOCKER PROD/S1412 - SEGOV NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STB_LUN_10] S1412 - SEGOV NFS DOCKER PROD/S1412 - SEGOV NFS DOCKER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=533.1 GB: [STB_LUN_10] S1261 - SGI SERVIDOR BD UDIC PROD/S1261 - SGI SERVIDOR BD UDIC PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=199.7 GB: [STB_LUN_10] S1261 - SGI SERVIDOR BD UDIC PROD/S1261 - SGI SERVIDOR BD UDIC PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=119.4 GB: [STB_LUN_10] S0751 - SGI ESST KASPERSKY PROD/S0751 - SGI ESST KASPERSKY PROD.vmdk
+SKIP (recente 5 dias < 60) tamanho=294.5 GB: [STB_LUN_10] S0042 - SGI ESST INVENTARIO DE HARDWARE PROD/S0042 - SGI ESST INVENTARIO DE HARDWARE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STC_LUN_01] S0884 - DETRAN MINIO NFS PROD/S0884 - DETRAN MINIO NFS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=3655.8 GB: [STC_LUN_01] S0884 - DETRAN MINIO NFS PROD/S0884 - DETRAN MINIO NFS PROD_2.vmdk
+SKIP (recente 33 dias < 60) tamanho=600.0 GB: [STC_LUN_03] S0486 - POC VARONIS - APP E BANCO SQL/S0486 - POC VARONIS - APP E BANCO SQL_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=143.0 GB: [STC_LUN_03] S0016 - SEFAZ LOG INSIGHT PROD/S0016 - SEFAZ LOG INSIGHT PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=4831.5 GB: [STC_LUN_03] S1911 - MS GRAYLOG-INFRA DATA NODE PROD/S1911 - MS GRAYLOG-INFRA DATA NODE PROD_1.vmdk
+SKIP (recente 40 dias < 60) tamanho=500.0 GB: [STC_LUN_03] S0665 - MS BANCO DE DADOS MYSQL PROD/S0665 - MS BANCO DE DADOS MYSQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=387.6 GB: [STC_LUN_03] S918 - SGI SERVICEDESK PLUS PROD/S918 - SGI SERVICEDESK PLUS PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1536.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=1566.8 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=650.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=3584.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=600.0 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=125.4 GB: [STC_LUN_02] S0418 - SEGOV NFS DOCKER PROD/S0418 - SEGOV NFS DOCKER PROD_7.vmdk
+SKIP (recente 7 dias < 60) tamanho=7439.8 GB: [STC_LUN_05] S0465 - MS ELASTICSEARCH SERVER PROD/S0465 - MS ELASTICSEARCH SERVER PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=2252.8 GB: [STC_LUN_05] S0657 - SAD SISTEMA SIGA MONGODB PROD/S0657 - SAD SISTEMA SIGA MONGODB PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=1126.4 GB: [STC_LUN_05] S0657 - SAD SISTEMA SIGA MONGODB PROD/S0657 - SAD SISTEMA SIGA MONGODB PROD_3.vmdk
+SKIP (recente 7 dias < 60) tamanho=900.0 GB: [STC_LUN_05] S0657 - SAD SISTEMA SIGA MONGODB PROD/S0657 - SAD SISTEMA SIGA MONGODB PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=115.3 GB: [STA_LUN_02] S0733 - SGI INFRA KIBANA ELASTICSEARCH PROXY PROD/S0733 - SGI INFRA KIBANA ELASTICSEARCH PROXY PROD.vmdk
+SKIP (recente 10 dias < 60) tamanho=3387.7 GB: [STA_LUN_02] S1908 - MBOX5 WEBMAIL PROD/S1908 - MBOX5 WEBMAIL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=1024.0 GB: [STA_LUN_02] S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD/S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=2048.0 GB: [STA_LUN_02] S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD/S1713 - SGI ZIMBRA E-MAIL GOVERNAMENTAL PROD_2.vmdk
+SKIP (recente 12 dias < 60) tamanho=550.0 GB: [STA_LUN_02] S1701 - SGI VCENTER 6.7 PROD/S1701 - SGI VCENTER 6.7 PROD_7.vmdk
+SKIP (recente 0 dias < 60) tamanho=710.7 GB: [STA_LUN_02] S0788 - PGE SISTEMA SOFTPLAN BD ORACLE HOM/S0788 - PGE SISTEMA SOFTPLAN BD ORACLE HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=431.7 GB: [STA_LUN_02] S1271 - SGI ESST NETWRIX AD PROD/S1271 - SGI ESST NETWRIX AD PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STA_LUN_02] S1242 - SGI EAST SCOM 2012 R2 BD SQL PROD/S1242 - SGI EAST SCOM 2012 R2 BD SQL PROD_2.vmdk
+SKIP (recente 7 dias < 60) tamanho=4834.0 GB: [STC_LUN_06] S1909 - MS GRAYLOG-INFRA DATA NODE PROD/S1909 - MS GRAYLOG-INFRA DATA NODE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STC_LUN_06] S0838 - SETDIG VEEAM ENTERPRISE MANAGER PROD/S0838 - SETDIG VEEAM ENTERPRISE MANAGER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=10240.0 GB: [STC_LUN_06] S1924 - STI DUMP DATABASE PROD/S1924 - STI DUMP DATABASE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STC_LUN_06] S1475 - SEGOV ELLOS MONGODB PROD/S1475 - SEGOV ELLOS MONGODB PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STC_LUN_06] S1475 - SEGOV ELLOS MONGODB PROD/S1475 - SEGOV ELLOS MONGODB PROD_2.vmdk
+SKIP (recente 2 dias < 60) tamanho=346.3 GB: [STB_LUN_01] S1315 - SEFAZ QLIKVIEW REPOSITORIO PROD/S1315 - SEFAZ QLIKVIEW REPOSITORIO PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=700.0 GB: [STB_LUN_01] S1692 - IMASUL APLIC GEORREFERENCIADAS PROD/S1692 - IMASUL APLIC GEORREFERENCIADAS PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=300.0 GB: [STB_LUN_01] S1693 - IMASUL LICENCIAMENTO AMBIENTAL PROD/S1693 - IMASUL LICENCIAMENTO AMBIENTAL PROD_1.vmdk
+SKIP (recente 42 dias < 60) tamanho=200.0 GB: [STB_LUN_01] S0502 - COTIN SQL SERVER HOM/S0502 - COTIN SQL SERVER HOM_3.vmdk
+SKIP (recente 42 dias < 60) tamanho=5120.0 GB: [STB_LUN_01] S0502 - COTIN SQL SERVER HOM/S0502 - COTIN SQL SERVER HOM_4.vmdk
+SKIP (recente 42 dias < 60) tamanho=3788.8 GB: [STB_LUN_01] S0502 - COTIN SQL SERVER HOM/S0502 - COTIN SQL SERVER HOM_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=118.8 GB: [STB_LUN_01] S1230 - DPGE NOC PROD/S1230 - DPGE NOC PROD.vmdk
+SKIP (recente 20 dias < 60) tamanho=2887.0 GB: [STB_LUN_01] S1905 - MBOX2 WEBMAIL PROD/S1905 - MBOX2 WEBMAIL PROD_1.vmdk
+SKIP (recente 21 dias < 60) tamanho=3163.4 GB: [STB_LUN_01] S1904 - MBOX1 WEBMAIL PROD/S1904 - MBOX1 WEBMAIL PROD_1.vmdk
+SKIP (recente 1 dias < 60) tamanho=494.1 GB: [STB_LUN_01] S1474 - DETRAN CLGED PROD/S1474 - DETRAN CLGED PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=900.0 GB: [STC_LUN_04] S1978 - SQL SERVER PROD/S1978 - SQL SERVER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STC_LUN_04] S1979 - SQL SERVER PROD/S1979 - SQL SERVER PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STC_LUN_04] S1916 - DPGE ARQUIVOS SIGA SQL PROD/S1916 - DPGE ARQUIVOS SIGA SQL PROD_6.vmdk
+SKIP (recente 7 dias < 60) tamanho=5024.4 GB: [STC_LUN_04] S1910 - MS GRAYLOG-INFRA DATA NODE PROD/S1910 - MS GRAYLOG-INFRA DATA NODE PROD_1.vmdk
+SKIP (recente 7 dias < 60) tamanho=150.0 GB: [STC_LUN_04] S1695 - IMASUL CLUSTER DE APLICACOES GEORREF. PROD/S1695 - IMASUL CLUSTER DE APLICACOES GEORREF. PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0415 - MS SQL SERVER NFE PROD/S0415 - MS SQL SERVER NFE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0665 - MS BANCO DE DADOS MYSQL PROD/S0665 - MS BANCO DE DADOS MYSQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_03] S0019 - MS SQL BDFAZ APOIO PROD/S0019 - MS SQL BDFAZ APOIO PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_03] S0019 - MS SQL BDFAZ APOIO PROD/S0019 - MS SQL BDFAZ APOIO PROD_6.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_2.vmdk
+SKIP (recente 35 dias < 60) tamanho=2048.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_6.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_3.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_7.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_8.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_4.vmdk
+SKIP (recente 49 dias < 60) tamanho=2512.5 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_9.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_1.vmdk
+SKIP (recente 49 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC_5.vmdk
+SKIP (recente 49 dias < 60) tamanho=356.0 GB: [STD_LUN_08] S0946 - SAD UNIVERSALRH BD ORACLE PARC/S0946 - SAD UNIVERSALRH BD ORACLE PARC.vmdk
+SKIP (recente 0 dias < 60) tamanho=121.4 GB: [STD_LUN_08] S0393 - SEJUSP SISTEMA CODIS 8 PROD/S0393 - SEJUSP SISTEMA CODIS 8 PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=700.0 GB: [STD_LUN_08] S0698 - SGI SQL PROD/S0698 - SGI SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=455.8 GB: [STD_LUN_08] S0325 - SGI FWSYSLOG PROD/S0325 - SGI FWSYSLOG PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_08] S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD/S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STD_LUN_08] S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD/S1926 - SGI TFS AZURE DEVOPS 2022 DB PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=1450.0 GB: [STD_LUN_08] S1243 - SEFAZ DIVIDA ATIVA SQL PROD/S1243 - SEFAZ DIVIDA ATIVA SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_08] S1243 - SEFAZ DIVIDA ATIVA SQL PROD/S1243 - SEFAZ DIVIDA ATIVA SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2251.9 GB: [STD_LUN_08] S0402 - MS SQL ITC002 PROD/S0402 - MS SQL ITC002 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STD_LUN_08] S1086 - MS SQL SERVER SPF PROD/S1086 - MS SQL SERVER SPF PROD_1.vmdk
+SKIP (recente 5 dias < 60) tamanho=5734.4 GB: [STD_LUN_02] S0676 - SGI SQL 2019 HOM/S0676 - SGI SQL 2019 HOM_1.vmdk
+SKIP (recente 5 dias < 60) tamanho=6144.0 GB: [STD_LUN_02] S0676 - SGI SQL 2019 HOM/S0676 - SGI SQL 2019 HOM.vmdk
+SKIP (recente 0 dias < 60) tamanho=5000.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=5000.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_02] S0004 - COTIN CTE DISTRIBUICAO DB PROD/S0004 - COTIN CTE DISTRIBUICAO DB PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5113.3 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4418.1 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=3493.1 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=1612.7 GB: [STD_LUN_01] S0235 - SETDIG WEBMAIL BACKUP/S0235 - SETDIG WEBMAIL BACKUP.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=4505.6 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=6246.4 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_7.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=101.0 GB: [STD_LUN_01] S0424 - MS SQL SERVER NFE PROD/S0424 - MS SQL SERVER NFE PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=170.0 GB: [STD_LUN_04] S1913 - HRMS ORACLE MV PROD/S1913 - HRMS ORACLE MV PROD.vmdk
+SKIP (recente 23 dias < 60) tamanho=10240.0 GB: [STD_LUN_04] S1204 - MS GRAYLOG DATA NODE PROD/S1204 - MS GRAYLOG DATA NODE PROD_1.vmdk
+SKIP (recente 23 dias < 60) tamanho=10240.0 GB: [STD_LUN_04] S1246 - MS GRAYLOG DATA NODE PROD/S1246 - MS GRAYLOG DATA NODE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2457.6 GB: [STD_LUN_04] S1079 - SEFAZ SQL EFD PROD/S1079 - SEFAZ SQL EFD PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STD_LUN_04] S1079 - SEFAZ SQL EFD PROD/S1079 - SEFAZ SQL EFD PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STD_LUN_04] S1079 - SEFAZ SQL EFD PROD/S1079 - SEFAZ SQL EFD PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STD_LUN_04] S1077 - BANCO eFRO E AUXILIARES PROD_1/S1077 - BANCO eFRO E AUXILIARES PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_04] S1077 - BANCO eFRO E AUXILIARES PROD_1/S1077 - BANCO eFRO E AUXILIARES PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_04] S1077 - BANCO eFRO E AUXILIARES PROD_1/S1077 - BANCO eFRO E AUXILIARES PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=4096.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.3 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=4300.8 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=4907.7 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=4300.8 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_7.vmdk
+SKIP (recente 0 dias < 60) tamanho=4608.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=250.0 GB: [STD_LUN_06] S0684 - SGI SQL NFE ARQ PROD/S0684 - SGI SQL NFE ARQ PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1280.0 GB: [STD_LUN_06] S0403 - MS SQL ITC003 PROD/S0403 - MS SQL ITC003 PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=240.4 GB: [STD_LUN_06] S0403 - MS SQL ITC003 PROD/S0403 - MS SQL ITC003 PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=5068.0 GB: [STD_LUN_06] S0403 - MS SQL ITC003 PROD/S0403 - MS SQL ITC003 PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=2304.0 GB: [STD_LUN_05] S0285 - NFE PRODUTOR SQL PROD/S0285 - NFE PRODUTOR SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0285 - NFE PRODUTOR SQL PROD/S0285 - NFE PRODUTOR SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_05] S0285 - NFE PRODUTOR SQL PROD/S0285 - NFE PRODUTOR SQL PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0374 - MS DB HOMITC SQL HOM/S0374 - MS DB HOMITC SQL HOM_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0374 - MS DB HOMITC SQL HOM/S0374 - MS DB HOMITC SQL HOM_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=800.0 GB: [STD_LUN_05] S0374 - MS DB HOMITC SQL HOM/S0374 - MS DB HOMITC SQL HOM_1.vmdk
+SKIP (recente 35 dias < 60) tamanho=2048.0 GB: [STD_LUN_05] S0945 - SAD UNIVERSALRH BD ORACLE PROD/S0945 - SAD UNIVERSALRH BD ORACLE PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STD_LUN_05] S0150 - NFCE INTEGRACAO SQL PROD/S0150 - NFCE INTEGRACAO SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0150 - NFCE INTEGRACAO SQL PROD/S0150 - NFCE INTEGRACAO SQL PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S0150 - NFCE INTEGRACAO SQL PROD/S0150 - NFCE INTEGRACAO SQL PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2099.2 GB: [STD_LUN_05] S0385 - IAGRO SQL SERVER PROD/S0385 - IAGRO SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STD_LUN_05] S0385 - IAGRO SQL SERVER PROD/S0385 - IAGRO SQL SERVER PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STD_LUN_05] S0385 - IAGRO SQL SERVER PROD/S0385 - IAGRO SQL SERVER PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_05] S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=1228.8 GB: [STD_LUN_05] S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1927 - SGI SQL SEVER SPDS SMP PRODUÇÃO_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_05] S1508 - MS SQL SERVER CSIC PROD/S1508 - MS SQL SERVER CSIC PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S1508 - MS SQL SERVER CSIC PROD/S1508 - MS SQL SERVER CSIC PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_05] S1508 - MS SQL SERVER CSIC PROD/S1508 - MS SQL SERVER CSIC PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=2560.0 GB: [STD_LUN_05] S1811 - SGI SQL SEVER SPDS SMP PRODUÇÃO/S1811 - SGI SQL SEVER SPDS SMP PRODUÇÃO_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=300.0 GB: [STD_LUN_07] S1326 - SEFAZ SQL SERVER CRDDIA PROD/S1326 - SEFAZ SQL SERVER CRDDIA PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=150.0 GB: [STD_LUN_07] S1326 - SEFAZ SQL SERVER CRDDIA PROD/S1326 - SEFAZ SQL SERVER CRDDIA PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=1024.0 GB: [STD_LUN_07] S1326 - SEFAZ SQL SERVER CRDDIA PROD/S1326 - SEFAZ SQL SERVER CRDDIA PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S0284 - NOTA PREMIADA SQL  PROD/S0284 - NOTA PREMIADA SQL  PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S0284 - NOTA PREMIADA SQL  PROD/S0284 - NOTA PREMIADA SQL  PROD_2.vmdk
+SKIP (recente 0 dias < 60) tamanho=500.0 GB: [STD_LUN_07] S0284 - NOTA PREMIADA SQL  PROD/S0284 - NOTA PREMIADA SQL  PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_6.vmdk
+SKIP (recente 0 dias < 60) tamanho=4547.9 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_3.vmdk
+SKIP (recente 0 dias < 60) tamanho=400.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_8.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_10.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2342.2 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD_5.vmdk
+SKIP (recente 0 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0017 - MS SQL BDFAZ DFE PROD/S0017 - MS SQL BDFAZ DFE PROD.vmdk
+SKIP (recente 0 dias < 60) tamanho=2560.0 GB: [STD_LUN_07] S1224 - AGEPREV CENSO PREV SQL SERVER PROD/S1224 - AGEPREV CENSO PREV SQL SERVER PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=2048.0 GB: [STD_LUN_07] S1224 - AGEPREV CENSO PREV SQL SERVER PROD/S1224 - AGEPREV CENSO PREV SQL SERVER PROD_4.vmdk
+SKIP (recente 0 dias < 60) tamanho=3072.0 GB: [STD_LUN_07] S1076 - SEFAZ CLUSTER SQL PROD/S1076 - SEFAZ CLUSTER SQL PROD_1.vmdk
+SKIP (recente 0 dias < 60) tamanho=200.0 GB: [STD_LUN_07] S1076 - SEFAZ CLUSTER SQL PROD/S1076 - SEFAZ CLUSTER SQL PROD_2.vmdk
+SKIP (recente 32 dias < 60) tamanho=1024.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_3.vmdk
+SKIP (recente 32 dias < 60) tamanho=250.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_2.vmdk
+SKIP (recente 32 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_1.vmdk
+SKIP (recente 32 dias < 60) tamanho=5120.0 GB: [STD_LUN_07] S0597 - COTIN SQL PROD/S0597 - COTIN SQL PROD_4.vmdk

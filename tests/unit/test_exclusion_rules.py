@@ -18,7 +18,7 @@ GLOBAL_FILES_EMPTY: set = set()
 
 def _is_skip(r):
     """True se _classify_vmdk retornou skip (None ou (None, reason))."""
-    return r is None or (isinstance(r, tuple) and len(r) == 2 and r[0] is None)
+    return r is None or (isinstance(r, tuple) and len(r) == 3 and r[0] is None)
 
 
 class TestExclusionRules:

@@ -1,0 +1,71 @@
+=== ALL COMPLETED JOBS ===
+  job=0491c282-4373-42c4-874c-ce0ed72f998d, vc_ids=["3"] (type=str), finished=2026-03-05 14:41:13.816616
+  job=6f865c91-6551-4d90-9b4c-601b4183f0ed, vc_ids=["3"] (type=str), finished=2026-03-05 14:38:44.641109
+  job=28a5b035-8de5-4904-93a5-3e22d60c9167, vc_ids=["3"] (type=str), finished=2026-03-05 14:29:25.343464
+  job=6a80da53-4e24-4fe4-80a8-efa72ebd5a38, vc_ids=["3"] (type=str), finished=2026-03-04 19:14:35.677758
+  job=b7c72422-70ca-4bc1-ae7f-2c44000b7750, vc_ids=["3"] (type=str), finished=2026-03-04 19:09:50.833499
+  job=0b61e931-8bf8-4dbf-9089-06b5d9e0ba14, vc_ids=["3"] (type=str), finished=2026-03-04 18:22:28.315623
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, vc_ids=["1", "2", "3", "4"] (type=str), finished=2026-03-04 16:14:02.965831
+  job=b6c5ecfe-0dd3-4160-86aa-344bbc64042f, vc_ids=["3"] (type=str), finished=2026-03-04 14:06:04.225700
+  job=6dbeb8d7-1b86-4870-804b-b3218ae55bf3, vc_ids=["4"] (type=str), finished=2026-03-03 20:38:06.020240
+  job=ddf3d0c1-73d2-487d-9593-a06525ec4664, vc_ids=["1", "2", "3"] (type=str), finished=2026-03-03 19:52:40.147825
+  job=e2d443a7-1208-4784-8df4-014c7b7fd882, vc_ids=["1", "2", "3"] (type=str), finished=2026-03-03 14:51:27.358060
+  job=9bb02cb1-f07d-4010-b366-036d4230cead, vc_ids=["1"] (type=str), finished=2026-03-03 13:33:36.007491
+  job=cfd0c0e5-4452-44fb-8fec-9340d9f8a8e3, vc_ids=["1"] (type=str), finished=2026-03-03 11:52:07.586688
+  job=48388206-0d1c-4dca-9b13-7225a806b8a7, vc_ids=["1"] (type=str), finished=2026-03-02 20:24:03.045000
+  job=e66e8ef3-d602-4afa-a79d-4173736c31c5, vc_ids=["1"] (type=str), finished=2026-03-02 15:23:58.712526
+  job=90af37d7-ceb2-41cd-a90a-e0c1f3179422, vc_ids=["1"] (type=str), finished=2026-03-02 15:09:58.645279
+
+=== VCENTER -> LATEST JOB MAPPING ===
+  vcenter_id=3 (type=str) -> job=0491c282-4373-42c4-874c-ce0ed72f998d
+  vcenter_id=1 (type=str) -> job=02a8a512-4d6d-415f-8ee9-f9b566e3e518
+  vcenter_id=2 (type=str) -> job=02a8a512-4d6d-415f-8ee9-f9b566e3e518
+  vcenter_id=4 (type=str) -> job=02a8a512-4d6d-415f-8ee9-f9b566e3e518
+
+=== TARGET JOB IDS (2 jobs) ===
+  0491c282-4373-42c4-874c-ce0ed72f998d
+  02a8a512-4d6d-415f-8ee9-f9b566e3e518
+
+=== RECORDS FOR TARGET JOBS ===
+  ds=STA_LUN_0000, count=24, total_gb=33488.0
+  ds=STD_LUN_07, count=2, total_gb=20480.0
+  ds=VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689, count=47, total_gb=14915.52
+  ds=STA_LUN_02, count=243, total_gb=8206.57
+  ds=STA_LUN_03, count=6, total_gb=7814.2
+  ds=STA_LUN_09, count=6, total_gb=6063.56
+  ds=STB_LUN_03, count=18, total_gb=5621.7
+  ds=STD_LUN_04, count=1, total_gb=5120.0
+  ds=STD_LUN_05, count=12, total_gb=4856.0
+  ds=STB_LUN_01, count=20, total_gb=3046.39
+  ds=STB_LUN_02, count=4, total_gb=2048.0
+  ds=STB_LUN_04, count=58, total_gb=1863.07
+  ds=STA_LUN_04, count=2, total_gb=1403.77
+  ds=STB_LUN_06, count=13, total_gb=1242.49
+  ds=STB_LUN_05, count=16, total_gb=1232.7
+  ds=STA_LUN_14, count=8, total_gb=1041.21
+  ds=STA_LUN_07, count=5, total_gb=1040.0
+  ds=STD_LUN_02, count=26, total_gb=897.75
+  ds=STB_LUN_10, count=17, total_gb=782.16
+  ds=STA_LUN_10, count=4, total_gb=711.48
+  ds=STA_LUN_11, count=6, total_gb=678.99
+  ds=STA_LUN_01, count=20, total_gb=642.73
+  ds=STA_LUN_08, count=8, total_gb=632.04
+  ds=S0426 - DST B, count=4, total_gb=504.43
+  ds=STB_LUN_08, count=7, total_gb=496.22
+  ds=STC_LUN_04, count=4, total_gb=393.58
+  ds=STB_LUN_09, count=7, total_gb=356.22
+  ds=STA_LUN_05, count=10, total_gb=343.2
+  ds=STA_LUN_12, count=9, total_gb=296.75
+  ds=STA_LUN_16, count=4, total_gb=232.44
+  ds=STA_LUN_15, count=4, total_gb=177.61
+  ds=STC_LUN_06, count=2, total_gb=140.0
+  ds=STC_LUN_03, count=22, total_gb=99.15
+  ds=DE800192700033-01-01-service-datastore1, count=8, total_gb=6.26
+  ds=DE800192700031-01-01-service-datastore1, count=8, total_gb=6.26
+  ds=DE800192700030-01-01-service-datastore1, count=8, total_gb=6.26
+  ds=DE800192700029-01-01-service-datastore1, count=8, total_gb=6.26
+  ds=DE800192700032-01-01-service-datastore1, count=8, total_gb=6.26
+  ds=STA_LUN_06, count=1, total_gb=4.44
+  ds=STA_LUN_13, count=2, total_gb=0.04
+  ds=STB_LUN_07, count=2, total_gb=0.0
+  TOTAL: 126903.71 GB = 123.93 TB

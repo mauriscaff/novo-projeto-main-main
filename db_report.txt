@@ -1,0 +1,70 @@
+=== JOBS ===
+  job=0491c282-4373-42c4-874c-ce0ed72f998d, status=completed, vcenters=["3"], finished=2026-03-05 14:41:13.816616
+  job=6f865c91-6551-4d90-9b4c-601b4183f0ed, status=completed, vcenters=["3"], finished=2026-03-05 14:38:44.641109
+  job=28a5b035-8de5-4904-93a5-3e22d60c9167, status=completed, vcenters=["3"], finished=2026-03-05 14:29:25.343464
+  job=6a80da53-4e24-4fe4-80a8-efa72ebd5a38, status=completed, vcenters=["3"], finished=2026-03-04 19:14:35.677758
+  job=b7c72422-70ca-4bc1-ae7f-2c44000b7750, status=completed, vcenters=["3"], finished=2026-03-04 19:09:50.833499
+  job=0b61e931-8bf8-4dbf-9089-06b5d9e0ba14, status=completed, vcenters=["3"], finished=2026-03-04 18:22:28.315623
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, status=completed, vcenters=["1", "2", "3", "4"], finished=2026-03-04 16:14:02.965831
+  job=b6c5ecfe-0dd3-4160-86aa-344bbc64042f, status=completed, vcenters=["3"], finished=2026-03-04 14:06:04.225700
+  job=200315f0-7cc8-4ce4-a19d-a1beee908803, status=failed, vcenters=["3"], finished=2026-03-04 13:59:13.332499
+  job=e79d0f47-fb79-4b7a-ac90-2382a1540438, status=failed, vcenters=["3"], finished=2026-03-04 13:53:10.664286
+
+=== RECORDS PER JOB ===
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, count=672, total_gb=110159.73
+  job=0491c282-4373-42c4-874c-ce0ed72f998d, count=12, total_gb=16744.0
+  job=0b61e931-8bf8-4dbf-9089-06b5d9e0ba14, count=272, total_gb=46099.74
+  job=28a5b035-8de5-4904-93a5-3e22d60c9167, count=12, total_gb=16744.0
+  job=48388206-0d1c-4dca-9b13-7225a806b8a7, count=87, total_gb=14945.66
+  job=6a80da53-4e24-4fe4-80a8-efa72ebd5a38, count=12, total_gb=16744.0
+  job=6f865c91-6551-4d90-9b4c-601b4183f0ed, count=12, total_gb=16744.0
+  job=90af37d7-ceb2-41cd-a90a-e0c1f3179422, count=87, total_gb=14945.66
+  job=9bb02cb1-f07d-4010-b366-036d4230cead, count=87, total_gb=14945.66
+  job=af1e1097-f17c-498e-9981-a4ca277689fb, count=91, total_gb=15451.26
+  job=b6c5ecfe-0dd3-4160-86aa-344bbc64042f, count=12, total_gb=16744.0
+  job=cfd0c0e5-4452-44fb-8fec-9340d9f8a8e3, count=87, total_gb=14945.66
+  job=ddf3d0c1-73d2-487d-9593-a06525ec4664, count=669, total_gb=110159.72
+  job=e2d443a7-1208-4784-8df4-014c7b7fd882, count=668, total_gb=110158.5
+  job=e66e8ef3-d602-4afa-a79d-4173736c31c5, count=87, total_gb=14945.66
+
+=== DUPLICATE PATHS WITHIN SAME JOB ===
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] 1_ISO1/TEMPLATE - Windows Server 2019 (EN-US) Core_1909/TEMPLATE - Windows Server 2019 , count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] 1_ISO1/TEMPLATE - Windows Server 2019 (EN-US)/TEMPLATE - Windows Server 2019 (EN-US).vm, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] S1638 - IMASUL ARCGIS HOM/S1638 - IMASUL ARCGIS HOM-000002.vmdk, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] S1638 - IMASUL ARCGIS HOM/S1638 - IMASUL ARCGIS HOM.vmdk, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] TEMPLATE - Linux CentOS 7 (EN-US)-6.5NEW/TEMPLATE - Linux CentOS 7 (EN-US)-6.5NEW.vmdk, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] TEMPLATE - Windows Server 2012 R2 U1 (EN-US)/TEMPLATE - Windows Server 2012 R2 U1 (EN-U, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] TEMPLATE - Windows Server 2016 Core (EN-US)/TEMPLATE - Windows Server 2016 Core (EN-US), count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_01] TEMPLATE - Windows Server 2019 (EN-US)/TEMPLATE - Windows Server 2019 (EN-US).vmdk, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/0ae2a693-4268-45d0-b6b6-c2fbf15c9aa6/S1724 - SAD FILE SERVER PROD-000001.vmd, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/0ae2a693-4268-45d0-b6b6-c2fbf15c9aa6/S1724 - SAD FILE SERVER PROD_1-000001.v, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/100b9446-c3f0-4e2f-ac1d-e048a6c72247/S1724 - SAD FILE SERVER PROD-000001.vmd, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/100b9446-c3f0-4e2f-ac1d-e048a6c72247/S1724 - SAD FILE SERVER PROD_1-000001.v, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/118c674d-0f49-4f23-9a17-6a473983cd4d/S1724 - SAD FILE SERVER PROD-000001.vmd, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/118c674d-0f49-4f23-9a17-6a473983cd4d/S1724 - SAD FILE SERVER PROD_1-000001.v, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/1769b2e2-88e8-4c71-b8ae-35c5c6582e44/S1724 - SAD FILE SERVER PROD-000001.vmd, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/1769b2e2-88e8-4c71-b8ae-35c5c6582e44/S1724 - SAD FILE SERVER PROD_1-000001.v, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/1e0344c0-e6b6-4c94-b725-a8e907b29cf9/S1724 - SAD FILE SERVER PROD-000001.vmd, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/1e0344c0-e6b6-4c94-b725-a8e907b29cf9/S1724 - SAD FILE SERVER PROD_1-000001.v, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/24921ce3-dbfd-4387-875c-b40ad5156bb4/S1724 - SAD FILE SERVER PROD-000001.vmd, count=2
+  job=02a8a512-4d6d-415f-8ee9-f9b566e3e518, path=[STA_LUN_02] SureBackup/24921ce3-dbfd-4387-875c-b40ad5156bb4/S1724 - SAD FILE SERVER PROD_1-000001.v, count=2
+
+=== RECORDS PER DATASTORE (latest completed job) ===
+  ds=STA_LUN_0000, count=12, total_gb=16744.0
+
+=== RECORDS PER DATASTORE (ALL JOBS) ===
+  ds=STA_LUN_0000, count=108, total_gb=150696.0
+  ds=VxRail-Virtual-SAN-Datastore-8bad6ded-468e-41cb-b0ed-7c447d9c4689, count=423, total_gb=134232.66
+  ds=STD_LUN_07, count=7, total_gb=71680.0
+  ds=STA_LUN_02, count=852, total_gb=32793.9
+  ds=STA_LUN_03, count=18, total_gb=23442.6
+  ds=STB_LUN_03, count=63, total_gb=19675.96
+  ds=STA_LUN_09, count=19, total_gb=18219.24
+  ds=STD_LUN_04, count=3, total_gb=15360.0
+  ds=STD_LUN_05, count=32, total_gb=14568.0
+  ds=STB_LUN_01, count=70, total_gb=10662.37
+  ds=STB_LUN_02, count=14, total_gb=7168.01
+  ds=STB_LUN_04, count=203, total_gb=6520.74
+  ds=STA_LUN_04, count=7, total_gb=4913.2
+  ds=STB_LUN_05, count=50, total_gb=4216.35
+  ds=STB_LUN_06, count=41, total_gb=3730.5
