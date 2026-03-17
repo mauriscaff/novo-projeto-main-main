@@ -5,14 +5,13 @@
 {% block content %}
 <div class="container-fluid px-3 py-3">
 
-    <!-- Cabeçalho -->
-    <div class="d-flex align-items-center gap-3 mb-4">
+    <!-- ── Cabeçalho ─────────────────────────────────────────────────────────── -->
+    <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
         <div>
             <h1 class="fs-5 fw-bold mb-0" style="color:var(--zh-text-primary);">
                 <i class="bi bi-bar-chart-steps me-2" style="color:var(--zh-blue);"></i>Balanceamento de Capacidade
             </h1>
-            <small class="text-muted-zh">Saúde e uso dos Datastores · Candidatas à migração · Recomendações de
-                ação</small>
+            <small class="text-muted-zh">Saúde dos Datastores · Candidatas à migração · Simulação Antes/Depois</small>
         </div>
         <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
             <select id="zh-vcenter-select" class="form-select form-select-sm"
@@ -28,7 +27,7 @@
     <!-- Feedback global -->
     <div id="zh-balance-feedback" class="mb-3 d-none"></div>
 
-    <!-- Cards de resumo -->
+    <!-- ── Cards de resumo ──────────────────────────────────────────────────── -->
     <div class="row g-3 mb-4" id="zh-summary-cards" style="display:none!important;">
         <div class="col-6 col-lg-3">
             <div class="zh-stat-card h-100 text-center p-3">
@@ -56,10 +55,11 @@
         </div>
     </div>
 
+    <!-- ── Linha principal ──────────────────────────────────────────────────── -->
     <div class="row g-3">
 
-        <!-- Lista de Datastores -->
-        <div class="col-12 col-xl-8">
+        <!-- Datastores list -->
+        <div class="col-12 col-xl-6">
             <div class="zh-card h-100">
                 <div class="zh-card-header d-flex align-items-center justify-content-between mb-3">
                     <span class="fw-semibold">Datastores</span>
@@ -68,15 +68,15 @@
                 <div id="zh-ds-list">
                     <div class="text-muted-zh small text-center py-5">
                         <i class="bi bi-bar-chart-steps fs-3 d-block mb-2 opacity-50"></i>
-                        Selecione um vCenter e clique em <strong>Analisar</strong> para carregar os dados.
+                        Selecione um vCenter e clique em <strong>Analisar</strong>.
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Painel de Recomendações -->
-        <div class="col-12 col-xl-4">
-            <div class="zh-card h-100">
+        <!-- Recomendações -->
+        <div class="col-12 col-xl-6">
+            <div class="zh-card mb-3">
                 <div class="zh-card-header fw-semibold mb-3">
                     <i class="bi bi-lightbulb-fill me-1" style="color:var(--zh-accent-yellow);"></i>
                     Recomendações de Ação
@@ -85,11 +85,61 @@
                     <span class="text-muted-zh small">Aguardando análise...</span>
                 </div>
             </div>
-        </div>
 
+            <!-- ── Simulador de Movimentação ──────────────────────────────────── -->
+            <div class="zh-card" id="zh-simulator-card">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-shuffle me-1" style="color:var(--zh-blue);"></i>
+                    Simular Movimentação de VM
+                    <span class="badge ms-2"
+                        style="font-size:.65rem;background:rgba(88,166,255,.15);color:var(--zh-blue);border:1px solid rgba(88,166,255,.25);vertical-align:middle;">ANTES
+                        / DEPOIS</span>
+                </div>
+
+                <div class="row g-2 mb-3" id="zh-sim-form">
+                    <div class="col-12">
+                        <label class="form-label small mb-1 text-muted-zh">VM a migrar</label>
+                        <select id="zh-sim-vm" class="form-select form-select-sm"
+                            style="background:var(--zh-surface-2);border-color:var(--zh-border);color:var(--zh-text-primary);">
+                            <option value="">Selecione a VM...</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small mb-1 text-muted-zh">Datastore de destino</label>
+                        <select id="zh-sim-target-ds" class="form-select form-select-sm"
+                            style="background:var(--zh-surface-2);border-color:var(--zh-border);color:var(--zh-text-primary);">
+                            <option value="">Selecione o destino...</option>
+                        </select>
+                    </div>
+                    <div class="col-12 mt-1">
+                        <button id="zh-btn-simular" class="btn btn-sm w-100" disabled
+                            style="background:var(--zh-blue);color:#fff;border:none;">
+                            <i class="bi bi-graph-up-arrow me-1"></i>Simular Movimentação
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resultado da Simulação -->
+                <div id="zh-sim-result" class="d-none">
+                    <hr style="border-color:var(--zh-border);">
+                    <div id="zh-sim-verdict" class="mb-3 p-3 rounded" style="font-size:.85rem;"></div>
+                    <!-- Gráfico Antes/Depois -->
+                    <div class="row g-2" id="zh-sim-charts">
+                        <!-- preenchido pelo JS -->
+                    </div>
+                </div>
+
+                <div id="zh-sim-placeholder" class="text-muted-zh small text-center py-3">
+                    <i class="bi bi-arrow-left-right d-block mb-1 fs-5 opacity-50"></i>
+                    Execute a análise e preencha o formulário.
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
 
+<!-- ── Estilos ──────────────────────────────────────────────────────────────── -->
 <style>
     .zh-ds-item {
         border: 1px solid var(--zh-border);
@@ -156,24 +206,103 @@
         margin: 2px 2px 2px 0;
         font-family: monospace;
     }
+
+    /* Gráfico comparativo */
+    .zh-bar-chart-wrap {
+        background: var(--zh-surface-2);
+        border: 1px solid var(--zh-border);
+        border-radius: 8px;
+        padding: 14px;
+    }
+
+    .zh-bar-chart-title {
+        font-size: .75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--zh-text-secondary);
+        margin-bottom: 12px;
+    }
+
+    .zh-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: .78rem;
+    }
+
+    .zh-bar-label {
+        min-width: 80px;
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--zh-text-secondary);
+        flex-shrink: 0;
+    }
+
+    .zh-bar-track {
+        flex: 1;
+        height: 14px;
+        border-radius: 7px;
+        background: var(--zh-surface-3, #30363d);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .zh-bar-fill {
+        height: 100%;
+        border-radius: 7px;
+        transition: width .8s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .zh-safety-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(255, 255, 255, .4);
+    }
+
+    .zh-bar-pct {
+        min-width: 38px;
+        text-align: right;
+        font-weight: 600;
+        color: var(--zh-text-primary);
+    }
 </style>
 
+<!-- ── Scripts ──────────────────────────────────────────────────────────────── -->
 <script>
     "use strict";
 
     const API_CAPACITY = "/api/v1/capacity/report";
     const API_VCENTERS = "/api/v1/vcenters";
+    const SAFETY_MARGIN = 0.20;   // 20% de margem de segurança
+    const MAX_SAFE_PCT = 80;     // máximo comprometimento seguro
+
+    // Estado global após análise
+    let _report = null;   // resposta completa da API
+    let _allVms = [];     // [{vmName, dsName, committed_gb}]
 
     // ── Init ─────────────────────────────────────────────────────────────────────
     document.addEventListener("DOMContentLoaded", async () => {
         await _loadVcenterOptions();
         document.getElementById("zh-btn-analisar").addEventListener("click", _runAnalysis);
-        document.getElementById("zh-vcenter-select").addEventListener("change", (e) => {
+        document.getElementById("zh-vcenter-select").addEventListener("change", e => {
             document.getElementById("zh-btn-analisar").disabled = !e.target.value;
         });
+
+        // Habilita o botão Simular quando ambos os selects têm valor
+        ["zh-sim-vm", "zh-sim-target-ds"].forEach(id => {
+            document.getElementById(id).addEventListener("change", _updateSimBtn);
+        });
+
+        document.getElementById("zh-btn-simular").addEventListener("click", _runSimulation);
     });
 
-    // ── Carrega vCenters no <select> ─────────────────────────────────────────────
+    // ── Carrega vCenters ──────────────────────────────────────────────────────────
     async function _loadVcenterOptions() {
         try {
             const resp = await fetch(API_VCENTERS, { credentials: "same-origin" });
@@ -186,12 +315,10 @@
                 opt.textContent = `${vc.name} (${vc.host})`;
                 sel.appendChild(opt);
             });
-        } catch (err) {
-            console.warn("[Balance] Falha ao carregar vCenters:", err);
-        }
+        } catch (e) { console.warn("[Balance] vCenters:", e); }
     }
 
-    // ── Executa análise ───────────────────────────────────────────────────────────
+    // ── Análise completa ──────────────────────────────────────────────────────────
     async function _runAnalysis() {
         const vcId = document.getElementById("zh-vcenter-select").value;
         if (!vcId) return;
@@ -199,9 +326,9 @@
         const btn = document.getElementById("zh-btn-analisar");
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analisando...';
-
         _setFeedback("loading", "Consultando datastores no vCenter...");
-        document.getElementById("zh-ds-list").innerHTML = _spinner();
+        document.getElementById("zh-ds-list").innerHTML = _spinner("Consultando datastores...");
+        _resetSimulator();
 
         try {
             const resp = await fetch(`${API_CAPACITY}?vcenter_id=${vcId}`, { credentials: "same-origin" });
@@ -209,11 +336,14 @@
                 const err = await resp.json().catch(() => ({}));
                 throw new Error(err.detail ?? `HTTP ${resp.status}`);
             }
-            const data = await resp.json();
-            _renderSummary(data.summary);
-            _renderDatastoreList(data.datastores);
-            _renderRecommendations(data.recommendations);
-            const ts = data.generated_at ? new Date(data.generated_at).toLocaleString("pt-BR") : "";
+            _report = await resp.json();
+
+            _renderSummary(_report.summary);
+            _renderDatastoreList(_report.datastores);
+            _renderRecommendations(_report.recommendations);
+            _populateSimulatorOptions(_report.datastores);
+
+            const ts = _report.generated_at ? new Date(_report.generated_at).toLocaleString("pt-BR") : "";
             document.getElementById("zh-generated-at").textContent = ts ? `Gerado em ${ts}` : "";
             _clearFeedback();
         } catch (err) {
@@ -226,7 +356,7 @@
         }
     }
 
-    // ── Renders ───────────────────────────────────────────────────────────────────
+    // ── Renderizações ─────────────────────────────────────────────────────────────
     function _renderSummary(s) {
         if (!s) return;
         document.getElementById("zh-summary-cards").style.display = "";
@@ -237,59 +367,220 @@
     }
 
     function _renderDatastoreList(datastores) {
-        const container = document.getElementById("zh-ds-list");
-        if (!datastores || datastores.length === 0) {
-            container.innerHTML = '<p class="text-muted-zh small text-center py-4">Nenhum datastore encontrado.</p>';
+        const el = document.getElementById("zh-ds-list");
+        if (!datastores?.length) {
+            el.innerHTML = '<p class="text-muted-zh small text-center py-4">Nenhum datastore encontrado.</p>';
             return;
         }
+        const HC = { red: "var(--zh-accent-red)", yellow: "var(--zh-accent-yellow)", green: "var(--zh-accent-green)" };
+        const HL = { red: "🔴 Crítico", yellow: "🟡 Atenção", green: "🟢 Saudável" };
 
-        const HEALTH_COLOR = { red: "var(--zh-accent-red)", yellow: "var(--zh-accent-yellow)", green: "var(--zh-accent-green)" };
-        const HEALTH_LABEL = { red: "🔴 Crítico", yellow: "🟡 Atenção", green: "🟢 Saudável" };
-
-        container.innerHTML = datastores.map(ds => {
-            const color = HEALTH_COLOR[ds.health_status] || "#6e7681";
+        el.innerHTML = datastores.map(ds => {
+            const color = HC[ds.health_status] || "#6e7681";
             const pct = ds.use_pct ?? 0;
             const vmHtml = (ds.top_vms ?? []).map(vm =>
                 `<span class="zh-vm-pill" title="${_esc(vm.path || '')}">${_esc(vm.name)} · ${vm.committed_gb} GB</span>`
             ).join("");
-
             return `
     <div class="zh-ds-item health-${ds.health_status}">
       <div class="d-flex align-items-start justify-content-between mb-2 gap-2">
         <div class="fw-semibold text-truncate" style="font-size:.9rem;" title="${_esc(ds.name)}">${_esc(ds.name)}</div>
-        <span style="white-space:nowrap;font-size:.75rem;color:${color};font-weight:600;">${HEALTH_LABEL[ds.health_status] ?? ds.health_status}</span>
+        <span style="white-space:nowrap;font-size:.75rem;color:${color};font-weight:600;">${HL[ds.health_status] ?? ds.health_status}</span>
       </div>
-      <!-- Barra de progresso -->
       <div class="zh-progress-bar-track mb-2">
         <div class="zh-progress-bar-fill" style="width:${Math.min(pct, 100)}%;background:${color};"></div>
       </div>
-      <!-- Métricas -->
       <div class="d-flex gap-3 flex-wrap" style="font-size:.78rem;color:var(--zh-text-secondary);">
         <span><strong style="color:${color};">${pct}%</strong> usado</span>
         <span>Livre: <strong>${ds.free_gb} GB</strong></span>
-        <span>Usado: <strong>${ds.used_gb} GB</strong></span>
         <span>Capacidade: <strong>${ds.capacity_gb} GB</strong></span>
         ${ds.uncommitted_gb > 0 ? `<span>Provisionado: <strong>${ds.uncommitted_gb} GB</strong></span>` : ""}
       </div>
-      <!-- Candidatas à migração -->
-      ${vmHtml ? `
-      <div class="mt-2" style="font-size:.75rem;">
-        <span class="text-muted-zh me-1">Candidatas à migração:</span>${vmHtml}
-      </div>` : ""}
+      ${vmHtml ? `<div class="mt-2" style="font-size:.75rem;"><span class="text-muted-zh me-1">Candidatas:</span>${vmHtml}</div>` : ""}
     </div>`;
         }).join("");
     }
 
     function _renderRecommendations(recs) {
         const el = document.getElementById("zh-recommendations");
-        if (!recs || recs.length === 0) {
-            el.innerHTML = '<span class="text-muted-zh small">Nenhuma recomendação.</span>';
+        if (!recs?.length) { el.innerHTML = '<span class="text-muted-zh small">Nenhuma recomendação.</span>'; return; }
+        el.innerHTML = recs.map(r => {
+            const ok = r.startsWith("✅");
+            return `<div class="zh-rec-item ${ok ? "ok" : ""}">${_esc(r)}</div>`;
+        }).join("");
+    }
+
+    // ── Simulador ─────────────────────────────────────────────────────────────────
+    function _populateSimulatorOptions(datastores) {
+        // Monta lista global de VMs (de todos os datastores)
+        _allVms = [];
+        datastores.forEach(ds => {
+            (ds.top_vms ?? []).forEach(vm => {
+                _allVms.push({ vmName: vm.name, dsName: ds.name, committed_gb: vm.committed_gb, ds });
+            });
+        });
+
+        const selVm = document.getElementById("zh-sim-vm");
+        const selDs = document.getElementById("zh-sim-target-ds");
+
+        // VMs únicas (pode aparecer em mais de um DS)
+        selVm.innerHTML = '<option value="">Selecione a VM...</option>';
+        const vmsSeen = new Set();
+        _allVms.forEach((v, i) => {
+            if (vmsSeen.has(v.vmName)) return;
+            vmsSeen.add(v.vmName);
+            const opt = document.createElement("option");
+            opt.value = i;
+            opt.textContent = `${v.vmName} (${v.committed_gb} GB) — em ${v.dsName}`;
+            selVm.appendChild(opt);
+        });
+
+        // Datastores destino
+        selDs.innerHTML = '<option value="">Selecione o destino...</option>';
+        datastores.forEach((ds, i) => {
+            const opt = document.createElement("option");
+            opt.value = i;
+            opt.textContent = `${ds.name} (livre: ${ds.free_gb} GB · ${ds.use_pct}%)`;
+            selDs.appendChild(opt);
+        });
+
+        // Mostra o formulário
+        document.getElementById("zh-sim-placeholder").classList.add("d-none");
+        document.getElementById("zh-sim-form").style.display = "";
+        _updateSimBtn();
+    }
+
+    function _updateSimBtn() {
+        const hasVm = !!document.getElementById("zh-sim-vm").value;
+        const hasDs = !!document.getElementById("zh-sim-target-ds").value;
+        document.getElementById("zh-btn-simular").disabled = !(hasVm && hasDs && _report);
+    }
+
+    function _resetSimulator() {
+        _report = null;
+        _allVms = [];
+        document.getElementById("zh-sim-vm").innerHTML = '<option value="">Selecione a VM...</option>';
+        document.getElementById("zh-sim-target-ds").innerHTML = '<option value="">Selecione o destino...</option>';
+        document.getElementById("zh-sim-result").classList.add("d-none");
+        document.getElementById("zh-sim-placeholder").classList.remove("d-none");
+        document.getElementById("zh-sim-form").style.display = "none";
+        _updateSimBtn();
+    }
+
+    function _runSimulation() {
+        const vmIdx = parseInt(document.getElementById("zh-sim-vm").value, 10);
+        const dsIdx = parseInt(document.getElementById("zh-sim-target-ds").value, 10);
+        if (isNaN(vmIdx) || isNaN(dsIdx) || !_report) return;
+
+        const vm = _allVms[vmIdx];
+        const srcDs = vm.ds;
+        const dstDs = _report.datastores[dsIdx];
+
+        // Não pode mover para o mesmo datastore
+        if (srcDs.name === dstDs.name) {
+            _renderSimResult(null, "same_ds", vm, srcDs, dstDs);
             return;
         }
-        el.innerHTML = recs.map(r => {
-            const isOk = r.startsWith("✅");
-            return `<div class="zh-rec-item ${isOk ? "ok" : ""}">${_esc(r)}</div>`;
-        }).join("");
+
+        // Calcula Antes e Depois
+        const srcCapacity = srcDs.capacity_gb;
+        const dstCapacity = dstDs.capacity_gb;
+        const vmGb = vm.committed_gb;
+
+        const srcBefore_used = srcDs.used_gb;
+        const dstBefore_used = dstDs.used_gb;
+
+        const srcAfter_used = Math.max(0, srcBefore_used - vmGb);
+        const dstAfter_used = dstBefore_used + vmGb;
+
+        const srcAfter_pct = srcCapacity > 0 ? (srcAfter_used / srcCapacity) * 100 : 0;
+        const dstAfter_pct = dstCapacity > 0 ? (dstAfter_used / dstCapacity) * 100 : 0;
+
+        // Verifica margem de segurança (80% máximo = 20% de margem)
+        const fits = dstAfter_pct <= MAX_SAFE_PCT;
+
+        _renderSimResult({
+            vm, srcDs, dstDs, vmGb,
+            srcBefore_pct: srcDs.use_pct,
+            dstBefore_pct: dstDs.use_pct,
+            srcAfter_pct: Math.round(srcAfter_pct * 10) / 10,
+            dstAfter_pct: Math.round(dstAfter_pct * 10) / 10,
+            srcAfter_used: Math.round(srcAfter_used * 10) / 10,
+            dstAfter_used: Math.round(dstAfter_used * 10) / 10,
+        }, fits ? "ok" : "warn", vm, srcDs, dstDs);
+    }
+
+    function _renderSimResult(sim, verdict, vm, srcDs, dstDs) {
+        const resultEl = document.getElementById("zh-sim-result");
+        const verdictEl = document.getElementById("zh-sim-verdict");
+        const chartsEl = document.getElementById("zh-sim-charts");
+
+        resultEl.classList.remove("d-none");
+
+        // -- Veredito -----------------------------------------------------------------
+        if (verdict === "same_ds") {
+            verdictEl.style.cssText = "background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.3);";
+            verdictEl.innerHTML = `<i class="bi bi-info-circle me-2" style="color:var(--zh-blue);"></i>
+      A VM <strong>${_esc(vm.vmName)}</strong> já está no datastore selecionado como destino. Escolha um destino diferente.`;
+            chartsEl.innerHTML = "";
+            return;
+        }
+
+        if (verdict === "ok") {
+            verdictEl.style.cssText = "background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);";
+            verdictEl.innerHTML = `<i class="bi bi-check-circle-fill me-2" style="color:var(--zh-accent-green);"></i>
+      <strong>Migração viável!</strong> Mover <strong>${_esc(vm.vmName)}</strong> (${sim.vmGb} GB) de
+      <em>${_esc(srcDs.name)}</em> → <em>${_esc(dstDs.name)}</em>
+      está dentro da margem de segurança de ${MAX_SAFE_PCT}%.
+      O destino ficará com <strong>${sim.dstAfter_pct}%</strong> de uso.`;
+        } else {
+            verdictEl.style.cssText = "background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);";
+            verdictEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2" style="color:var(--zh-accent-red);"></i>
+      <strong>Migração arriscada!</strong> Após mover <strong>${_esc(vm.vmName)}</strong> (${sim.vmGb} GB),
+      o datastore <em>${_esc(dstDs.name)}</em> ficaria com <strong>${sim.dstAfter_pct}%</strong> de uso —
+      acima do limite seguro de <strong>${MAX_SAFE_PCT}%</strong>.`;
+        }
+
+        // -- Gráfico Antes/Depois ----------------------------------------------------
+        chartsEl.innerHTML = `
+    <div class="col-12 col-sm-6">${_buildBarChart("ANTES", sim, false)}</div>
+    <div class="col-12 col-sm-6">${_buildBarChart("DEPOIS", sim, true)}</div>`;
+    }
+
+    function _buildBarChart(label, sim, isAfter) {
+        const srcPct = isAfter ? sim.srcAfter_pct : sim.srcBefore_pct;
+        const dstPct = isAfter ? sim.dstAfter_pct : sim.dstBefore_pct;
+
+        const srcColor = _healthColor(srcPct);
+        const dstColor = _healthColor(dstPct);
+
+        const row = (name, pct, color) => {
+            const w = Math.min(pct, 100);
+            // Safety line at 80%
+            return `<div class="zh-bar-row">
+      <div class="zh-bar-label" title="${_esc(name)}">${_esc(name)}</div>
+      <div class="zh-bar-track">
+        <div class="zh-bar-fill" style="width:${w}%;background:${color};"></div>
+        <div class="zh-safety-line" style="left:${MAX_SAFE_PCT}%;" title="Limite seguro: ${MAX_SAFE_PCT}%"></div>
+      </div>
+      <div class="zh-bar-pct" style="color:${color};">${pct}%</div>
+    </div>`;
+        };
+
+        return `<div class="zh-bar-chart-wrap">
+    <div class="zh-bar-chart-title">${label}</div>
+    ${row(sim.srcDs.name, srcPct, srcColor)}
+    ${row(sim.dstDs.name, dstPct, dstColor)}
+    <div class="text-muted-zh mt-2" style="font-size:.7rem;">
+      <span style="border-left:2px solid rgba(255,255,255,.4);padding-left:6px;">Linha branca = limite seguro de ${MAX_SAFE_PCT}%</span>
+    </div>
+  </div>`;
+    }
+
+    function _healthColor(pct) {
+        if (pct >= 85) return "var(--zh-accent-red)";
+        if (pct >= 70) return "var(--zh-accent-yellow)";
+        return "var(--zh-accent-green)";
     }
 
     // ── Feedback helpers ──────────────────────────────────────────────────────────
@@ -299,7 +590,7 @@
         if (state === "loading") {
             el.className = "mb-3 alert alert-info py-2 small";
             el.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${_esc(msg)}`;
-        } else if (state === "error") {
+        } else {
             el.className = "mb-3 alert alert-danger py-2 small";
             el.textContent = msg;
         }
@@ -314,10 +605,10 @@
     function _esc(s) {
         return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-    function _spinner() {
+    function _spinner(msg = "Carregando...") {
         return `<div class="text-center py-5 text-muted-zh">
     <div class="spinner-border" style="width:2rem;height:2rem;border-width:3px;color:var(--zh-blue);"></div>
-    <div class="mt-2 small">Consultando datastores...</div>
+    <div class="mt-2 small">${_esc(msg)}</div>
   </div>`;
     }
 </script>
