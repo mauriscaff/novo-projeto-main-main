@@ -1,5 +1,5 @@
-"""
-Schemas Pydantic para snapshots pre/pós descomissionamento de datastore.
+﻿"""
+Schemas Pydantic para snapshots pre/pÃ³s descomissionamento de datastore.
 """
 
 from __future__ import annotations
@@ -155,3 +155,24 @@ class DatastoreDeletionVerificationTotalsResponse(BaseModel):
     total_deleted_vmdks: int
     total_deleted_size_gb: float
     last_verification_at: datetime | None = None
+
+class DatastoreDeletionHistoryRunItem(BaseModel):
+    run_id: int
+    created_at: datetime
+    datastore: str
+    vcenter_host: str | None = None
+    status: Literal["datastore_removed", "partial_cleanup", "no_cleanup"]
+    baseline_job_id: str
+    verification_job_id: str
+    deleted_vmdk_count: int
+    deleted_size_gb: float
+    remaining_vmdk_count: int
+    remaining_size_gb: float
+    evidence_consistent_with_stored_summary: bool
+    evidence_note: str | None = None
+    deleted_vmdks: list[DatastoreDeletedVmdkEvidence] = []
+
+
+class DatastoreDeletionHistoryResponse(BaseModel):
+    summary: DatastoreDeletionVerificationTotalsResponse
+    items: list[DatastoreDeletionHistoryRunItem]

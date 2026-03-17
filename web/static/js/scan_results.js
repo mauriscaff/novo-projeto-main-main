@@ -59,6 +59,22 @@ const STATUS_META = {
   APROVADO_DELECAO: { label: "Aprovado p/ Deleção", cls: "text-bg-secondary" },
   WHITELIST: { label: "Whitelist", cls: "text-bg-success" },
 };
+function _buildApiHeaders(headersInit = {}) {
+  const headers = new Headers(headersInit || {});
+  headers.delete("X-API-Key");
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+  return headers;
+}
+
+async function _apiFetch(url, init = {}) {
+  return fetch(url, {
+    credentials: "same-origin",
+    ...init,
+    headers: _buildApiHeaders(init.headers || {}),
+  });
+}
 
 // ── Estado interno ────────────────────────────────────────────────────────────
 
@@ -93,8 +109,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   _bindQuickFilterEvents();
   _bindColumnPreferenceEvents();
   _bindBatchBar();
+  _bindOperationalGuide();
   _refreshQuickFilterButtons();
   _persistPreferences();
+  _updateOperationalGuide();
 
   // Se vier com job_id na URL, pré-preenche o campo oculto
   const jobId = window.ZH_JOB_ID ?? _getUrlParam("job_id");
@@ -128,6 +146,27 @@ function _toastFeedback(opts) {
   }
 }
 
+function _bindOperationalGuide() {
+  const btn = document.getElementById("zh-guide-action");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const action = btn.dataset.action || "focus_filters";
+    if (action === "open_batch") {
+      document.getElementById("zh-btn-batch-approve")?.click();
+      return;
+    }
+    if (action === "clear_filters") {
+      document.getElementById("zh-btn-clear")?.click();
+      return;
+    }
+    if (action === "focus_table") {
+      document.getElementById("zh-table-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    document.getElementById("zh-filter-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 async function _startJobPolling(jobId) {
   await _fetchJobStatus(jobId);
 }
@@ -140,7 +179,7 @@ async function _fetchJobStatus(jobId) {
   if (!banner) return;
 
   try {
-    const resp = await fetch(`/api/v1/scan/jobs/${jobId}`, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Accept": "application/json" } });
+    const resp = await _apiFetch(`/api/v1/scan/jobs/${jobId}`);
     if (!resp.ok) return;
     const job = await resp.json();
     const st = job.status ?? "unknown";
@@ -759,8 +798,8 @@ function _updateActiveFiltersBadge(params) {
       badge.classList.add("d-none");
     }
   }
+  _updateOperationalGuide();
 }
-
 // ── Filtros ───────────────────────────────────────────────────────────────────
 
 /** Popula o select de vCenter com dados da API */
@@ -768,7 +807,7 @@ async function _populateVcenterFilter() {
   const sel = document.getElementById("f-vcenter");
   if (!sel) return;
   try {
-    const resp = await fetch(API_VCENTERS, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Accept": "application/json" } });
+    const resp = await _apiFetch(API_VCENTERS);
     if (!resp.ok) {
       const info = window.zhFeedback
         ? window.zhFeedback.toErrorInfo({ status: resp.status, message: `HTTP ${resp.status}` }, "Falha ao carregar vCenters.")
@@ -844,10 +883,9 @@ function _applyClientFilters() {
 
 
 /** Atualiza o texto "Exibindo X de Y resultados" */
-function _updateVisibleCount() {
+function _getTableVisibility() {
   const tbody = document.querySelector("#zh-table-results tbody");
-  const el = document.getElementById("zh-visible-count");
-  if (!tbody || !el) return;
+  if (!tbody) return { visible: 0, total: 0 };
   const rows = tbody.querySelectorAll("tr");
   let total = 0;
   let visible = 0;
@@ -856,7 +894,15 @@ function _updateVisibleCount() {
     total++;
     if (tr.style.display !== "none") visible++;
   });
+  return { visible, total };
+}
+
+function _updateVisibleCount() {
+  const el = document.getElementById("zh-visible-count");
+  if (!el) return;
+  const { visible, total } = _getTableVisibility();
   el.textContent = `Exibindo ${visible} de ${total} resultados`;
+  _updateOperationalGuide({ visible, total });
 }
 
 /** Exporta CSV apenas das linhas visíveis (Blob + createObjectURL) */
@@ -1038,9 +1084,8 @@ function _injectExportButtons() {
   };
 
   const _downloadExportWithAuth = async (url, fallbackName) => {
-    const resp = await fetch(url, {
+    const resp = await _apiFetch(url, {
       headers: {
-        "X-API-Key": window.ZH_API_KEY || "",
         Accept: "application/json, text/csv, application/octet-stream",
       },
     });
@@ -1274,8 +1319,8 @@ function _updateBatchBar() {
     const sizeLabel = impactInfo.known > 0 ? _formatSizeLabel(impactInfo.totalGb) : "impacto pendente";
     impact.textContent = `Impacto estimado: ${sizeLabel}`;
   }
+  _updateOperationalGuide();
 }
-
 function _computeBatchImpact() {
   let totalGb = 0;
   let known = 0;
@@ -1492,9 +1537,9 @@ async function submitApproval() {
   btnEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Enviando…`;
 
   try {
-    const resp = await fetch(API_APPROVALS, {
+    const resp = await _apiFetch(API_APPROVALS, {
       method: "POST",
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Content-Type": "application/json", Accept: "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
         vmdk_path: row.path,
         vcenter_id: String(row.vcenter_id ?? row.vcenter_host ?? ""),
@@ -1580,9 +1625,9 @@ async function submitBatchApproval() {
     }
 
     try {
-      const resp = await fetch(API_APPROVALS, {
+      const resp = await _apiFetch(API_APPROVALS, {
         method: "POST",
-        headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY", "Content-Type": "application/json", Accept: "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           vmdk_path: row.path,
           vcenter_id: row.vcenterId,
@@ -1677,16 +1722,117 @@ function _showTableError(httpStatus) {
       + `<i class="bi bi-wifi-off me-2"></i>Erro HTTP ${httpStatus} ao carregar resultados.`
       + `</td></tr>`;
   }
+  _updateOperationalGuide({ forceState: "error", errorStatus: httpStatus });
 }
 
-// ── Helpers de renderização ───────────────────────────────────────────────────
+function _updateOperationalGuide(meta = {}) {
+  const card = document.getElementById("zh-scan-guide");
+  const level = document.getElementById("zh-guide-level");
+  const title = document.getElementById("zh-guide-title");
+  const next = document.getElementById("zh-guide-next");
+  const btn = document.getElementById("zh-guide-action");
+  const visibleEl = document.getElementById("zh-guide-visible");
+  const selectedEl = document.getElementById("zh-guide-selected");
+  if (!card || !level || !title || !next || !btn || !visibleEl || !selectedEl) return;
 
-/**
- * Renderiza o tamanho em GB ou TB (>= 1024 GB) com tratamento para arquivos muito pequenos.
- *
- * Para BROKEN_CHAIN com tamanho ~0: o arquivo de descriptor (.vmdk texto) existe
- * mas o flat/extent de dados está ausente — há pouco ou nenhum espaço a recuperar.
- */
+  const counts = Number.isFinite(meta.visible) && Number.isFinite(meta.total)
+    ? { visible: Number(meta.visible), total: Number(meta.total) }
+    : _getTableVisibility();
+
+  const selectedCount = selectedRows.size;
+  const activeFilterBadge = document.getElementById("zh-active-filters-badge");
+  const hasActiveFilters = !!(activeFilterBadge && !activeFilterBadge.classList.contains("d-none"));
+
+  visibleEl.textContent = String(counts.visible);
+  selectedEl.textContent = String(selectedCount);
+
+  if (meta.forceState === "error") {
+    _setOperationalGuideState(
+      "danger",
+      `Falha ao carregar resultados (HTTP ${meta.errorStatus || "?"})`,
+      "valide sessao/permissoes e clique em Filtrar novamente.",
+      { key: "focus_filters", label: "Revisar filtros", btnClass: "btn-outline-danger" }
+    );
+    return;
+  }
+
+  if (selectedCount > 0) {
+    _setOperationalGuideState(
+      "warning",
+      `${selectedCount} item(ns) pronto(s) para aprovacao em lote`,
+      "confira o impacto e execute Aprovar Selecionados.",
+      { key: "open_batch", label: "Abrir lote", btnClass: "btn-warning" }
+    );
+    return;
+  }
+
+  if (counts.total === 0) {
+    _setOperationalGuideState(
+      "info",
+      "Nenhum resultado retornado pela API para este recorte",
+      "ajuste filtros de vCenter/data/status e execute Filtrar.",
+      { key: "clear_filters", label: "Limpar filtros", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  if (counts.visible === 0 && counts.total > 0) {
+    _setOperationalGuideState(
+      "info",
+      "Resultados existem, mas os filtros locais ocultaram todas as linhas",
+      "reduza score/tamanho minimo ou limpe filtros rapidos.",
+      { key: "clear_filters", label: "Limpar filtros", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  if (hasActiveFilters) {
+    _setOperationalGuideState(
+      "info",
+      `Exibindo ${counts.visible} de ${counts.total} com filtros ativos`,
+      "selecione os itens prioritarios para aprovacao.",
+      { key: "focus_table", label: "Ir para tabela", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  _setOperationalGuideState(
+    "success",
+    `Visao completa carregada (${counts.total} itens)`,
+    "aplique um filtro rapido para priorizar risco alto.",
+    { key: "focus_table", label: "Ir para tabela", btnClass: "btn-outline-success" }
+  );
+}
+
+function _setOperationalGuideState(tone, titleText, nextStep, action = {}) {
+  const card = document.getElementById("zh-scan-guide");
+  const level = document.getElementById("zh-guide-level");
+  const title = document.getElementById("zh-guide-title");
+  const next = document.getElementById("zh-guide-next");
+  const btn = document.getElementById("zh-guide-action");
+  if (!card || !level || !title || !next || !btn) return;
+
+  card.classList.remove("is-info", "is-success", "is-warning", "is-danger");
+  card.classList.add(`is-${tone}`);
+
+  const badgeByTone = {
+    info: { cls: "text-bg-info", label: "Fluxo sugerido" },
+    success: { cls: "text-bg-success", label: "Pronto para operar" },
+    warning: { cls: "text-bg-warning", label: "Atencao operacional" },
+    danger: { cls: "text-bg-danger", label: "Falha na carga" },
+  };
+  const badge = badgeByTone[tone] || badgeByTone.info;
+
+  level.className = `badge rounded-pill ${badge.cls} mb-2`;
+  level.textContent = badge.label;
+  title.textContent = titleText;
+  next.textContent = `Proximo passo: ${nextStep}`;
+
+  btn.dataset.action = action.key || "focus_filters";
+  btn.className = `btn btn-sm ${action.btnClass || "btn-outline-primary"}`;
+  btn.textContent = action.label || "Revisar filtros";
+}
+
 function _renderSize(gb, tipo) {
   if (gb == null) {
     return `<span class="text-muted-zh">—</span>`;

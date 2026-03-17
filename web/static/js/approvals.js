@@ -1,38 +1,54 @@
 /**
- * approvals.js — Lógica da página de Aprovações do ZombieHunter
+ * approvals.js â€” LÃ³gica da pÃ¡gina de AprovaÃ§Ãµes do ZombieHunter
  * ==============================================================
- * Esta é a página mais crítica do sistema.
- * Toda interação aqui tem efeito REAL no storage VMware.
+ * Esta Ã© a pÃ¡gina mais crÃ­tica do sistema.
+ * Toda interaÃ§Ã£o aqui tem efeito REAL no storage VMware.
  *
  * Responsabilidades:
  *   1. Carrega tokens por aba (pendentes / executados / cancelados+expirados)
- *   2. Renderiza cards com countdown de expiração em tempo real
+ *   2. Renderiza cards com countdown de expiraÃ§Ã£o em tempo real
  *   3. Executa DRY-RUN via GET /api/v1/approvals/{token}/dryrun
- *   4. Exibe resultado do dry-run em modal — analista valida antes de prosseguir
- *   5. Executa ação real via POST /api/v1/approvals/{token}/execute
+ *   4. Exibe resultado do dry-run em modal â€” analista valida antes de prosseguir
+ *   5. Executa aÃ§Ã£o real via POST /api/v1/approvals/{token}/execute
  *   6. Cancela tokens via DELETE /api/v1/approvals/{token}
- *   7. Carrega audit log na aba de histórico
+ *   7. Carrega audit log na aba de histÃ³rico
  *
  * Endpoints consumidos:
- *   GET    /api/v1/approvals/                → lista tokens
- *   GET    /api/v1/approvals/{token}/dryrun  → simula ação
- *   POST   /api/v1/approvals/{token}/execute → executa ação (bloqueado se READONLY)
- *   DELETE /api/v1/approvals/{token}         → cancela token
- *   GET    /api/v1/approvals/audit-log       → histórico imutável
+ *   GET    /api/v1/approvals/                â†’ lista tokens
+ *   GET    /api/v1/approvals/{token}/dryrun  â†’ simula aÃ§Ã£o
+ *   POST   /api/v1/approvals/{token}/execute â†’ executa aÃ§Ã£o (bloqueado se READONLY)
+ *   DELETE /api/v1/approvals/{token}         â†’ cancela token
+ *   GET    /api/v1/approvals/audit-log       â†’ histÃ³rico imutÃ¡vel
  *
- * Variáveis globais injetadas pelo Jinja2:
- *   window.ZH_READONLY_MODE  boolean  — true se READONLY_MODE=true no .env
+ * VariÃ¡veis globais injetadas pelo Jinja2:
+ *   window.ZH_READONLY_MODE  boolean  â€” true se READONLY_MODE=true no .env
  */
 
 "use strict";
 
-// ── Constantes ────────────────────────────────────────────────────────────────
+// â”€â”€ Constantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const API_BASE   = "/api/v1/approvals";
 const POLL_MS    = 30_000;   // atualiza cards a cada 30s
 const TICK_MS    = 1_000;    // tick do countdown
+function _buildApiHeaders(headersInit = {}) {
+  const headers = new Headers(headersInit || {});
+  headers.delete("X-API-Key");
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+  return headers;
+}
 
-/** Mapeamento tipo_zombie → cores (consistente com dashboard.js e scan_results.js) */
+async function _apiFetch(url, init = {}) {
+  return fetch(url, {
+    credentials: "same-origin",
+    ...init,
+    headers: _buildApiHeaders(init.headers || {}),
+  });
+}
+
+/** Mapeamento tipo_zombie â†’ cores (consistente com dashboard.js e scan_results.js) */
 const ZM = {
   ORPHANED:                { label: "Orphaned",         color: "#f85149", bg: "rgba(248,81,73,.15)",  icon: "bi-x-circle-fill" },
   SNAPSHOT_ORPHAN:         { label: "Snapshot Orphan",  color: "#fb8500", bg: "rgba(251,133,0,.15)",  icon: "bi-camera-fill" },
@@ -42,11 +58,11 @@ const ZM = {
 };
 
 const ACTION_META = {
-  QUARANTINE: { label: "QUARANTINE",  color: "#d29922", icon: "bi-archive-fill",  desc: "Move para pasta de quarentena (reversível)" },
-  DELETE:     { label: "DELETE",      color: "#f85149", icon: "bi-trash3-fill",   desc: "Remove permanentemente (IRREVERSÍVEL)" },
+  QUARANTINE: { label: "QUARANTINE",  color: "#d29922", icon: "bi-archive-fill",  desc: "Move para pasta de quarentena (reversÃ­vel)" },
+  DELETE:     { label: "DELETE",      color: "#f85149", icon: "bi-trash3-fill",   desc: "Remove permanentemente (IRREVERSÃVEL)" },
 };
 
-// ── Estado ────────────────────────────────────────────────────────────────────
+// â”€â”€ Estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let countdownTimers = {};          // { tokenValue: intervalId }
 let pollTimer       = null;
@@ -61,25 +77,28 @@ let bsModalExecute  = null;
 let bsModalCancel   = null;
 let bsModalAudit    = null;
 
-// Token atualmente em operação
+// Token atualmente em operaÃ§Ã£o
 let activeToken     = null;
+const _tabTokenCache = { pending: [], executed: [], cancelled: [] };
 
-// ── Bootstrap isReadOnly ──────────────────────────────────────────────────────
+// â”€â”€ Bootstrap isReadOnly â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const isReadOnly = () => window.ZH_READONLY_MODE === true;
 
-// ── Inicialização ─────────────────────────────────────────────────────────────
+// â”€â”€ InicializaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 document.addEventListener("DOMContentLoaded", () => {
   _initModals();
   _bindTabs();
+  _bindOperationalGuide();
+  _updateOperationalGuide({ loading: true, tab: "pending" });
   loadTab("pending");
 
-  // Polling automático
+  // Polling automÃ¡tico
   pollTimer = setInterval(() => loadTab(activeTab, false), POLL_MS);
 });
 
-// ── Carregamento por aba ──────────────────────────────────────────────────────
+// â”€â”€ Carregamento por aba â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Carrega tokens de acordo com a aba ativa.
@@ -97,6 +116,7 @@ async function loadTab(tab, showLoader = true) {
 
   if (showLoader) {
     _setLoading(container, true);
+    _updateOperationalGuide({ loading: true, tab });
     if (window.zhFeedback) {
       window.zhFeedback.setInline("#zh-approvals-feedback", {
         state: "loading",
@@ -110,7 +130,7 @@ async function loadTab(tab, showLoader = true) {
     let tokens = [];
 
     if (tab === "pending") {
-      // Tokens não-terminais não-expirados
+      // Tokens nÃ£o-terminais nÃ£o-expirados
       tokens = await _fetchTokens({ only_active: "true" });
 
     } else if (tab === "executed") {
@@ -122,7 +142,7 @@ async function loadTab(tab, showLoader = true) {
         _fetchTokens({ status: "cancelled" }),
         _fetchTokens({ status: "invalidated" }),
       ]);
-      // Expirados (active=false, não executados, não cancelados)
+      // Expirados (active=false, nÃ£o executados, nÃ£o cancelados)
       const expired = await _fetchTokens({ status: "pending_dryrun" });
       const now = Date.now();
       const expiredFiltered = expired.filter(
@@ -133,7 +153,9 @@ async function loadTab(tab, showLoader = true) {
 
     _renderCards(container, tokens, tab);
     _updateTabCounter(tab, tokens.length);
+    _tabTokenCache[tab] = Array.isArray(tokens) ? tokens : [];
     window.zhFeedback?.clear("#zh-approvals-feedback");
+    _updateOperationalGuide({ tab, tokens: _tabTokenCache[tab] });
 
   } catch (err) {
     console.error(`[ZH Approvals] Erro ao carregar aba '${tab}':`, err);
@@ -153,6 +175,7 @@ async function loadTab(tab, showLoader = true) {
           : "Tente atualizar novamente em alguns segundos.",
       });
     }
+    _updateOperationalGuide({ tab, error: err });
   } finally {
     _setLoading(container, false);
   }
@@ -161,7 +184,7 @@ async function loadTab(tab, showLoader = true) {
 async function _fetchTokens(params = {}) {
   const qs  = new URLSearchParams(params).toString();
   const url = `${API_BASE}/${qs ? "?" + qs : ""}`;
-  const resp = await fetch(url, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" } });
+  const resp = await _apiFetch(url);
   if (!resp.ok) {
     const err = new Error(`HTTP ${resp.status}`);
     err.status = resp.status;
@@ -170,7 +193,7 @@ async function _fetchTokens(params = {}) {
   return resp.json();
 }
 
-// ── Renderização de cards ─────────────────────────────────────────────────────
+// â”€â”€ RenderizaÃ§Ã£o de cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _renderCards(container, tokens, tab) {
   if (tokens.length === 0) {
@@ -190,7 +213,7 @@ function _renderCards(container, tokens, tab) {
 }
 
 /**
- * Constrói HTML de um card de aprovação.
+ * ConstrÃ³i HTML de um card de aprovaÃ§Ã£o.
  * @param {Object} token
  * @param {string} tab
  */
@@ -202,18 +225,18 @@ function _buildCard(token, tab) {
   const dryRunDone  = token.status === "dryrun_done";
   const tokenVal    = token.approval_token;
 
-  // Classe de borda lateral baseada na ação
+  // Classe de borda lateral baseada na aÃ§Ã£o
   const borderColor = token.action === "DELETE" ? "#f85149" : "#d29922";
 
   return `
   <div class="zh-approval-card mb-3" id="card-${_safeId(tokenVal)}"
     style="border-left: 4px solid ${borderColor};">
 
-    <!-- ── Cabeçalho do card ──────────────────────────────────────────── -->
+    <!-- â”€â”€ CabeÃ§alho do card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
 
       <div class="d-flex flex-column gap-1">
-        <!-- Badge de ação -->
+        <!-- Badge de aÃ§Ã£o -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <span class="zh-action-badge"
             style="background:${actionMeta.color}22;color:${actionMeta.color};border:1px solid ${actionMeta.color}55;">
@@ -224,17 +247,17 @@ function _buildCard(token, tab) {
         </div>
         <!-- Token ID (truncado para UX) -->
         <code class="text-muted-zh" style="font-size:.7rem;" title="${_esc(tokenVal)}">
-          Token: ${_esc(tokenVal.slice(0, 16))}…
+          Token: ${_esc(tokenVal.slice(0, 16))}â€¦
         </code>
       </div>
 
-      <!-- Countdown de expiração (apenas pendentes) -->
+      <!-- Countdown de expiraÃ§Ã£o (apenas pendentes) -->
       ${isPending ? `
       <div class="text-end flex-shrink-0">
         <div class="text-muted-zh" style="font-size:.7rem;">Expira em</div>
         <div class="zh-countdown fw-bold" id="cd-${_safeId(tokenVal)}"
           data-expires="${token.expires_at}" style="font-size:1rem;">
-          …
+          â€¦
         </div>
       </div>
       ` : `
@@ -247,7 +270,7 @@ function _buildCard(token, tab) {
       `}
     </div>
 
-    <!-- ── Informações do VMDK ────────────────────────────────────────── -->
+    <!-- â”€â”€ InformaÃ§Ãµes do VMDK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="zh-vmdk-info mb-3">
       <div class="d-flex align-items-start gap-2 mb-2">
         <i class="bi bi-file-earmark-code text-muted-zh mt-1 flex-shrink-0"></i>
@@ -265,14 +288,14 @@ function _buildCard(token, tab) {
           <div class="zh-info-cell">
             <span class="zh-info-label">Tamanho</span>
             <span class="zh-info-value text-zombie-yellow fw-bold">
-              ${token.vmdk_size_gb != null ? (window.zhFormatSizeGB ? window.zhFormatSizeGB(token.vmdk_size_gb) : (+token.vmdk_size_gb).toFixed(2) + " GB") : "—"}
+              ${token.vmdk_size_gb != null ? (window.zhFormatSizeGB ? window.zhFormatSizeGB(token.vmdk_size_gb) : (+token.vmdk_size_gb).toFixed(2) + " GB") : "â€”"}
             </span>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="zh-info-cell">
             <span class="zh-info-label">Datacenter</span>
-            <span class="zh-info-value">${_esc(token.vmdk_datacenter ?? "—")}</span>
+            <span class="zh-info-value">${_esc(token.vmdk_datacenter ?? "â€”")}</span>
           </div>
         </div>
         <div class="col-6 col-md-3">
@@ -284,7 +307,7 @@ function _buildCard(token, tab) {
       </div>
     </div>
 
-    <!-- ── Solicitante + Justificativa ───────────────────────────────── -->
+    <!-- â”€â”€ Solicitante + Justificativa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="row g-2 mb-3">
       <div class="col-md-4">
         <div class="zh-info-cell">
@@ -303,7 +326,7 @@ function _buildCard(token, tab) {
           <span class="zh-info-label"><i class="bi bi-shield-check me-1"></i>Dry-run</span>
           <span class="zh-info-value ${dryRunDone ? "text-zombie-green" : "text-zombie-yellow"}">
             ${dryRunDone
-              ? `<i class="bi bi-check-circle-fill me-1"></i>Concluído em ${window.zhFormatDate(token.dryrun_completed_at)}`
+              ? `<i class="bi bi-check-circle-fill me-1"></i>ConcluÃ­do em ${window.zhFormatDate(token.dryrun_completed_at)}`
               : `<i class="bi bi-hourglass me-1"></i>Pendente`}
           </span>
         </div>
@@ -318,10 +341,10 @@ function _buildCard(token, tab) {
       </div>
     </div>
 
-    <!-- ── Resultado do dry-run (se já executado) ─────────────────────── -->
+    <!-- â”€â”€ Resultado do dry-run (se jÃ¡ executado) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     ${dryRunDone && token.dryrun_result ? _dryRunSummary(token.dryrun_result) : ""}
 
-    <!-- ── Botões de ação ────────────────────────────────────────────── -->
+    <!-- â”€â”€ BotÃµes de aÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="d-flex align-items-center gap-2 flex-wrap mt-3 pt-3"
       style="border-top:1px solid var(--zh-border);">
 
@@ -331,7 +354,7 @@ function _buildCard(token, tab) {
   </div>`;
 }
 
-/** Botões de ação para tokens PENDENTES */
+/** BotÃµes de aÃ§Ã£o para tokens PENDENTES */
 function _pendingButtons(token, dryRunDone) {
   const tv = token.approval_token;
   const sid = _safeId(tv);
@@ -342,17 +365,17 @@ function _pendingButtons(token, dryRunDone) {
       style="background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);">
       <i class="bi bi-lock-fill text-zombie-red flex-shrink-0"></i>
       <span style="font-size:.84rem;color:#f85149;font-weight:600;">
-        READONLY_MODE Ativo — Ações bloqueadas pelo administrador
+        READONLY_MODE Ativo â€” AÃ§Ãµes bloqueadas pelo administrador
       </span>
     </div>`;
   }
 
   return `
-  <!-- Botão 1: DRY-RUN (sempre habilitado) -->
+  <!-- BotÃ£o 1: DRY-RUN (sempre habilitado) -->
   <button
     class="btn btn-sm btn-outline-warning d-flex align-items-center gap-2 zh-btn-dryrun"
     data-token="${_esc(tv)}"
-    title="Simular a ação sem executar nada (obrigatório)"
+    title="Simular a aÃ§Ã£o sem executar nada (obrigatÃ³rio)"
     type="button"
     id="btn-dry-${sid}"
   >
@@ -360,12 +383,12 @@ function _pendingButtons(token, dryRunDone) {
     <span>${dryRunDone ? "Re-executar DRY-RUN" : "Executar DRY-RUN"}</span>
   </button>
 
-  <!-- Botão 2: CONFIRMAR (só habilitado após dry-run) -->
+  <!-- BotÃ£o 2: CONFIRMAR (sÃ³ habilitado apÃ³s dry-run) -->
   <button
     class="btn btn-sm zh-btn-execute d-flex align-items-center gap-2"
     data-token="${_esc(tv)}"
     data-action="${_esc(token.action)}"
-    title="${dryRunDone ? "Executar ação aprovada" : "Execute o DRY-RUN primeiro"}"
+    title="${dryRunDone ? "Executar aÃ§Ã£o aprovada" : "Execute o DRY-RUN primeiro"}"
     type="button"
     id="btn-exec-${sid}"
     ${dryRunDone ? "" : "disabled"}
@@ -377,12 +400,12 @@ function _pendingButtons(token, dryRunDone) {
     <span>Confirmar ${token.action}</span>
   </button>
 
-  <!-- Botão 3: CANCELAR -->
+  <!-- BotÃ£o 3: CANCELAR -->
   <button
     class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 zh-btn-cancel ms-auto"
     data-token="${_esc(tv)}"
     data-path="${_esc(token.vmdk_path)}"
-    title="Cancelar este token de aprovação"
+    title="Cancelar este token de aprovaÃ§Ã£o"
     type="button"
     id="btn-cancel-${sid}"
   >
@@ -391,13 +414,13 @@ function _pendingButtons(token, dryRunDone) {
   </button>`;
 }
 
-/** Badge de status para tokens não-pendentes */
+/** Badge de status para tokens nÃ£o-pendentes */
 function _historicBadge(token) {
   const meta = {
     executed:    { icon: "bi-check-circle-fill",  color: "#3fb950", label: "Executado com sucesso" },
     cancelled:   { icon: "bi-x-circle-fill",       color: "#6e7681", label: "Cancelado" },
     invalidated: { icon: "bi-exclamation-triangle-fill", color: "#d29922", label: "Invalidado" },
-    dryrun_done: { icon: "bi-hourglass-split",     color: "#58a6ff", label: "Aguardando execução" },
+    dryrun_done: { icon: "bi-hourglass-split",     color: "#58a6ff", label: "Aguardando execuÃ§Ã£o" },
   };
   const m = meta[token.status] ?? { icon: "bi-question", color: "#6e7681", label: token.status };
   return `
@@ -405,7 +428,7 @@ function _historicBadge(token) {
     <i class="bi ${m.icon}"></i>
     <span>${m.label}</span>
     ${token.invalidation_reason
-      ? `<span class="text-muted-zh ms-2" style="font-size:.78rem;">— ${_esc(token.invalidation_reason)}</span>`
+      ? `<span class="text-muted-zh ms-2" style="font-size:.78rem;">â€” ${_esc(token.invalidation_reason)}</span>`
       : ""}
   </div>`;
 }
@@ -424,7 +447,7 @@ function _dryRunSummary(result) {
     <div class="d-flex align-items-center gap-2 mb-2">
       <i class="bi bi-${safe ? "check-circle-fill text-zombie-green" : "exclamation-triangle-fill text-zombie-yellow"}"></i>
       <span class="fw-semibold" style="font-size:.84rem;">
-        Resultado do DRY-RUN ${safe ? "— Seguro para prosseguir" : "— Atenção necessária"}
+        Resultado do DRY-RUN ${safe ? "â€” Seguro para prosseguir" : "â€” AtenÃ§Ã£o necessÃ¡ria"}
       </span>
     </div>
     <div class="row g-2 mb-2" style="font-size:.8rem;">
@@ -433,7 +456,7 @@ function _dryRunSummary(result) {
         <strong class="ms-1">${files}</strong>
       </div>
       <div class="col-auto">
-        <span class="text-muted-zh">Espaço a liberar:</span>
+        <span class="text-muted-zh">EspaÃ§o a liberar:</span>
         <strong class="ms-1 text-zombie-yellow">${window.zhFormatSizeGB ? window.zhFormatSizeGB(gb) : (+gb).toFixed(2) + " GB"}</strong>
       </div>
     </div>
@@ -444,7 +467,7 @@ function _dryRunSummary(result) {
   </div>`;
 }
 
-// ── Countdown de expiração ─────────────────────────────────────────────────────
+// â”€â”€ Countdown de expiraÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _startCountdown(tokenVal, expiresAt) {
   const el  = document.getElementById(`cd-${_safeId(tokenVal)}`);
@@ -460,7 +483,7 @@ function _startCountdown(tokenVal, expiresAt) {
       el.closest(".zh-approval-card")?.classList.add("zh-card-expired");
       clearInterval(countdownTimers[tokenVal]);
       delete countdownTimers[tokenVal];
-      // Desabilita botões deste card
+      // Desabilita botÃµes deste card
       const sid = _safeId(tokenVal);
       document.getElementById(`btn-dry-${sid}`)?.setAttribute("disabled", "");
       document.getElementById(`btn-exec-${sid}`)?.setAttribute("disabled", "");
@@ -474,9 +497,9 @@ function _startCountdown(tokenVal, expiresAt) {
     el.textContent = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
     // Cor baseada no tempo restante
-    if (remaining < 3_600_000) {          // < 1h → vermelho
+    if (remaining < 3_600_000) {          // < 1h â†’ vermelho
       el.style.color = "#f85149";
-    } else if (remaining < 7_200_000) {   // < 2h → amarelo
+    } else if (remaining < 7_200_000) {   // < 2h â†’ amarelo
       el.style.color = "#d29922";
     } else {
       el.style.color = "#3fb950";
@@ -492,32 +515,30 @@ function _clearCountdowns() {
   countdownTimers = {};
 }
 
-// ── DRY-RUN ────────────────────────────────────────────────────────────────────
+// â”€â”€ DRY-RUN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function executeDryRun(tokenVal) {
   activeToken = tokenVal;
   const sid   = _safeId(tokenVal);
 
-  // Estado visual do botão
+  // Estado visual do botÃ£o
   const btn = document.getElementById(`btn-dry-${sid}`);
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Simulando…`;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Simulandoâ€¦`;
   }
 
   // Limpa estado anterior
   _setModalContent("dry-modal-result", `
     <div class="text-center py-4">
       <div class="spinner-border text-zombie-yellow mb-3" style="width:2rem;height:2rem;"></div>
-      <p class="text-muted-zh">Consultando vCenter…</p>
+      <p class="text-muted-zh">Consultando vCenterâ€¦</p>
     </div>`);
 
   bsModalDryRun?.show();
 
   try {
-    const resp = await fetch(`${API_BASE}/${encodeURIComponent(tokenVal)}/dryrun`, {
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" },
-    });
+    const resp = await _apiFetch(`${API_BASE}/${encodeURIComponent(tokenVal)}/dryrun`);
     const data = await resp.json();
 
     if (!resp.ok) {
@@ -527,12 +548,12 @@ async function executeDryRun(tokenVal) {
     dryRunResults[tokenVal] = data;
     _renderDryRunResult(data);
 
-    // Habilita botão de execução no card
+    // Habilita botÃ£o de execuÃ§Ã£o no card
     const execBtn = document.getElementById(`btn-exec-${sid}`);
     if (execBtn) {
       execBtn.removeAttribute("disabled");
       execBtn.querySelector("i")?.classList.replace("bi-lock-fill", "bi-play-fill");
-      execBtn.title = "Executar ação aprovada";
+      execBtn.title = "Executar aÃ§Ã£o aprovada";
     }
 
     // Atualiza mini-resumo no card
@@ -551,14 +572,33 @@ async function executeDryRun(tokenVal) {
     }
 
   } catch (err) {
-    _setModalContent("dry-modal-result", `
+    const info = window.zhFeedback
+      ? window.zhFeedback.toErrorInfo(err, "Falha ao executar dry-run.")
+      : { category: "unknown", message: err?.message || "Falha ao executar dry-run." };
+
+    if (window.zhFeedback) {
+      _setModalContent("dry-modal-result", window.zhFeedback.renderAlert({
+        state: "error",
+        category: info.category,
+        title: "Dry-run indisponivel",
+        happened: info.message,
+        impact: "A validacao de seguranca nao foi concluida para este token.",
+        nextStep: info.category === "auth"
+          ? "Refaca o login e repita o dry-run."
+          : "Verifique conectividade/permissoes e tente novamente.",
+      }));
+    } else {
+      _setModalContent("dry-modal-result", `
       <div class="alert alert-danger d-flex gap-2 py-2 mb-0">
         <i class="bi bi-x-circle-fill flex-shrink-0 mt-1"></i>
         <div>
           <strong>Erro ao executar dry-run:</strong><br/>
-          <span style="font-size:.85rem;">${_esc(err.message)}</span>
+          <span style="font-size:.85rem;">${_esc(info.message)}</span>
         </div>
       </div>`);
+    }
+
+    _showToast("danger", `Falha no dry-run: ${info.message}`);
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -572,7 +612,7 @@ function _renderDryRunResult(data) {
   const warnings = data.warnings ?? [];
 
   const html = `
-  <!-- Status de segurança -->
+  <!-- Status de seguranÃ§a -->
   <div class="d-flex align-items-center gap-3 p-3 rounded-2 mb-3"
     style="background:${safe ? "rgba(63,185,80,.1)" : "rgba(210,153,34,.12)"};
            border:1px solid ${safe ? "rgba(63,185,80,.35)" : "rgba(210,153,34,.35)"};">
@@ -580,18 +620,18 @@ function _renderDryRunResult(data) {
       style="font-size:1.8rem;"></i>
     <div>
       <div class="fw-bold" style="color:${safe ? "#3fb950" : "#d29922"};">
-        ${safe ? "Seguro para prosseguir" : "Atenção necessária antes de confirmar"}
+        ${safe ? "Seguro para prosseguir" : "AtenÃ§Ã£o necessÃ¡ria antes de confirmar"}
       </div>
       <div class="text-muted-zh" style="font-size:.8rem;">${_esc(data.action_preview ?? "")}</div>
     </div>
   </div>
 
-  <!-- Métricas -->
+  <!-- MÃ©tricas -->
   <div class="row g-2 mb-3">
     <div class="col-6">
       <div class="zh-info-cell text-center">
         <div class="text-zombie-yellow fw-bold fs-4">${window.zhFormatSizeGB ? window.zhFormatSizeGB(data.space_to_recover_gb ?? 0) : (+(data.space_to_recover_gb ?? 0)).toFixed(2) + " GB"}</div>
-        <div class="text-muted-zh" style="font-size:.72rem;">Espaço a liberar</div>
+        <div class="text-muted-zh" style="font-size:.72rem;">EspaÃ§o a liberar</div>
       </div>
     </div>
     <div class="col-6">
@@ -602,11 +642,11 @@ function _renderDryRunResult(data) {
     </div>
   </div>
 
-  <!-- Arquivos que serão afetados -->
+  <!-- Arquivos que serÃ£o afetados -->
   ${data.files_affected?.length ? `
   <div class="mb-3">
     <div class="text-muted-zh mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;">
-      Arquivos que serão afetados
+      Arquivos que serÃ£o afetados
     </div>
     <div class="zh-file-list">
       ${data.files_affected.map((f) =>
@@ -618,19 +658,19 @@ function _renderDryRunResult(data) {
     </div>
   </div>` : ""}
 
-  <!-- Verificação live no vCenter -->
+  <!-- VerificaÃ§Ã£o live no vCenter -->
   ${data.live_check?.attempted ? `
   <div class="mb-3">
     <div class="text-muted-zh mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;">
-      Verificação Live no vCenter
+      VerificaÃ§Ã£o Live no vCenter
     </div>
     <div class="d-flex align-items-center gap-2 p-2 rounded-2"
       style="background:var(--zh-bg-sidebar);border:1px solid var(--zh-border);font-size:.82rem;">
       ${data.live_check.exists === true
         ? `<i class="bi bi-check-circle-fill text-zombie-green"></i><span>Arquivo encontrado no vCenter (${data.live_check.size_bytes ? (window.zhFormatSizeGB ? window.zhFormatSizeGB(data.live_check.size_bytes / 1073741824) : (data.live_check.size_bytes / 1073741824).toFixed(2) + " GB") : "tamanho desconhecido"})</span>`
         : data.live_check.exists === false
-          ? `<i class="bi bi-x-circle-fill text-zombie-red"></i><span>Arquivo NÃO encontrado no vCenter — pode ter sido removido</span>`
-          : `<i class="bi bi-question-circle text-zombie-yellow"></i><span>${_esc(data.live_check.error ?? "Verificação inconclusiva")}</span>`}
+          ? `<i class="bi bi-x-circle-fill text-zombie-red"></i><span>Arquivo NÃƒO encontrado no vCenter â€” pode ter sido removido</span>`
+          : `<i class="bi bi-question-circle text-zombie-yellow"></i><span>${_esc(data.live_check.error ?? "VerificaÃ§Ã£o inconclusiva")}</span>`}
     </div>
   </div>` : ""}
 
@@ -651,7 +691,7 @@ function _renderDryRunResult(data) {
 
   _setModalContent("dry-modal-result", html);
 
-  // Configura o botão "Confirmar" dentro do modal de dry-run
+  // Configura o botÃ£o "Confirmar" dentro do modal de dry-run
   const confirmBtn = document.getElementById("dry-modal-confirm");
   if (confirmBtn) {
     confirmBtn.classList.toggle("d-none", !safe);
@@ -662,13 +702,13 @@ function _renderDryRunResult(data) {
   }
 }
 
-// ── EXECUTE CONFIRM ────────────────────────────────────────────────────────────
+// â”€â”€ EXECUTE CONFIRM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function openExecuteConfirm(tokenVal) {
   activeToken = tokenVal;
   const result = dryRunResults[tokenVal];
 
-  // Preenche resumo no modal de confirmação
+  // Preenche resumo no modal de confirmaÃ§Ã£o
   const gb     = result?.space_to_recover_gb ?? 0;
   const files  = result?.files_affected?.length ?? 0;
   const action = result?.action ?? "?";
@@ -687,13 +727,13 @@ function openExecuteConfirm(tokenVal) {
   document.getElementById("exec-confirm-gb").textContent   = window.zhFormatSizeGB ? window.zhFormatSizeGB(gb) : (+gb).toFixed(2) + " GB";
   document.getElementById("exec-confirm-files").textContent = files + " arquivo(s)";
 
-  // Reseta campos de confirmação
+  // Reseta campos de confirmaÃ§Ã£o
   const analystEl = document.getElementById("exec-confirm-analyst");
   const checkEl   = document.getElementById("exec-confirm-check");
   if (analystEl) analystEl.value = "";
   if (checkEl)   checkEl.checked = false;
 
-  document.getElementById("exec-modal-error")?.classList.add("d-none");
+  _clearActionErrorFeedback(document.getElementById("exec-modal-error"));
   document.getElementById("exec-btn-submit").disabled = true;
 
   bsModalExecute?.show();
@@ -706,21 +746,26 @@ async function submitExecute() {
   const errEl     = document.getElementById("exec-modal-error");
   const btnEl     = document.getElementById("exec-btn-submit");
 
+  _clearActionErrorFeedback(errEl);
+
   if (!checkEl?.checked) {
-    if (errEl) {
-      errEl.textContent = "Marque a caixa de confirmação para prosseguir.";
-      errEl.classList.remove("d-none");
-    }
+    _setActionErrorFeedback(errEl, {
+      category: "validation",
+      title: "Confirmacao obrigatoria",
+      message: "Marque a caixa de confirmacao para prosseguir.",
+      impact: "A execucao permanece bloqueada ate a confirmacao.",
+      nextStep: "Marque a confirmacao, revise o dry-run e tente novamente.",
+    });
     return;
   }
 
   btnEl.disabled = true;
-  btnEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Executando…`;
+  btnEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Executandoâ€¦`;
 
   try {
-    const resp = await fetch(`${API_BASE}/${encodeURIComponent(tokenVal)}/execute`, {
+    const resp = await _apiFetch(`${API_BASE}/${encodeURIComponent(tokenVal)}/execute`, {
       method:  "POST",
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  Accept: "application/json", "Content-Type": "application/json" },
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
       body:    "{}",
     });
     const data = await resp.json();
@@ -729,33 +774,36 @@ async function submitExecute() {
       throw new Error(data.detail ?? `HTTP ${resp.status}`);
     }
 
-    // Sucesso — fecha modal e recarrega
+    // Sucesso â€” fecha modal e recarrega
     bsModalExecute?.hide();
     _showToast(
       "success",
-      `Ação executada com sucesso! ${window.zhFormatSizeGB ? window.zhFormatSizeGB(data.space_recovered_gb ?? 0) : (data.space_recovered_gb?.toFixed(2) ?? 0) + " GB"} liberados.`
+      `AÃ§Ã£o executada com sucesso! ${window.zhFormatSizeGB ? window.zhFormatSizeGB(data.space_recovered_gb ?? 0) : (data.space_recovered_gb?.toFixed(2) ?? 0) + " GB"} liberados.`
     );
     setTimeout(() => loadTab("pending"), 800);
     setTimeout(() => loadTab("executed"), 1000);
     window.refreshPendingBadge?.();
 
   } catch (err) {
-    if (errEl) {
-      errEl.textContent = `Erro: ${err.message}`;
-      errEl.classList.remove("d-none");
-    }
+    _setActionErrorFeedback(errEl, {
+      title: "Falha ao executar acao",
+      message: err?.message || "Falha nao detalhada ao executar.",
+      impact: "O token permaneceu no estado anterior.",
+      nextStep: "Valide permissao/conectividade e repita a execucao.",
+    });
+    _showToast("danger", `Falha ao executar token: ${err?.message || "erro nao detalhado"}`);
   } finally {
     btnEl.disabled = false;
-    btnEl.innerHTML = `<i class="bi bi-play-fill me-2"></i>Confirmar Execução`;
+    btnEl.innerHTML = `<i class="bi bi-play-fill me-2"></i>Confirmar ExecuÃ§Ã£o`;
   }
 }
 
-// ── CANCEL ─────────────────────────────────────────────────────────────────────
+// â”€â”€ CANCEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function openCancelConfirm(tokenVal, vmdk_path) {
   activeToken = tokenVal;
   document.getElementById("cancel-modal-path").textContent = vmdk_path ?? tokenVal;
-  document.getElementById("cancel-modal-error")?.classList.add("d-none");
+  _clearActionErrorFeedback(document.getElementById("cancel-modal-error"));
   bsModalCancel?.show();
 }
 
@@ -764,13 +812,13 @@ async function submitCancel() {
   const errEl    = document.getElementById("cancel-modal-error");
   const btnEl    = document.getElementById("cancel-btn-submit");
 
+  _clearActionErrorFeedback(errEl);
   btnEl.disabled = true;
-  btnEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Cancelando…`;
+  btnEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Cancelandoâ€¦`;
 
   try {
-    const resp = await fetch(`${API_BASE}/${encodeURIComponent(tokenVal)}`, {
+    const resp = await _apiFetch(`${API_BASE}/${encodeURIComponent(tokenVal)}`, {
       method:  "DELETE",
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" },
     });
     const data = await resp.json();
 
@@ -782,29 +830,29 @@ async function submitCancel() {
     window.refreshPendingBadge?.();
 
   } catch (err) {
-    if (errEl) {
-      errEl.textContent = `Erro: ${err.message}`;
-      errEl.classList.remove("d-none");
-    }
+    _setActionErrorFeedback(errEl, {
+      title: "Falha ao cancelar token",
+      message: err?.message || "Falha nao detalhada no cancelamento.",
+      impact: "O token pode permanecer ativo ate nova tentativa.",
+      nextStep: "Revise a conectividade e tente cancelar novamente.",
+    });
+    _showToast("danger", `Falha ao cancelar token: ${err?.message || "erro nao detalhado"}`);
   } finally {
     btnEl.disabled = false;
     btnEl.innerHTML = `<i class="bi bi-x-circle me-2"></i>Confirmar Cancelamento`;
   }
 }
-
-// ── AUDIT LOG ─────────────────────────────────────────────────────────────────
+// â”€â”€ AUDIT LOG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function loadAuditLog() {
   const container = document.getElementById("zh-audit-table-body");
   if (!container) return;
 
   container.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-muted-zh">
-    <span class="spinner-border spinner-border-sm me-2"></span>Carregando…</td></tr>`;
+    <span class="spinner-border spinner-border-sm me-2"></span>Carregandoâ€¦</td></tr>`;
 
   try {
-    const resp = await fetch(`${API_BASE}/audit-log?limit=100`, {
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" },
-    });
+    const resp = await _apiFetch(`${API_BASE}/audit-log?limit=100`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const logs = await resp.json();
 
@@ -825,7 +873,7 @@ async function loadAuditLog() {
         "blocked_readonly":     { cls: "text-bg-secondary",  label: "Bloqueado (RO)" },
         "blocked_no_dryrun":    { cls: "text-bg-warning",    label: "Bloqueado (sem dryrun)" },
         "blocked_expired":      { cls: "text-bg-secondary",  label: "Bloqueado (expirado)" },
-        "blocked_status_changed":{ cls:"text-bg-warning",   label: "Bloqueado (mudança)" },
+        "blocked_status_changed":{ cls:"text-bg-warning",   label: "Bloqueado (mudanÃ§a)" },
         "failed":               { cls: "text-bg-danger",     label: "Falhou" },
       };
       const sm = statusMeta[log.status] ?? { cls: "text-bg-secondary", label: log.status };
@@ -847,7 +895,7 @@ async function loadAuditLog() {
           <span class="badge ${sm.cls}" style="font-size:.68rem;">${sm.label}</span>
         </td>
         <td class="text-muted-zh" style="font-size:.75rem;max-width:200px;">
-          ${_esc(_trunc(log.detail ?? "—", 60))}
+          ${_esc(_trunc(log.detail ?? "â€”", 60))}
         </td>
       </tr>`;
     }).join("");
@@ -858,7 +906,208 @@ async function loadAuditLog() {
   }
 }
 
-// ── Abas ──────────────────────────────────────────────────────────────────────
+function _bindOperationalGuide() {
+  const btn = document.getElementById("zh-apv-guide-action");
+  if (btn && !btn.dataset.bound) {
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.action || "focus_pending";
+      if (action === "focus_pending") {
+        document.getElementById("tab-btn-pending")?.click();
+        return;
+      }
+      if (action === "focus_filters") {
+        document.getElementById("zh-quick-filters")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      if (action === "focus_audit") {
+        document.getElementById("tab-btn-audit")?.click();
+        return;
+      }
+      loadTab(activeTab);
+    });
+  }
+
+  const filterForm = document.getElementById("zh-filter-form-approvals");
+  if (filterForm && !filterForm.dataset.guideBound) {
+    filterForm.dataset.guideBound = "true";
+    filterForm.addEventListener("submit", () => setTimeout(() => _updateOperationalGuide(), 80));
+  }
+
+  const clearBtn = document.getElementById("apf-clear");
+  if (clearBtn && !clearBtn.dataset.guideBound) {
+    clearBtn.dataset.guideBound = "true";
+    clearBtn.addEventListener("click", () => setTimeout(() => _updateOperationalGuide(), 80));
+  }
+
+  ["pending", "executed", "cancelled"].forEach((tab) => {
+    const container = document.getElementById(`zh-tab-${tab}`);
+    if (!container || container.dataset.guideObserved) return;
+    container.dataset.guideObserved = "true";
+    const obs = new MutationObserver(() => _updateOperationalGuide());
+    obs.observe(container, { childList: true, subtree: false });
+  });
+}
+
+function _getTabVisibility(tab = activeTab) {
+  if (!tab || tab === "audit") return { visible: 0, total: 0 };
+  const container = document.getElementById(`zh-tab-${tab}`);
+  if (!container) return { visible: 0, total: 0 };
+  const cards = container.querySelectorAll(".zh-approval-card");
+  let total = 0;
+  let visible = 0;
+  cards.forEach((card) => {
+    total += 1;
+    if (card.style.display !== "none") visible += 1;
+  });
+  return { visible, total };
+}
+
+function _getExpiringSoonCount() {
+  const now = Date.now();
+  const threshold = now + (2 * 60 * 60 * 1000);
+  return (_tabTokenCache.pending || []).filter((token) => {
+    if (!token?.expires_at) return false;
+    const status = token.status;
+    if (status !== "pending_dryrun" && status !== "dryrun_done") return false;
+    const ts = new Date(token.expires_at).getTime();
+    return ts > now && ts <= threshold;
+  }).length;
+}
+
+function _updateOperationalGuide(meta = {}) {
+  const visibleEl = document.getElementById("zh-apv-guide-visible");
+  const pendingEl = document.getElementById("zh-apv-guide-pending");
+  const expiringEl = document.getElementById("zh-apv-guide-expiring");
+  if (!visibleEl || !pendingEl || !expiringEl) return;
+
+  const currentTab = meta.tab || activeTab;
+  const pendingCount = (_tabTokenCache.pending || []).length;
+  const expiringCount = _getExpiringSoonCount();
+  const visibility = _getTabVisibility(currentTab);
+
+  visibleEl.textContent = String(visibility.visible);
+  pendingEl.textContent = String(pendingCount);
+  expiringEl.textContent = String(expiringCount);
+
+  if (meta.loading) {
+    _setOperationalGuideState(
+      "info",
+      "Carregando aprovacoes da aba selecionada",
+      "aguarde a sincronizacao para revisar impacto e expiracao.",
+      { key: "refresh", label: "Atualizar", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  if (meta.error) {
+    _setOperationalGuideState(
+      "danger",
+      "Falha ao sincronizar aprovacoes",
+      "valide sessao/permissoes e tente novamente.",
+      { key: "refresh", label: "Tentar novamente", btnClass: "btn-outline-danger" }
+    );
+    return;
+  }
+
+  if (currentTab === "audit") {
+    _setOperationalGuideState(
+      "info",
+      "Aba de auditoria ativa",
+      "retorne para pendentes para priorizar tokens antes do vencimento.",
+      { key: "focus_pending", label: "Ir para pendentes", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  if (pendingCount === 0 && currentTab === "pending") {
+    _setOperationalGuideState(
+      "success",
+      "Nenhuma aprovacao pendente no momento",
+      "use audit log para validar a trilha recente de execucao.",
+      { key: "focus_audit", label: "Abrir audit log", btnClass: "btn-outline-success" }
+    );
+    return;
+  }
+
+  if (expiringCount > 0) {
+    _setOperationalGuideState(
+      "warning",
+      `${expiringCount} token(s) expira(m) em ate 2 horas`,
+      "priorize dry-run e confirmacao para evitar expirar solicitacoes validas.",
+      { key: "focus_pending", label: "Priorizar pendentes", btnClass: "btn-warning" }
+    );
+    return;
+  }
+
+  if (visibility.total > 0 && visibility.visible === 0) {
+    _setOperationalGuideState(
+      "info",
+      "Filtros ocultaram todos os cards da aba atual",
+      "limpe filtros ou ajuste criterios para voltar a visualizar tokens.",
+      { key: "focus_filters", label: "Revisar filtros", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  if (currentTab !== "pending" && pendingCount > 0) {
+    _setOperationalGuideState(
+      "warning",
+      `Existem ${pendingCount} aprovacao(oes) pendente(s)`,
+      "retorne para pendentes antes de seguir com analise historica.",
+      { key: "focus_pending", label: "Voltar para pendentes", btnClass: "btn-outline-warning" }
+    );
+    return;
+  }
+
+  if (visibility.total === 0) {
+    _setOperationalGuideState(
+      "info",
+      "Nenhum card disponivel na aba selecionada",
+      "atualize a tela para verificar novos eventos de aprovacao.",
+      { key: "refresh", label: "Atualizar", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  _setOperationalGuideState(
+    "success",
+    `${visibility.visible} card(s) visivel(is) para revisao`,
+    "siga o fluxo: dry-run, justificativa e confirmacao final.",
+    { key: "focus_pending", label: "Revisar fluxo", btnClass: "btn-outline-success" }
+  );
+}
+
+function _setOperationalGuideState(tone, titleText, nextStep, action = {}) {
+  const card = document.getElementById("zh-approvals-guide");
+  const level = document.getElementById("zh-apv-guide-level");
+  const title = document.getElementById("zh-apv-guide-title");
+  const next = document.getElementById("zh-apv-guide-next");
+  const btn = document.getElementById("zh-apv-guide-action");
+  if (!card || !level || !title || !next || !btn) return;
+
+  card.classList.remove("is-info", "is-success", "is-warning", "is-danger");
+  card.classList.add(`is-${tone}`);
+
+  const badgeByTone = {
+    info: { cls: "text-bg-info", label: "Fluxo sugerido" },
+    success: { cls: "text-bg-success", label: "Operacao estavel" },
+    warning: { cls: "text-bg-warning", label: "Atencao operacional" },
+    danger: { cls: "text-bg-danger", label: "Falha na carga" },
+  };
+  const badge = badgeByTone[tone] || badgeByTone.info;
+
+  level.className = `badge rounded-pill ${badge.cls} mb-2`;
+  level.textContent = badge.label;
+  title.textContent = titleText;
+  next.textContent = `Proximo passo: ${nextStep}`;
+
+  btn.dataset.action = action.key || "focus_pending";
+  btn.className = `btn btn-sm ${action.btnClass || "btn-outline-primary"}`;
+  btn.textContent = action.label || "Revisar pendentes";
+}
+
+// â”€â”€ Abas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _bindTabs() {
   document.querySelectorAll("[data-zh-tab]").forEach((btn) => {
@@ -867,7 +1116,9 @@ function _bindTabs() {
       activeTab = tab;
       if (tab === "audit") {
         loadAuditLog();
+        _updateOperationalGuide({ tab });
       } else {
+        _updateOperationalGuide({ loading: true, tab });
         loadTab(tab);
       }
     });
@@ -882,14 +1133,14 @@ function _updateTabCounter(tab, count) {
   }
 }
 
-// ── Inicialização dos modais Bootstrap ────────────────────────────────────────
+// â”€â”€ InicializaÃ§Ã£o dos modais Bootstrap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _initModals() {
   bsModalDryRun  = new bootstrap.Modal(document.getElementById("zh-modal-dryrun"));
   bsModalExecute = new bootstrap.Modal(document.getElementById("zh-modal-execute"));
   bsModalCancel  = new bootstrap.Modal(document.getElementById("zh-modal-cancel"));
 
-  // Delegação de eventos para botões dinamicamente criados
+  // DelegaÃ§Ã£o de eventos para botÃµes dinamicamente criados
   document.addEventListener("click", (e) => {
     const btnDry    = e.target.closest(".zh-btn-dryrun");
     const btnExec   = e.target.closest(".zh-btn-execute");
@@ -900,13 +1151,13 @@ function _initModals() {
     if (btnCancel) openCancelConfirm(btnCancel.dataset.token, btnCancel.dataset.path);
   });
 
-  // Botões de submit dentro dos modais
+  // BotÃµes de submit dentro dos modais
   document.getElementById("exec-btn-submit")
     ?.addEventListener("click", submitExecute);
   document.getElementById("cancel-btn-submit")
     ?.addEventListener("click", submitCancel);
 
-  // Habilita o botão de executar somente quando checkbox marcado
+  // Habilita o botÃ£o de executar somente quando checkbox marcado
   document.getElementById("exec-confirm-check")
     ?.addEventListener("change", function () {
       const btn = document.getElementById("exec-btn-submit");
@@ -914,7 +1165,7 @@ function _initModals() {
     });
 }
 
-// ── Toast de feedback ─────────────────────────────────────────────────────────
+// â”€â”€ Toast de feedback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _showToast(type, message) {
   if (window.zhFeedback) {
@@ -978,7 +1229,7 @@ function _showToast(type, message) {
   setTimeout(() => toast.remove(), 6000);
 }
 
-// ── Helpers de UI ─────────────────────────────────────────────────────────────
+// â”€â”€ Helpers de UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _setLoading(container, loading) {
   if (loading) {
@@ -993,7 +1244,7 @@ function _setLoading(container, loading) {
     container.innerHTML = `
       <div class="text-center py-5">
         <div class="spinner-border text-zombie-blue mb-3" style="width:2.2rem;height:2.2rem;"></div>
-        <p class="text-muted-zh mb-0">Carregando aprovações…</p>
+        <p class="text-muted-zh mb-0">Carregando aprovaÃ§Ãµesâ€¦</p>
       </div>`;
   }
 }
@@ -1022,8 +1273,8 @@ function _setError(container, msg) {
 
 function _emptyState(tab) {
   const msgs = {
-    pending:   { icon: "bi-shield-check", color: "#3fb950", text: "Nenhuma aprovação pendente.", sub: "Todas as solicitações foram processadas." },
-    executed:  { icon: "bi-check2-all",   color: "#58a6ff", text: "Nenhuma ação executada ainda.", sub: "As execuções aparecerão aqui após confirmação." },
+    pending:   { icon: "bi-shield-check", color: "#3fb950", text: "Nenhuma aprovaÃ§Ã£o pendente.", sub: "Todas as solicitaÃ§Ãµes foram processadas." },
+    executed:  { icon: "bi-check2-all",   color: "#58a6ff", text: "Nenhuma aÃ§Ã£o executada ainda.", sub: "As execuÃ§Ãµes aparecerÃ£o aqui apÃ³s confirmaÃ§Ã£o." },
     cancelled: { icon: "bi-x-circle",     color: "#6e7681", text: "Nenhum token cancelado ou expirado.", sub: "" },
   };
   const m = msgs[tab] ?? msgs.pending;
@@ -1060,6 +1311,42 @@ function _setModalContent(id, html) {
   if (el) el.innerHTML = html;
 }
 
+function _setActionErrorFeedback(target, opts = {}) {
+  const el = typeof target === "string" ? document.querySelector(target) : target;
+  if (!el) return;
+
+  const rawMessage = String(opts.message || "Falha nao detalhada.");
+  const info = window.zhFeedback
+    ? window.zhFeedback.toErrorInfo({ status: opts.status, message: rawMessage }, rawMessage)
+    : { category: opts.category || "unknown", message: rawMessage };
+
+  if (window.zhFeedback) {
+    window.zhFeedback.setInline(el, {
+      state: "error",
+      category: opts.category || info.category,
+      title: opts.title || "Falha na operacao",
+      happened: info.message,
+      impact: opts.impact || "A acao solicitada nao foi concluida.",
+      nextStep: opts.nextStep || "Revise os dados e tente novamente.",
+    });
+    return;
+  }
+
+  el.classList.remove("d-none");
+  el.textContent = `Erro: ${info.message}`;
+}
+
+function _clearActionErrorFeedback(target) {
+  const el = typeof target === "string" ? document.querySelector(target) : target;
+  if (!el) return;
+  if (window.zhFeedback) {
+    window.zhFeedback.clear(el);
+    return;
+  }
+  el.classList.add("d-none");
+  el.textContent = "";
+}
+
 function _parseHtml(html) {
   const div = document.createElement("div");
   div.innerHTML = html;
@@ -1075,5 +1362,14 @@ function _updateTabCounter(tab, count) {
 }
 
 const _esc   = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-const _trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "…" : (s ?? "");
+const _trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "â€¦" : (s ?? "");
 const _safeId = (s) => String(s ?? "").replace(/[^a-zA-Z0-9]/g, "_");
+
+
+
+
+
+
+
+
+

@@ -138,6 +138,8 @@ def test_list_known_datastores_keeps_distinct_entries_per_vcenter():
             assert ("ds-common", "vc-b", "vc-b.local") in unique_pairs
             assert ("ds-only-a", "vc-a", "vc-a.local") in unique_pairs
             assert ("ds-only-b", "vc-b", "vc-b.local") in unique_pairs
+            assert all("vcenter_id" in row for row in payload)
+            assert all(row["vcenter_id"] is None for row in payload)
     finally:
         app.dependency_overrides.clear()
 
@@ -173,11 +175,14 @@ def test_list_datastores_live_includes_maintenance_flags_per_vcenter(monkeypatch
             assert resp.status_code == 200, resp.text
             payload = resp.json()
             assert isinstance(payload, list)
+            assert all("vcenter_id" in row for row in payload)
+            assert all(isinstance(row["vcenter_id"], int) for row in payload)
             assert any(
                 row["name"] == "STA_LUN_05"
                 and row["vcenter_host"] == "vc-live.local"
                 and row["maintenance_mode"] is True
                 and row["maintenance_state"] == "inMaintenance"
+                and isinstance(row["vcenter_id"], int)
                 for row in payload
             )
             assert any(
@@ -188,3 +193,4 @@ def test_list_datastores_live_includes_maintenance_flags_per_vcenter(monkeypatch
             )
     finally:
         app.dependency_overrides.clear()
+

@@ -1,0 +1,14 @@
+created_at,datastore,vcenter_host_scope,status,baseline_job_id,verification_job_id,stored_deleted_vmdk_count,stored_deleted_size_gb,remaining_vmdk_count,remaining_size_gb,reconstructed_deleted_vmdk_count,reconstructed_deleted_size_gb,evidence_consistent_with_stored_summary
+2026-03-13 19:20:22,STA_LUN_10,s2001.ms,datastore_removed,aee7556b-3869-4833-b333-96bbdef71690,aa301a0a-ac08-4ab2-a9e5-a36eb47974d3,2,355.738,0,0.0,2,355.738,True
+2026-03-13 13:35:42,STA_LUN_09,s2001.ms,datastore_removed,b9018474-2a6e-4df2-b3c0-e1c80cf4934a,eb04078a-5bb2-4b6c-9449-62ea4190ad40,1,28.549,0,0.0,1,28.549,True
+2026-03-13 13:34:31,STA_LUN_08,s2001.ms,datastore_removed,b9018474-2a6e-4df2-b3c0-e1c80cf4934a,6b74a2de-6212-48bb-b665-b6611adfe164,4,316.021,0,0.0,4,316.021,True
+2026-03-13 13:33:31,STA_LUN_09,s2001.ms,no_cleanup,d50fbce4-1647-4f2e-8f3c-ee8f09b1933b,b9018474-2a6e-4df2-b3c0-e1c80cf4934a,0,0.0,0,0.0,0,0,True
+2026-03-13 13:33:23,STA_LUN_08,s2001.ms,no_cleanup,3a465107-e498-4999-82aa-bc495ec42a40,b9018474-2a6e-4df2-b3c0-e1c80cf4934a,0,0.0,4,316.021,0,0,True
+2026-03-11 15:17:14,STA_LUN_08,s2001.ms,no_cleanup,d50fbce4-1647-4f2e-8f3c-ee8f09b1933b,c0f2f262-f926-4781-b3d1-1c905a131063,0,0.0,0,0.0,0,0,True
+2026-03-10 12:17:26,STA_LUN_06,s2001.ms,datastore_removed,12e4c594-fdfa-44a9-91d5-e8577c2c19d0,a7878e16-0931-4beb-a90c-77f5b40cdffa,0,7.18,0,0.0,0,0,False
+2026-03-10 12:06:18,STA_LUN_03,s2001.ms,no_cleanup,12e4c594-fdfa-44a9-91d5-e8577c2c19d0,a7878e16-0931-4beb-a90c-77f5b40cdffa,0,0.0,0,0.0,0,0,True
+2026-03-09 18:12:46,STA_LUN_05,s2001.ms,datastore_removed,f75a2ee1-0ae0-48d7-986e-196ff47127c3,5d581e9f-7c3b-40f1-bed5-6c95df85f2ae,0,174.76,5,171.6,0,0,False
+2026-03-09 18:09:46,STA_LUN_03,s2001.ms,no_cleanup,fa96322e-77d0-4afe-9eb9-7614179fd0da,12e4c594-fdfa-44a9-91d5-e8577c2c19d0,0,0.0,0,0.0,0,0,True
+2026-03-09 12:28:29,STA_LUN_03,s2000.ms,datastore_removed,d50fbce4-1647-4f2e-8f3c-ee8f09b1933b,08b71ff3-580d-42c6-b3b3-772594987a66,6,2.0,0,0.0,6,7814.199,False
+2026-03-06 19:58:23,STA_LUN_0000,s2001.ms,datastore_removed,bf2d4c54-0be3-4a36-ae0a-12854dc4c711,1f5ceb84-d596-4877-b294-2263dbaf2171,12,16762.88,0,0.0,12,16744.0,False
+2026-03-06 19:52:39,STA_LUN_0000,s2001.ms,no_cleanup,d50fbce4-1647-4f2e-8f3c-ee8f09b1933b,bf2d4c54-0be3-4a36-ae0a-12854dc4c711,0,0.0,12,16744.0,0,0,True

@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Fontes Monitoradas{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h5 class="mb-0 fw-semibold">
+      <i class="bi bi-diagram-3-fill text-zombie-blue me-2"></i>Fontes Monitoradas
+    </h5>
+    <p class="text-muted-zh small mb-0 mt-1">
+      Cadastro unificado de vCenter e OceanStor com status de conectividade e coleta.
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button id="zh-sources-refresh" class="btn btn-sm btn-outline-secondary" type="button">
+      <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+    </button>
+    <button id="zh-sources-new" class="btn btn-sm btn-primary" type="button">
+      <i class="bi bi-plus-circle me-1"></i>Nova fonte
+    </button>
+  </div>
+</div>
+
+<div id="zh-sources-feedback" class="mb-3 d-none" aria-live="polite"></div>
+
+<div class="row g-3 mb-3" id="zh-sources-summary">
+  <div class="col-6 col-lg-2">
+    <div class="zh-card p-3 h-100">
+      <small class="text-muted-zh d-block">Total</small>
+      <div class="fs-4 fw-semibold" id="zh-sum-total">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="zh-card p-3 h-100">
+      <small class="text-muted-zh d-block">Online</small>
+      <div class="fs-4 fw-semibold text-success-zh" id="zh-sum-online">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="zh-card p-3 h-100">
+      <small class="text-muted-zh d-block">Offline</small>
+      <div class="fs-4 fw-semibold text-danger-zh" id="zh-sum-offline">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="zh-card p-3 h-100">
+      <small class="text-muted-zh d-block">Degradado</small>
+      <div class="fs-4 fw-semibold text-warning" id="zh-sum-degraded">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="zh-card p-3 h-100">
+      <small class="text-muted-zh d-block">Desconhecido</small>
+      <div class="fs-4 fw-semibold" id="zh-sum-unknown">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="zh-card p-3 h-100">
+      <small class="text-muted-zh d-block">Desativado</small>
+      <div class="fs-4 fw-semibold text-muted-zh" id="zh-sum-disabled">0</div>
+    </div>
+  </div>
+</div>
+
+<div class="zh-card p-3 mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-4">
+      <label for="zh-filter-source-type" class="form-label small text-muted-zh mb-1">Tipo</label>
+      <select id="zh-filter-source-type" class="form-select form-select-sm bg-dark border-dark-3 text-body">
+        <option value="">Todos</option>
+        <option value="vcenter">vCenter</option>
+        <option value="oceanstor">OceanStor</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-8 text-md-end">
+      <small class="text-muted-zh" id="zh-sources-visible">Exibindo 0 fonte(s)</small>
+    </div>
+  </div>
+</div>
+
+<div class="zh-card">
+  <div class="table-responsive">
+    <table class="table table-dark table-hover align-middle mb-0" id="zh-sources-table">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Nome</th>
+          <th>Endpoint</th>
+          <th>Usuario</th>
+          <th>Status</th>
+          <th>Ultima coleta</th>
+          <th>Ultimo teste</th>
+          <th class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted-zh">Carregando fontes...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="zh-source-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark-2 border-dark-3">
+      <div class="modal-header border-dark-3">
+        <h5 class="modal-title fw-semibold" id="zh-source-modal-title">Nova fonte monitorada</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="zh-source-form" novalidate>
+        <input type="hidden" id="zh-source-id" value="" />
+        <div class="modal-body">
+          <div id="zh-source-form-feedback" class="d-none mb-3"></div>
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label for="zh-source-type" class="form-label small text-muted-zh mb-1">Tipo</label>
+              <select id="zh-source-type" class="form-select bg-dark border-dark-3 text-body" required>
+                <option value="vcenter">vCenter</option>
+                <option value="oceanstor">OceanStor</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-8">
+              <label for="zh-source-name" class="form-label small text-muted-zh mb-1">Nome</label>
+              <input id="zh-source-name" class="form-control bg-dark border-dark-3 text-body" maxlength="128" required />
+            </div>
+            <div class="col-12 col-md-7">
+              <label for="zh-source-endpoint" class="form-label small text-muted-zh mb-1">Endpoint</label>
+              <input id="zh-source-endpoint" class="form-control bg-dark border-dark-3 text-body" maxlength="256" required />
+            </div>
+            <div class="col-12 col-md-5">
+              <label for="zh-source-username" class="form-label small text-muted-zh mb-1">Usuario</label>
+              <input id="zh-source-username" class="form-control bg-dark border-dark-3 text-body" maxlength="128" required />
+            </div>
+            <div class="col-12">
+              <label for="zh-source-secret" class="form-label small text-muted-zh mb-1">Secret</label>
+              <div class="input-group">
+                <input id="zh-source-secret" type="password" class="form-control bg-dark border-dark-3 text-body" placeholder="Informe o secret" />
+                <button id="zh-source-secret-toggle" class="btn btn-outline-secondary" type="button">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="form-text text-muted-zh">Segredo armazenado cifrado; nunca retornado pela API.</div>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input id="zh-source-active" class="form-check-input" type="checkbox" checked />
+                <label for="zh-source-active" class="form-check-label text-muted-zh">Fonte ativa para coleta</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-dark-3">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-primary" id="zh-source-save">
+            <i class="bi bi-floppy me-1"></i>Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="zh-source-delete-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark-2 border-dark-3">
+      <div class="modal-header border-dark-3">
+        <h5 class="modal-title text-danger-zh fw-semibold">Remocao logica</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Confirmar remocao logica da fonte <strong id="zh-delete-source-name"></strong>?</p>
+      </div>
+      <div class="modal-footer border-dark-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-danger" id="zh-source-delete-confirm">Remover</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .text-success-zh { color: #3fb950 !important; }
+  .text-danger-zh { color: #f85149 !important; }
+  .zh-source-type {
+    font-size: .7rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: .18rem .55rem;
+    border: 1px solid var(--zh-border);
+  }
+  .zh-source-type.vcenter {
+    background: rgba(88, 166, 255, .14);
+    color: #58a6ff;
+  }
+  .zh-source-type.oceanstor {
+    background: rgba(210, 153, 34, .16);
+    color: #d29922;
+  }
+  .zh-source-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: .2rem .6rem;
+    border: 1px solid transparent;
+  }
+  .zh-source-status.online { background: rgba(63,185,80,.16); color: #3fb950; border-color: rgba(63,185,80,.45); }
+  .zh-source-status.offline { background: rgba(248,81,73,.16); color: #f85149; border-color: rgba(248,81,73,.45); }
+  .zh-source-status.degraded { background: rgba(210,153,34,.16); color: #d29922; border-color: rgba(210,153,34,.45); }
+  .zh-source-status.unknown { background: rgba(139,148,158,.16); color: #8b949e; border-color: rgba(139,148,158,.35); }
+  .zh-source-status.disabled { background: rgba(110,118,129,.16); color: #9aa5b1; border-color: rgba(110,118,129,.4); }
+  .zh-source-status.deleted { background: rgba(110,118,129,.16); color: #9aa5b1; border-color: rgba(110,118,129,.4); }
+</style>
+<script src="{{ url_for('static', path='js/sources.js') }}?v={{ api_version }}"></script>
+{% endblock %}

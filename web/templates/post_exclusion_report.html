@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Pos-Exclusao{% endblock %}
 
@@ -62,10 +62,14 @@
         </button>
       </div>
     </form>
+    <div class="mt-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <span id="zh-post-filter-source" class="small text-muted-zh">Fonte de datastores: -</span>
+      <span id="zh-post-filter-updated-at" class="small text-muted-zh">Atualizacao de filtros: -</span>
+    </div>
   </div>
 </div>
 
-<div id="zh-post-error" class="alert alert-danger d-none py-2 mb-3" role="alert"></div>
+<div id="zh-post-error" class="mb-3 d-none" aria-live="polite"></div>
 
 <div class="zh-card mb-3">
   <div class="card-header d-flex align-items-center gap-2">
@@ -269,7 +273,9 @@
   const scanSpinner = document.getElementById("zh-post-scan-spinner");
   const scanIcon = document.getElementById("zh-post-scan-icon");
   const scanBtnText = document.getElementById("zh-post-scan-btn-text");
-  const errBox = document.getElementById("zh-post-error");
+  const feedbackBox = document.getElementById("zh-post-error");
+  const filterSourceLabel = document.getElementById("zh-post-filter-source");
+  const filterUpdatedLabel = document.getElementById("zh-post-filter-updated-at");
   const resultWrap = document.getElementById("zh-post-result");
   const searchInput = document.getElementById("zh-post-search");
   const filesBody = document.getElementById("zh-post-files-body");
@@ -287,28 +293,87 @@
 
   function apiHeaders() {
     const headers = { Accept: "application/json" };
-    if (window.ZH_API_KEY) headers["X-API-Key"] = window.ZH_API_KEY;
     return headers;
   }
 
-  function showError(message) {
-    if (!message) {
-      errBox.classList.add("d-none");
-      errBox.textContent = "";
-      return;
+  function updateFilterSourceMeta(sourceText) {
+    if (filterSourceLabel) {
+      filterSourceLabel.textContent = `Fonte de datastores: ${String(sourceText || "-")}`;
     }
-    errBox.classList.remove("alert-success");
-    errBox.classList.add("alert-danger");
-    errBox.textContent = message;
-    errBox.classList.remove("d-none");
+    if (filterUpdatedLabel) {
+      const nowIso = new Date().toISOString();
+      filterUpdatedLabel.textContent = `Atualizacao de filtros: ${window.zhFormatDate ? window.zhFormatDate(nowIso) : nowIso}`;
+    }
   }
 
-  function showSuccess(message) {
-    if (!message) return;
-    errBox.classList.remove("alert-danger");
-    errBox.classList.add("alert-success");
-    errBox.textContent = message;
-    errBox.classList.remove("d-none");
+  function clearFeedback() {
+    if (window.zhFeedback) {
+      window.zhFeedback.clear(feedbackBox);
+      return;
+    }
+    if (!feedbackBox) return;
+    feedbackBox.classList.add("d-none");
+    feedbackBox.textContent = "";
+  }
+
+  function showLoadingFeedback(title, detail) {
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline(feedbackBox, {
+        state: "loading",
+        text: title || "Carregando dados",
+        detail: detail || "Aguarde alguns segundos.",
+      });
+      return;
+    }
+    if (!feedbackBox) return;
+    feedbackBox.classList.remove("d-none");
+    feedbackBox.textContent = detail || title || "Carregando dados";
+  }
+
+  function showError(message, opts = {}) {
+    if (!message) {
+      clearFeedback();
+      return;
+    }
+
+    if (window.zhFeedback) {
+      const info = window.zhFeedback.toErrorInfo({ status: opts.status, message }, String(message));
+      window.zhFeedback.setInline(feedbackBox, {
+        state: "error",
+        category: opts.category || info.category,
+        title: opts.title || "Falha na verificacao",
+        happened: String(message),
+        impact: opts.impact || "O resultado exibido pode estar incompleto ou desatualizado.",
+        nextStep: opts.nextStep || "Revise o filtro e tente novamente.",
+      });
+      return;
+    }
+
+    if (!feedbackBox) return;
+    feedbackBox.classList.remove("d-none");
+    feedbackBox.textContent = String(message);
+  }
+
+  function showSuccess(message, opts = {}) {
+    if (!message) {
+      clearFeedback();
+      return;
+    }
+
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline(feedbackBox, {
+        state: "success",
+        title: opts.title || "Verificacao concluida",
+        happened: String(message),
+        impact: opts.impact || "Os indicadores foram atualizados com os dados do escopo selecionado.",
+        nextStep: opts.nextStep || "Se quiser, exporte as evidencias ou execute nova verificacao.",
+      });
+      return;
+    }
+
+    if (!feedbackBox) return;
+    feedbackBox.classList.remove("d-none");
+    feedbackBox.textContent = String(message);
   }
 
   function setLoading(isLoading) {
@@ -384,8 +449,8 @@
         ? `Ultima consolidacao: ${window.zhFormatDate(data.last_verification_at)}`
         : "Historico sem verificacoes registradas.";
       document.getElementById("zh-post-total-updated-at").textContent = updatedAt;
-    } catch (_) {
-      // erro silencioso para nao quebrar o fluxo principal de verificacao
+    } catch (err) {
+      console.warn('[post-exclusao] Falha ao atualizar totais acumulados:', err);
     }
   }
 
@@ -430,6 +495,27 @@
     if (maintenanceMode) return false;
     if (ds.accessible === false) return false;
     return true;
+  }
+
+  function mergeDatastoreCatalog(liveRows, knownRows) {
+    const normalize = (value) => String(value || "").trim().toLowerCase();
+    const keyOf = (ds) => {
+      const name = normalize(ds?.name);
+      const host = normalize(ds?.vcenter_host);
+      const vcName = normalize(ds?.vcenter_name);
+      return `${name}@@${host || vcName}`;
+    };
+
+    const merged = new Map();
+    (Array.isArray(knownRows) ? knownRows : []).forEach((ds) => {
+      const key = keyOf(ds);
+      if (!key.startsWith("@@")) merged.set(key, ds);
+    });
+    (Array.isArray(liveRows) ? liveRows : []).forEach((ds) => {
+      const key = keyOf(ds);
+      if (!key.startsWith("@@")) merged.set(key, ds);
+    });
+    return Array.from(merged.values());
   }
 
   function renderVcenterOptions() {
@@ -498,6 +584,9 @@
 
   async function loadFilterData() {
     setFilterLoading(true);
+    showLoadingFeedback("Carregando filtros", "Sincronizando vCenters e datastores para o escopo da verificacao.");
+    updateFilterSourceMeta("carregando");
+
     try {
       const [vcentersResp, datastoresLiveResp, datastoresKnownResp] = await Promise.all([
         fetch("/api/v1/vcenters/", { headers: apiHeaders() }),
@@ -519,21 +608,51 @@
       const liveRows = Array.isArray(datastoresLivePayload) ? datastoresLivePayload.filter(isDatastoreEligible) : [];
       const knownRows = Array.isArray(datastoresKnownPayload) ? datastoresKnownPayload : [];
 
-      // Preferência por dados ao vivo (mesma lógica da varredura), com fallback para histórico.
-      state.knownDatastores = liveRows.length > 0 ? liveRows : knownRows;
+      state.knownDatastores = mergeDatastoreCatalog(liveRows, knownRows);
 
       renderVcenterOptions();
       renderDatastoreOptions();
 
+      let sourceText = "indisponivel";
+      if (liveRows.length === 0 && knownRows.length > 0) {
+        sourceText = `historico (${knownRows.length})`;
+      } else if (knownRows.length > liveRows.length) {
+        sourceText = `live (${liveRows.length}) + historico complementar (${knownRows.length})`;
+      } else {
+        sourceText = `live (${liveRows.length})`;
+      }
+      updateFilterSourceMeta(sourceText);
+
       if (!state.knownDatastores.length) {
-        showError("Nao ha datastores elegiveis para o filtro atual (manutencao/inacessivel ocultado).");
+        showError("Nao ha datastores elegiveis para o filtro atual (manutencao/inacessivel ocultado).", {
+          category: "validation",
+          impact: "A verificacao nao pode ser executada sem datastore elegivel.",
+          nextStep: "Selecione outro vCenter ou execute nova varredura para atualizar o inventario.",
+        });
       } else if (liveRows.length === 0 && knownRows.length > 0) {
-        showError("Nao foi possivel listar datastores ao vivo agora. Exibindo historico para consulta.");
+        showError("Nao foi possivel listar datastores ao vivo agora. Exibindo historico para consulta.", {
+          category: "transient",
+          impact: "A lista pode nao refletir o estado ao vivo neste momento.",
+          nextStep: "Use 'Varrer + Verificar' para confirmar o estado atual antes de agir.",
+        });
+      } else if (knownRows.length > liveRows.length) {
+        showError("Alguns datastores nao estao visiveis no live; usando historico complementar para manter a lista completa.", {
+          category: "transient",
+          impact: "Parte dos datastores pode estar indisponivel no endpoint live.",
+          nextStep: "Considere uma nova varredura antes de executar a validacao final.",
+        });
+      } else {
+        clearFeedback();
       }
     } catch (err) {
-      showError(err?.message || "Nao foi possivel carregar lista de vCenters/datastores agora. Tente novamente em instantes.");
+      showError(err?.message || "Nao foi possivel carregar lista de vCenters/datastores agora. Tente novamente em instantes.", {
+        category: "transient",
+        impact: "Sem filtros carregados, a verificacao fica bloqueada.",
+        nextStep: "Tente novamente em alguns segundos.",
+      });
       vcenterSelect.innerHTML = '<option value="">Falha ao carregar vCenters</option>';
       datastoreSelect.innerHTML = '<option value="">Falha ao carregar datastores</option>';
+      updateFilterSourceMeta("indisponivel");
     } finally {
       vcenterSelect.disabled = false;
       if (!datastoreSelect.innerHTML.includes("Falha")) {
@@ -695,7 +814,7 @@
     }
 
     renderPayload(payload);
-    await refreshTotals(datastore, vcenterHost);
+    await refreshTotals(null, vcenterHost);
     return payload;
   }
 
@@ -781,11 +900,13 @@
     event.preventDefault();
     const scope = getSelectedScope();
 
-    showError(null);
+    clearFeedback();
+    showLoadingFeedback("Verificando pos-exclusao", "Comparando baseline e verificacao do datastore selecionado.");
     setLoading(true);
 
     try {
       await performVerification(scope);
+      showSuccess("Verificacao concluida com sucesso para o escopo selecionado.");
     } catch (err) {
       showError(err?.message || "Nao foi possivel verificar pos-exclusao.");
     } finally {
@@ -795,7 +916,8 @@
 
   scanVerifyBtn.addEventListener("click", async () => {
     const scope = getSelectedScope();
-    showError(null);
+    clearFeedback();
+    showLoadingFeedback("Executando varredura", "Aguardando conclusao do job para comparar o resultado.");
     setScanLoading(true, "Varrendo...");
 
     try {
@@ -815,11 +937,11 @@
   vcenterSelect.addEventListener("change", () => {
     renderDatastoreOptions();
     const scope = getSelectedScope();
-    refreshTotals(scope.datastore || null, scope.vcenterHost || null);
+    refreshTotals(null, scope.vcenterHost || null);
   });
   datastoreSelect.addEventListener("change", () => {
     const scope = getSelectedScope();
-    refreshTotals(scope.datastore || null, scope.vcenterHost || null);
+    refreshTotals(null, scope.vcenterHost || null);
   });
 
   exportJsonBtn.addEventListener("click", () => {
@@ -846,3 +968,7 @@
   loadFilterData().then(() => refreshTotals(null, null));
 </script>
 {% endblock %}
+
+
+
+

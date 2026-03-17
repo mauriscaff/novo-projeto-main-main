@@ -1,5 +1,5 @@
-"""
-Endpoints de snapshots pre/pós exclusao de datastore.
+﻿"""
+Endpoints de snapshots pre/pÃ³s exclusao de datastore.
 
 Prefixo em main.py: /api/v1/datastore-reports
 """
@@ -29,6 +29,8 @@ from app.models.datastore_report_snapshot import DatastoreDecommissionReport
 from app.models.vcenter import VCenter
 from app.models.zombie_scan import ZombieScanJob, ZombieVmdkRecord
 from app.schemas.datastore_report import (
+    DatastoreDeletionHistoryResponse,
+    DatastoreDeletionHistoryRunItem,
     DatastoreDeletionVerificationResponse,
     DatastoreDeletionVerificationTotalsResponse,
     DatastoreDeletedVmdkEvidence,
@@ -356,6 +358,100 @@ async def _load_grouped_job_datastore_vmdks(
     return (await db.execute(stmt)).all()
 
 
+def _round_gb(value: float | None) -> float:
+    return round(float(value or 0.0), 3)
+
+
+async def _build_deletion_history_run_item(
+    db: AsyncSession,
+    run: DatastoreDeletionVerificationRun,
+    *,
+    include_evidence: bool = False,
+    evidence_limit: int = 200,
+) -> DatastoreDeletionHistoryRunItem:
+    scope_host = run.vcenter_host_scope or None
+    baseline_rows = await _load_grouped_job_datastore_vmdks(
+        db,
+        job_id=run.baseline_job_id,
+        datastore=run.datastore,
+        vcenter_host=scope_host,
+    )
+    verification_rows = await _load_grouped_job_datastore_vmdks(
+        db,
+        job_id=run.verification_job_id,
+        datastore=run.datastore,
+        vcenter_host=scope_host,
+    )
+
+    baseline_map = {str(r.path): r for r in baseline_rows}
+    verification_paths = {str(r.path) for r in verification_rows}
+    deleted_paths = sorted(set(baseline_map.keys()) - verification_paths)
+    deleted_records = [baseline_map[path] for path in deleted_paths]
+    deleted_records = sorted(
+        deleted_records,
+        key=lambda row: (float(row.tamanho_gb or 0.0), str(row.path)),
+        reverse=True,
+    )
+
+    reconstructed_deleted_count = len(deleted_records)
+    reconstructed_deleted_size_gb = _round_gb(
+        sum(float(row.tamanho_gb or 0.0) for row in deleted_records)
+    )
+
+    stored_deleted_count = int(run.deleted_vmdk_count or 0)
+    stored_deleted_size_gb = _round_gb(run.deleted_size_gb)
+    evidence_consistent = (
+        reconstructed_deleted_count == stored_deleted_count
+        and abs(reconstructed_deleted_size_gb - stored_deleted_size_gb) < 0.01
+    )
+
+    evidence_note: str | None = None
+    if not evidence_consistent and (stored_deleted_count > 0 or stored_deleted_size_gb > 0):
+        if reconstructed_deleted_count == 0 and reconstructed_deleted_size_gb == 0:
+            evidence_note = (
+                "Resumo historico armazenado, mas sem evidencia por arquivo suficiente "
+                "nos registros atuais."
+            )
+        else:
+            evidence_note = (
+                "Resumo historico armazenado diverge da evidencia reconstruida "
+                "com os registros atuais."
+            )
+
+    deleted_vmdks: list[DatastoreDeletedVmdkEvidence] = []
+    if include_evidence and deleted_records:
+        limited_records = deleted_records[: max(1, evidence_limit)]
+        deleted_vmdks = [
+            DatastoreDeletedVmdkEvidence(
+                path=str(row.path),
+                tipo_zombie=str(row.tipo_zombie or "UNKNOWN"),
+                tamanho_gb=_round_gb(row.tamanho_gb),
+                last_seen_job_id=run.baseline_job_id,
+                datacenter=str(row.datacenter) if row.datacenter else None,
+                vcenter_name=str(row.vcenter_name) if row.vcenter_name else None,
+                vcenter_host=str(row.vcenter_host) if row.vcenter_host else None,
+            )
+            for row in limited_records
+        ]
+
+    return DatastoreDeletionHistoryRunItem(
+        run_id=int(run.id),
+        created_at=run.created_at,
+        datastore=run.datastore,
+        vcenter_host=run.vcenter_host_scope or None,
+        status=run.status,
+        baseline_job_id=run.baseline_job_id,
+        verification_job_id=run.verification_job_id,
+        deleted_vmdk_count=stored_deleted_count,
+        deleted_size_gb=stored_deleted_size_gb,
+        remaining_vmdk_count=int(run.remaining_vmdk_count or 0),
+        remaining_size_gb=_round_gb(run.remaining_size_gb),
+        evidence_consistent_with_stored_summary=evidence_consistent,
+        evidence_note=evidence_note,
+        deleted_vmdks=deleted_vmdks,
+    )
+
+
 async def _build_file_verification_payload(
     db: AsyncSession,
     *,
@@ -644,7 +740,7 @@ async def _build_file_verification_payload(
     "/snapshots",
     response_model=DatastoreReportSnapshotResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Criar snapshot pre/pós de datastore",
+    summary="Criar snapshot pre/pÃ³s de datastore",
 )
 async def create_snapshot(
     body: DatastoreReportSnapshotCreateRequest,
@@ -889,6 +985,96 @@ async def get_datastore_deletion_verification_totals(
 
 
 @router.get(
+    "/datastore-deletion-verification/history",
+    response_model=DatastoreDeletionHistoryResponse,
+    summary="Historico de verificacoes de pos-exclusao",
+)
+async def get_datastore_deletion_history(
+    limit: Annotated[int, Query(ge=1, le=500, description="Quantidade maxima de runs retornados.")] = 100,
+    datastore: Annotated[str | None, Query(description="Filtra por datastore exato (opcional).")]=None,
+    vcenter_host: Annotated[str | None, Query(description="Filtra por escopo de vCenter (opcional).")]=None,
+    status_filter: Annotated[
+        Literal["datastore_removed", "partial_cleanup", "no_cleanup"] | None,
+        Query(alias="status", description="Filtra pelo status do historico (opcional)."),
+    ] = None,
+    include_evidence: Annotated[
+        bool,
+        Query(description="Quando true, inclui evidencias deleted_vmdks em cada item retornado."),
+    ] = False,
+    evidence_limit: Annotated[
+        int,
+        Query(ge=1, le=1000, description="Limite de evidencias por item quando include_evidence=true."),
+    ] = 100,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> DatastoreDeletionHistoryResponse:
+    stmt = select(DatastoreDeletionVerificationRun).order_by(
+        DatastoreDeletionVerificationRun.created_at.desc(),
+        DatastoreDeletionVerificationRun.id.desc(),
+    )
+
+    datastore_ref = datastore.strip() if datastore and datastore.strip() else None
+    host_ref = _normalize_scope_host(vcenter_host) if vcenter_host and vcenter_host.strip() else None
+    if datastore_ref:
+        stmt = stmt.where(func.lower(DatastoreDeletionVerificationRun.datastore) == datastore_ref.lower())
+    if host_ref:
+        stmt = stmt.where(DatastoreDeletionVerificationRun.vcenter_host_scope == host_ref)
+    if status_filter:
+        stmt = stmt.where(DatastoreDeletionVerificationRun.status == status_filter)
+
+    runs = (await db.execute(stmt)).scalars().all()
+    limited_runs = runs[:limit]
+    items = [
+        await _build_deletion_history_run_item(
+            db,
+            run,
+            include_evidence=include_evidence,
+            evidence_limit=evidence_limit,
+        )
+        for run in limited_runs
+    ]
+
+    last_verification_at = runs[0].created_at if runs else None
+    summary = DatastoreDeletionVerificationTotalsResponse(
+        datastore=datastore_ref,
+        vcenter_host=host_ref,
+        total_verifications=len(runs),
+        total_datastores_removed=sum(1 for run in runs if run.status == "datastore_removed"),
+        total_partial_cleanup=sum(1 for run in runs if run.status == "partial_cleanup"),
+        total_no_cleanup=sum(1 for run in runs if run.status == "no_cleanup"),
+        total_deleted_vmdks=sum(int(run.deleted_vmdk_count or 0) for run in runs),
+        total_deleted_size_gb=_round_gb(sum(float(run.deleted_size_gb or 0.0) for run in runs)),
+        last_verification_at=last_verification_at,
+    )
+    return DatastoreDeletionHistoryResponse(summary=summary, items=items)
+
+
+@router.get(
+    "/datastore-deletion-verification/history/{run_id}",
+    response_model=DatastoreDeletionHistoryRunItem,
+    summary="Detalhe de um run do historico de pos-exclusao",
+)
+async def get_datastore_deletion_history_detail(
+    run_id: int,
+    evidence_limit: Annotated[
+        int,
+        Query(ge=1, le=5000, description="Quantidade maxima de evidencias deleted_vmdks retornadas."),
+    ] = 200,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user),
+) -> DatastoreDeletionHistoryRunItem:
+    run = await db.get(DatastoreDeletionVerificationRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Historico '{run_id}' nao encontrado.")
+    return await _build_deletion_history_run_item(
+        db,
+        run,
+        include_evidence=True,
+        evidence_limit=evidence_limit,
+    )
+
+
+@router.get(
     "/datastore-deletion-verification",
     response_model=DatastoreDeletionVerificationResponse,
     summary="Verificar exclusao de datastore sem pair_id (baseline x verification automaticos)",
@@ -1121,10 +1307,10 @@ async def verify_datastore_deletion_without_pair(
 )
 async def verify_deleted_files_by_pair(
     pair_id: str,
-    page: Annotated[int, Query(ge=1, description="Pagina da evidência (base 1)")] = 1,
+    page: Annotated[int, Query(ge=1, description="Pagina da evidÃªncia (base 1)")] = 1,
     page_size: Annotated[
         int,
-        Query(ge=1, le=1000, description="Itens por pagina da evidência"),
+        Query(ge=1, le=1000, description="Itens por pagina da evidÃªncia"),
     ] = 200,
     tipo_zombie: Annotated[
         list[str] | None,
@@ -1185,10 +1371,10 @@ async def verify_deleted_files_by_pair(
 )
 async def post_exclusion_file_verification(
     pair_id: str,
-    page: Annotated[int, Query(ge=1, description="Pagina da evidência (base 1)")] = 1,
+    page: Annotated[int, Query(ge=1, description="Pagina da evidÃªncia (base 1)")] = 1,
     page_size: Annotated[
         int,
-        Query(ge=1, le=1000, description="Itens por pagina da evidência"),
+        Query(ge=1, le=1000, description="Itens por pagina da evidÃªncia"),
     ] = 200,
     tipo_zombie: Annotated[
         list[str] | None,
@@ -1288,7 +1474,7 @@ async def export_deleted_files_by_pair(
             status_code=422,
             detail=(
                 f"Quantidade de evidencias ({summary.total_evidence}) excede max_rows={max_rows}. "
-                "Ajuste max_rows ou use paginação no endpoint /verify-files/{pair_id}."
+                "Ajuste max_rows ou use paginaÃ§Ã£o no endpoint /verify-files/{pair_id}."
             ),
         )
 

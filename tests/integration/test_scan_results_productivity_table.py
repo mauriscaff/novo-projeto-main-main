@@ -18,6 +18,11 @@ def test_scan_results_exposes_quick_filters_and_column_preferences(client):
     assert 'id="zh-col-modified"' in html
     assert 'id="zh-col-status"' in html
     assert 'id="zh-col-reset"' in html
+    assert 'id="zh-scan-guide"' in html
+    assert 'id="zh-guide-level"' in html
+    assert 'id="zh-guide-visible"' in html
+    assert 'id="zh-guide-selected"' in html
+    assert 'id="zh-guide-action"' in html
 
 
 def test_scan_results_batch_impact_summary_hooks_exist(client):
@@ -42,3 +47,9 @@ def test_scan_results_script_persists_preferences_and_mobile_details(client):
     assert "stateSave: true" in js
     assert "function _toggleMobileDetailsRow" in js
     assert "function _renderBatchImpactSummary" in js
+    assert "function _bindOperationalGuide()" in js
+    assert "function _updateOperationalGuide(meta = {})" in js
+    assert "function _setOperationalGuideState(tone, titleText, nextStep, action = {})" in js
+    assert "async function _apiFetch" in js
+    assert 'credentials: "same-origin"' in js
+    assert "TROQUE_ESTA_API_KEY" not in js

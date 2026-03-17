@@ -8,7 +8,9 @@ para rodar testes sem conexão real com VMware.
 from __future__ import annotations
 
 import os
+import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -20,6 +22,16 @@ os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
 os.environ.setdefault("READONLY_MODE", "true")
 os.environ.setdefault("AUTH_ENABLED", "true")
+
+# Garante import do pacote local `app` quando pytest roda sem PYTHONPATH explícito.
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+# Garante import do pacote local `app` quando pytest roda sem PYTHONPATH explícito.
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 from app.core.scanner.zombie_detector import (
     _FileEntry,

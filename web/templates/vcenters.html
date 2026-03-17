@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {#
-  vcenters.html — Gerenciamento de vCenters do ZombieHunter
+  vcenters.html â€” Gerenciamento de vCenters do ZombieHunter
   ==========================================================
   Permite cadastrar, editar, remover e testar conectividade de vCenters.
-  Toda a lógica client-side vive em vcenters.js.
+  Toda a lÃ³gica client-side vive em vcenters.js.
 
   Endpoints consumidos:
     GET    /api/v1/vcenters
@@ -13,7 +13,7 @@
     POST   /api/v1/vcenters/{id}/test
     GET    /api/v1/vcenters/pool-status
 
-  Variáveis Jinja2 injetadas via _base_ctx():
+  VariÃ¡veis Jinja2 injetadas via _base_ctx():
     readonly_mode, vcenter_status, app_version, last_scan_at,
     pending_approvals, flash_messages
 #}
@@ -22,16 +22,16 @@
 
 {% block content %}
 
-{# ─────────────────────────────────────────────────────────────────────────────
-   CABEÇALHO DA PÁGINA
-────────────────────────────────────────────────────────────────────────────── #}
+{# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   CABEÃ‡ALHO DA PÃGINA
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
   <div>
     <h5 class="mb-0 fw-semibold">
       <i class="bi bi-server text-zombie-blue me-2"></i>Gerenciar vCenters
     </h5>
     <p class="text-muted-zh small mb-0 mt-1">
-      <span id="zh-vc-count">—</span> vCenter(s) cadastrado(s) &nbsp;·&nbsp;
+      <span id="zh-vc-count">â€”</span> vCenter(s) cadastrado(s) &nbsp;Â·&nbsp;
       Status atualizado automaticamente a cada 60 segundos.
     </p>
   </div>
@@ -39,7 +39,7 @@
   <div class="d-flex gap-2">
     {# Spinner global de carregamento #}
     <div id="zh-vc-spinner" class="spinner-border spinner-border-sm text-zombie-blue d-none align-self-center" role="status">
-      <span class="visually-hidden">Carregando…</span>
+      <span class="visually-hidden">Carregandoâ€¦</span>
     </div>
     <button class="btn btn-primary btn-sm" onclick="openAddModal()">
       <i class="bi bi-plus-circle me-1"></i>Novo vCenter
@@ -48,22 +48,48 @@
 </div>
 
 <div id="zh-vc-feedback" class="mb-3 d-none" aria-live="polite"></div>
-
-{# ─────────────────────────────────────────────────────────────────────────────
-   GRID DE CARDS (populado por vcenters.js)
-────────────────────────────────────────────────────────────────────────────── #}
-<div class="row g-3" id="zh-vc-grid">
-  {# Placeholder enquanto os cards carregam #}
-  <div class="col-12 text-center py-5">
-    <div class="spinner-border text-zombie-blue" role="status">
-      <span class="visually-hidden">Carregando vCenters…</span>
+<div id="zh-vc-guide" class="zh-card zh-operational-guide mb-3" role="status" aria-live="polite">
+  <div class="d-flex flex-column flex-lg-row align-items-start justify-content-between gap-3">
+    <div>
+      <span id="zh-vc-guide-level" class="badge rounded-pill text-bg-info mb-2">Fluxo sugerido</span>
+      <h6 id="zh-vc-guide-title" class="mb-1 fw-semibold">Revise conectividade antes de iniciar novas varreduras.</h6>
+      <p id="zh-vc-guide-next" class="text-muted-zh mb-0">Proximo passo: mantenha vCenters offline fora do escopo operacional.</p>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <span class="zh-guide-chip">
+        <i class="bi bi-hdd-network"></i>
+        Total: <strong id="zh-vc-guide-total">0</strong>
+      </span>
+      <span class="zh-guide-chip">
+        <i class="bi bi-check-circle"></i>
+        Online: <strong id="zh-vc-guide-online">0</strong>
+      </span>
+      <span class="zh-guide-chip">
+        <i class="bi bi-x-circle"></i>
+        Offline: <strong id="zh-vc-guide-offline">0</strong>
+      </span>
+      <button id="zh-vc-guide-action" type="button" class="btn btn-sm btn-outline-primary" data-action="focus_grid">
+        Ir para grade
+      </button>
     </div>
   </div>
 </div>
 
-{# ─────────────────────────────────────────────────────────────────────────────
-   MODAL — Cadastrar / Editar vCenter
-────────────────────────────────────────────────────────────────────────────── #}
+{# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   GRID DE CARDS (populado por vcenters.js)
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+<div class="row g-3" id="zh-vc-grid">
+  {# Placeholder enquanto os cards carregam #}
+  <div class="col-12 text-center py-5">
+    <div class="spinner-border text-zombie-blue" role="status">
+      <span class="visually-hidden">Carregando vCentersâ€¦</span>
+    </div>
+  </div>
+</div>
+
+{# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   MODAL â€” Cadastrar / Editar vCenter
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
 <div class="modal fade" id="zh-modal-vcenter" tabindex="-1" data-bs-backdrop="static"
      aria-labelledby="zh-modal-vcenter-title" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -80,11 +106,11 @@
           {# Alerta de feedback (erros / sucesso de teste) #}
           <div id="zh-form-feedback" class="d-none small" role="alert"></div>
 
-          {# Aviso de senha em modo edição #}
+          {# Aviso de senha em modo ediÃ§Ã£o #}
           <div id="zh-pass-note" class="alert alert-warning py-2 small d-none mb-3">
             <i class="bi bi-key me-1"></i>
-            A senha atual está cifrada no banco. Deixe o campo <strong>Senha</strong> vazio
-            para mantê-la sem alteração.
+            A senha atual estÃ¡ cifrada no banco. Deixe o campo <strong>Senha</strong> vazio
+            para mantÃª-la sem alteraÃ§Ã£o.
           </div>
 
           <div class="row g-3">
@@ -100,7 +126,7 @@
                      required maxlength="128"
                      autocomplete="off">
               <div class="form-text text-muted-zh">
-                Identificador único interno. Usado para referenciar o vCenter na API.
+                Identificador Ãºnico interno. Usado para referenciar o vCenter na API.
               </div>
             </div>
 
@@ -126,10 +152,10 @@
                      value="443" min="1" max="65535" required>
             </div>
 
-            <!-- Usuário -->
+            <!-- UsuÃ¡rio -->
             <div class="col-12 col-md-6">
               <label class="form-label small text-muted-zh mb-1" for="zh-field-username">
-                Usuário <span class="text-danger-zh">*</span>
+                UsuÃ¡rio <span class="text-danger-zh">*</span>
               </label>
               <input type="text" id="zh-field-username" name="username"
                      class="form-control bg-dark border-dark-3 text-body"
@@ -168,12 +194,12 @@
                 <input class="form-check-input" type="checkbox" id="zh-field-ssl"
                        name="disable_ssl_verify" checked>
                 <label class="form-check-label text-muted-zh small" for="zh-field-ssl">
-                  Ignorar certificado SSL inválido
+                  Ignorar certificado SSL invÃ¡lido
                   <span class="zh-audit-badge zh-badge-yellow ms-1">recomendado em labs</span>
                 </label>
               </div>
               <div class="form-text text-muted-zh small" style="margin-left:2.5rem;">
-                Desmarque em produção quando o vCenter possuir certificado válido e verificável.
+                Desmarque em produÃ§Ã£o quando o vCenter possuir certificado vÃ¡lido e verificÃ¡vel.
               </div>
             </div>
 
@@ -183,7 +209,7 @@
         <div class="modal-footer border-dark-3 d-flex justify-content-between">
           <!-- Testar antes de salvar -->
           <button type="button" id="zh-btn-test-form" class="btn btn-sm btn-outline-info">
-            <i class="bi bi-plug me-1"></i>Testar conexão
+            <i class="bi bi-plug me-1"></i>Testar conexÃ£o
           </button>
 
           <div class="d-flex gap-2">
@@ -201,9 +227,9 @@
   </div>{# /modal-dialog #}
 </div>{# /modal-vcenter #}
 
-{# ─────────────────────────────────────────────────────────────────────────────
-   MODAL — Confirmação de remoção
-────────────────────────────────────────────────────────────────────────────── #}
+{# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   MODAL â€” ConfirmaÃ§Ã£o de remoÃ§Ã£o
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
 <div class="modal fade" id="zh-modal-delete" tabindex="-1" data-bs-backdrop="static"
      aria-labelledby="zh-modal-delete-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
@@ -211,7 +237,7 @@
 
       <div class="modal-header border-dark-3">
         <h5 class="modal-title fw-semibold text-danger-zh" id="zh-modal-delete-label">
-          <i class="bi bi-trash3 me-2"></i>Confirmar remoção
+          <i class="bi bi-trash3 me-2"></i>Confirmar remoÃ§Ã£o
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -220,11 +246,11 @@
         <div class="d-flex align-items-start gap-3">
           <i class="bi bi-exclamation-triangle-fill text-danger-zh fs-3 flex-shrink-0"></i>
           <div>
-            <p class="mb-2">Você está prestes a remover o vCenter:</p>
+            <p class="mb-2">VocÃª estÃ¡ prestes a remover o vCenter:</p>
             <p class="fw-semibold text-danger-zh font-monospace mb-2" id="zh-delete-name"></p>
             <p class="text-muted-zh small mb-0">
-              O vCenter será desconectado do pool e removido do banco de dados.
-              Agendamentos e resultados históricos <strong>não</strong> serão apagados.
+              O vCenter serÃ¡ desconectado do pool e removido do banco de dados.
+              Agendamentos e resultados histÃ³ricos <strong>nÃ£o</strong> serÃ£o apagados.
             </p>
           </div>
         </div>
@@ -235,7 +261,7 @@
           Cancelar
         </button>
         <button type="button" id="zh-btn-confirm-delete" class="btn btn-sm btn-danger">
-          <i class="bi bi-trash3 me-1"></i>Confirmar remoção
+          <i class="bi bi-trash3 me-1"></i>Confirmar remoÃ§Ã£o
         </button>
       </div>
 
@@ -252,7 +278,35 @@
 
 {% block scripts %}
 <style>
-  /* Cores semânticas dos status dots */
+  .zh-operational-guide {
+    border: 1px solid var(--zh-border);
+    border-left-width: 4px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .zh-operational-guide.is-info {
+    border-left-color: rgba(88,166,255,.95);
+  }
+  .zh-operational-guide.is-success {
+    border-left-color: rgba(63,185,80,.9);
+  }
+  .zh-operational-guide.is-warning {
+    border-left-color: rgba(210,153,34,.95);
+  }
+  .zh-operational-guide.is-danger {
+    border-left-color: rgba(248,81,73,.95);
+  }
+  .zh-guide-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--zh-border);
+    background: rgba(139,148,158,.08);
+    font-size: .74rem;
+    color: var(--zh-text-muted);
+  }
+  /* Cores semÃ¢nticas dos status dots */
   .zh-vc-dot {
     display: inline-block;
     width: 10px;
@@ -274,7 +328,7 @@
     box-shadow: none;
   }
 
-  /* Badges reutilizados do audit.html (definidos aqui também) */
+  /* Badges reutilizados do audit.html (definidos aqui tambÃ©m) */
   .zh-audit-badge {
     display: inline-flex;
     align-items: center;
@@ -309,7 +363,7 @@
 </style>
 
 <script>
-  /* Alterna visibilidade da senha no formulário */
+  /* Alterna visibilidade da senha no formulÃ¡rio */
   function _togglePassVis() {
     const field = document.getElementById("zh-field-password");
     const ico   = document.getElementById("zh-pass-eye-ico");
@@ -322,3 +376,5 @@
 
 <script src="{{ url_for('static', path='js/vcenters.js') }}"></script>
 {% endblock %}
+
+

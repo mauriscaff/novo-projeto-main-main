@@ -231,7 +231,10 @@ async def get_dashboard(
     )
     recent_vmdks = [
         RecentVmdkEntry(
+            id=r.id,
+            job_id=r.job_id,
             path=r.path,
+            vcenter_id=r.vcenter_name or r.vcenter_host,
             vcenter_host=r.vcenter_host,
             tamanho_gb=r.tamanho_gb,
             tipo_zombie=r.tipo_zombie,

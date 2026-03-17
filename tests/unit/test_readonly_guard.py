@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,9 +12,10 @@ from fastapi import HTTPException
 from app.core.approval import require_write_access
 
 
-@pytest.mark.asyncio
-async def test_require_write_access_raises_403_when_readonly_mode():
+def test_require_write_access_raises_403_when_readonly_mode():
     """Com READONLY_MODE=true, require_write_access deve levantar 403."""
+<<<<<<< ours
+<<<<<<< ours
     with patch("app.core.approval.settings") as mock_settings:
         mock_settings.readonly_mode = True
         request = MagicMock()
@@ -28,3 +31,28 @@ async def test_require_write_access_raises_403_when_readonly_mode():
             )
         assert exc_info.value.status_code == 403
         assert "READONLY_MODE" in str(exc_info.value.detail)
+=======
+=======
+>>>>>>> theirs
+
+    async def _run() -> None:
+        with patch("app.core.approval.settings") as mock_settings:
+            mock_settings.readonly_mode = True
+            request = MagicMock()
+            request.headers.get.return_value = ""
+            db = SimpleNamespace(add=MagicMock(), commit=AsyncMock())
+            with pytest.raises(HTTPException) as exc_info:
+                await require_write_access(
+                    request=request,
+                    x_approval_token="any-token",
+                    db=db,
+                    user={"sub": "test"},
+                )
+            assert exc_info.value.status_code == 403
+            assert "READONLY_MODE" in str(exc_info.value.detail)
+
+    asyncio.run(_run())
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs

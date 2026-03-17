@@ -1,4 +1,5 @@
 from .vcenter import VCenter
+from .monitored_source import MonitoredSource, MonitoredSourceSecret
 from .scan_result import ScanJob, VMDKResult, ScanStatus, VMDKStatus
 from .zombie_scan import ZombieScanJob, ZombieVmdkRecord
 from .schedule import ScanSchedule
@@ -11,6 +12,8 @@ from .datastore_deletion_run import DatastoreDeletionVerificationRun
 
 __all__ = [
     "VCenter",
+    "MonitoredSource",
+    "MonitoredSourceSecret",
     "ScanJob",
     "VMDKResult",
     "ScanStatus",

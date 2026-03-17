@@ -1,52 +1,52 @@
 {% extends "base.html" %}
 {#
-approvals.html — Gerenciamento de Aprovações de Ações sobre VMDKs
+approvals.html â€” Gerenciamento de AprovaÃ§Ãµes de AÃ§Ãµes sobre VMDKs
 =================================================================
-PÁGINA CRÍTICA — Ações aqui têm efeito REAL no storage VMware.
+PÃGINA CRÃTICA â€” AÃ§Ãµes aqui tÃªm efeito REAL no storage VMware.
 
-Toda a lógica é gerenciada por approvals.js:
+Toda a lÃ³gica Ã© gerenciada por approvals.js:
 - Carrega tokens por status via GET /api/v1/approvals
 - Executa dry-run via GET /api/v1/approvals/{token}/dryrun
-- Confirma execução via POST /api/v1/approvals/{token}/execute
+- Confirma execuÃ§Ã£o via POST /api/v1/approvals/{token}/execute
 - Cancela via DELETE /api/v1/approvals/{token}
 - Exibe audit log via GET /api/v1/approvals/audit-log
 
-Variáveis Jinja2:
-readonly_mode bool — injetada em window.ZH_READONLY_MODE pelo bloco scripts
+VariÃ¡veis Jinja2:
+readonly_mode bool â€” injetada em window.ZH_READONLY_MODE pelo bloco scripts
 #}
 
-{% block title %}Aprovações{% endblock %}
+{% block title %}AprovaÃ§Ãµes{% endblock %}
 
 {% block content %}
 
-{# ─────────────────────────────────────────────────────────────────────────────
-BANNER DE AVISO — FIXO, NÃO PODE SER FECHADO
-Este banner é a salvaguarda visual mais importante da página.
-Nunca adicione um botão de fechar a este elemento.
-───────────────────────────────────────────────────────────────────────────── #}
+{# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+BANNER DE AVISO â€” FIXO, NÃƒO PODE SER FECHADO
+Este banner Ã© a salvaguarda visual mais importante da pÃ¡gina.
+Nunca adicione um botÃ£o de fechar a este elemento.
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
 <div id="zh-critical-banner" class="d-flex align-items-start gap-3 rounded-2 p-3 mb-4"
   style="background:rgba(248,81,73,.1);border:2px solid rgba(248,81,73,.45);border-left-width:6px;" role="alert"
   aria-live="polite">
-  {# Ícone de atenção em destaque #}
+  {# Ãcone de atenÃ§Ã£o em destaque #}
   <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1" style="font-size:1.6rem;color:#f85149;"></i>
 
   <div class="flex-grow-1">
     <div class="fw-bold mb-1" style="font-size:.95rem;color:#f85149;letter-spacing:.3px;">
-      ATENÇÃO: Esta página controla ações com efeito real no storage VMware
+      ATENÃ‡ÃƒO: Esta pÃ¡gina controla aÃ§Ãµes com efeito real no storage VMware
     </div>
     <ul class="mb-0 ps-3" style="font-size:.84rem;color:#e6edf3;line-height:1.7;">
       <li>
-        <strong>Sempre execute o DRY-RUN</strong> antes de confirmar qualquer ação —
-        ele mostra exatamente o que será feito sem alterar nada.
+        <strong>Sempre execute o DRY-RUN</strong> antes de confirmar qualquer aÃ§Ã£o â€”
+        ele mostra exatamente o que serÃ¡ feito sem alterar nada.
       </li>
       <li>
-        Ações de <span style="color:#f85149;font-weight:600;">DELETE</span> são
-        <strong>irreversíveis</strong>. Ações de
+        AÃ§Ãµes de <span style="color:#f85149;font-weight:600;">DELETE</span> sÃ£o
+        <strong>irreversÃ­veis</strong>. AÃ§Ãµes de
         <span style="color:#d29922;font-weight:600;">QUARANTINE</span> movem o
         arquivo para uma pasta segura e podem ser desfeitas.
       </li>
       <li>
-        <strong>Toda ação é registrada</strong> no Audit Log imutável com seu nome,
+        <strong>Toda aÃ§Ã£o Ã© registrada</strong> no Audit Log imutÃ¡vel com seu nome,
         timestamp e justificativa, independentemente do resultado.
       </li>
     </ul>
@@ -59,34 +59,34 @@ Nunca adicione um botão de fechar a este elemento.
       style="background:rgba(63,185,80,.15);border:1px solid rgba(63,185,80,.4);color:#3fb950;font-size:.75rem;font-weight:700;">
       <i class="bi bi-lock-fill"></i> READ-ONLY ATIVO
     </span>
-    <div class="text-muted-zh mt-1" style="font-size:.68rem;">Execuções bloqueadas</div>
+    <div class="text-muted-zh mt-1" style="font-size:.68rem;">ExecuÃ§Ãµes bloqueadas</div>
     {% else %}
     <span class="d-flex align-items-center gap-1 px-2 py-1 rounded-2"
       style="background:rgba(248,81,73,.15);border:1px solid rgba(248,81,73,.4);color:#f85149;font-size:.75rem;font-weight:700;">
       <i class="bi bi-unlock-fill"></i> WRITE HABILITADO
     </span>
-    <div class="text-muted-zh mt-1" style="font-size:.68rem;">Ações destrutivas permitidas</div>
+    <div class="text-muted-zh mt-1" style="font-size:.68rem;">AÃ§Ãµes destrutivas permitidas</div>
     {% endif %}
   </div>
 
 </div>
 
 
-{# ─────────────────────────────────────────────────────────────────────────────
-CABEÇALHO + ESTATÍSTICAS RÁPIDAS
-───────────────────────────────────────────────────────────────────────────── #}
+{# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CABEÃ‡ALHO + ESTATÃSTICAS RÃPIDAS
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
 <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
   <div>
     <h4 class="mb-0 fw-semibold d-flex align-items-center gap-2">
       <i class="bi bi-shield-plus text-zombie-red" aria-hidden="true"></i>
-      Aprovações de Ações
+      AprovaÃ§Ãµes de AÃ§Ãµes
     </h4>
     <small class="text-muted-zh">
-      Gerencie e execute ações aprovadas sobre VMDKs zombie detectados
+      Gerencie e execute aÃ§Ãµes aprovadas sobre VMDKs zombie detectados
     </small>
   </div>
 
-  {# Botão de atualização manual #}
+  {# BotÃ£o de atualizaÃ§Ã£o manual #}
   <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
     onclick="loadTab(window._activeTabName ?? 'pending')" title="Atualizar lista" type="button">
     <i class="bi bi-arrow-clockwise"></i>
@@ -95,29 +95,55 @@ CABEÇALHO + ESTATÍSTICAS RÁPIDAS
 </div>
 
 <div id="zh-approvals-feedback" class="mb-3 d-none" aria-live="polite"></div>
+<div id="zh-approvals-guide" class="zh-card zh-operational-guide mb-3" role="status" aria-live="polite">
+  <div class="d-flex flex-column flex-lg-row align-items-start justify-content-between gap-3">
+    <div>
+      <span id="zh-apv-guide-level" class="badge rounded-pill text-bg-info mb-2">Fluxo sugerido</span>
+      <h6 id="zh-apv-guide-title" class="mb-1 fw-semibold">Revise a aba pendente antes de executar qualquer acao.</h6>
+      <p id="zh-apv-guide-next" class="text-muted-zh mb-0">Proximo passo: valide status, dry-run e expiracao.</p>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <span class="zh-guide-chip">
+        <i class="bi bi-eye"></i>
+        Visiveis: <strong id="zh-apv-guide-visible">0</strong>
+      </span>
+      <span class="zh-guide-chip">
+        <i class="bi bi-hourglass-split"></i>
+        Pendentes: <strong id="zh-apv-guide-pending">0</strong>
+      </span>
+      <span class="zh-guide-chip">
+        <i class="bi bi-alarm"></i>
+        Expiram ate 2h: <strong id="zh-apv-guide-expiring">0</strong>
+      </span>
+      <button id="zh-apv-guide-action" type="button" class="btn btn-sm btn-outline-primary" data-action="focus_pending">
+        Revisar pendentes
+      </button>
+    </div>
+  </div>
+</div>
 
 
-{# ─────────────────────────────────────────────────────────────────────────────
-BADGE DE EXPIRAÇÃO IMINENTE
-Visível somente quando existem tokens expirando em < 2h
-  ───────────────────────────────────────────────────────────────────────────── #} <div id="zh-expiry-banner"
+{# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+BADGE DE EXPIRAÃ‡ÃƒO IMINENTE
+VisÃ­vel somente quando existem tokens expirando em < 2h
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #} <div id="zh-expiry-banner"
   class="d-none mb-3">
   <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2"
     style="background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.5);font-size:.83rem;">
     <i class="bi bi-alarm-fill flex-shrink-0" style="color:#f85149;font-size:1.1rem;"></i>
-    <span class="fw-semibold" style="color:#f85149;">Atenção:</span>
+    <span class="fw-semibold" style="color:#f85149;">AtenÃ§Ã£o:</span>
     <span id="zh-expiry-banner-text" class="text-light"></span>
   </div>
   </div>
 
 
-  {# ─────────────────────────────────────────────────────────────────────────────
-  FILTROS RÁPIDOS
-  ───────────────────────────────────────────────────────────────────────────── #}
+  {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  FILTROS RÃPIDOS
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
   <div class="zh-card mb-3 p-3" id="zh-quick-filters">
     <form class="row g-2 align-items-end" id="zh-filter-form-approvals" autocomplete="off" novalidate>
 
-      {# Filtro 1 — Status #}
+      {# Filtro 1 â€” Status #}
       <div class="col-6 col-sm-4 col-md-3 col-xl-2">
         <label for="apf-status" class="form-label mb-1"
           style="font-size:.78rem;color:var(--zh-text-muted);">Status</label>
@@ -133,7 +159,7 @@ Visível somente quando existem tokens expirando em < 2h
         </select>
       </div>
 
-      {# Filtro 2 — Analista #}
+      {# Filtro 2 â€” Analista #}
       <div class="col-6 col-sm-4 col-md-3 col-xl-2">
         <label for="apf-analista" class="form-label mb-1"
           style="font-size:.78rem;color:var(--zh-text-muted);">Analista</label>
@@ -141,10 +167,10 @@ Visível somente quando existem tokens expirando em < 2h
           style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;font-size:.82rem;" />
       </div>
 
-      {# Filtro 3 — Ação #}
+      {# Filtro 3 â€” AÃ§Ã£o #}
       <div class="col-6 col-sm-4 col-md-3 col-xl-2">
         <label for="apf-action" class="form-label mb-1"
-          style="font-size:.78rem;color:var(--zh-text-muted);">Ação</label>
+          style="font-size:.78rem;color:var(--zh-text-muted);">AÃ§Ã£o</label>
         <select id="apf-action" class="form-select form-select-sm"
           style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;font-size:.82rem;">
           <option value="">Todas</option>
@@ -153,15 +179,15 @@ Visível somente quando existem tokens expirando em < 2h
         </select>
       </div>
 
-      {# Filtro 4 — Data criação após #}
+      {# Filtro 4 â€” Data criaÃ§Ã£o apÃ³s #}
       <div class="col-6 col-sm-4 col-md-3 col-xl-2">
         <label for="apf-date" class="form-label mb-1" style="font-size:.78rem;color:var(--zh-text-muted);">Criado
-          após</label>
+          apÃ³s</label>
         <input type="date" id="apf-date" class="form-control form-control-sm"
           style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;font-size:.82rem;" />
       </div>
 
-      {# Botões #}
+      {# BotÃµes #}
       <div class="col-auto d-flex gap-2 align-items-end">
         <button type="submit" class="btn btn-sm btn-primary" style="font-size:.8rem;" title="Aplicar filtros">
           <i class="bi bi-funnel-fill me-1"></i>Filtrar
@@ -176,24 +202,24 @@ Visível somente quando existem tokens expirando em < 2h
   </div>
 
 
-  {# ─────────────────────────────────────────────────────────────────────────────
-  ABAS DE NAVEGAÇÃO
-  ───────────────────────────────────────────────────────────────────────────── #}
+  {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  ABAS DE NAVEGAÃ‡ÃƒO
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
   <ul class="nav nav-tabs mb-0" role="tablist" style="border-bottom:1px solid var(--zh-border);">
 
-    {# Aba 1 — Pendentes #}
+    {# Aba 1 â€” Pendentes #}
     <li class="nav-item" role="presentation">
       <button class="nav-link active d-flex align-items-center gap-2" id="tab-btn-pending" data-bs-toggle="tab"
         data-bs-target="#zh-tab-pending" data-zh-tab="pending" type="button" role="tab" aria-selected="true"
         style="font-size:.875rem;">
         <i class="bi bi-clock-history"></i>
         Pendentes
-        {# Badge de contagem — atualizado pelo JS #}
+        {# Badge de contagem â€” atualizado pelo JS #}
         <span id="zh-tab-count-pending" class="badge text-bg-danger d-none" style="font-size:.65rem;">0</span>
       </button>
     </li>
 
-    {# Aba 2 — Executadas #}
+    {# Aba 2 â€” Executadas #}
     <li class="nav-item" role="presentation">
       <button class="nav-link d-flex align-items-center gap-2" id="tab-btn-executed" data-bs-toggle="tab"
         data-bs-target="#zh-tab-executed" data-zh-tab="executed" type="button" role="tab" aria-selected="false"
@@ -204,7 +230,7 @@ Visível somente quando existem tokens expirando em < 2h
       </button>
     </li>
 
-    {# Aba 3 — Canceladas / Expiradas #}
+    {# Aba 3 â€” Canceladas / Expiradas #}
     <li class="nav-item" role="presentation">
       <button class="nav-link d-flex align-items-center gap-2" id="tab-btn-cancelled" data-bs-toggle="tab"
         data-bs-target="#zh-tab-cancelled" data-zh-tab="cancelled" type="button" role="tab" aria-selected="false"
@@ -215,7 +241,7 @@ Visível somente quando existem tokens expirando em < 2h
       </button>
     </li>
 
-    {# Aba 4 — Audit Log #}
+    {# Aba 4 â€” Audit Log #}
     <li class="nav-item ms-auto" role="presentation">
       <button class="nav-link d-flex align-items-center gap-2" id="tab-btn-audit" data-bs-toggle="tab"
         data-bs-target="#zh-tab-audit" data-zh-tab="audit" type="button" role="tab" aria-selected="false"
@@ -228,50 +254,50 @@ Visível somente quando existem tokens expirando em < 2h
   </ul>
 
 
-  {# ─────────────────────────────────────────────────────────────────────────────
-  CONTEÚDO DAS ABAS
-  ───────────────────────────────────────────────────────────────────────────── #}
+  {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  CONTEÃšDO DAS ABAS
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
   <div class="tab-content pt-4">
 
-    {# ── Aba Pendentes ────────────────────────────────────────────────────── #}
+    {# â”€â”€ Aba Pendentes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
     <div class="tab-pane fade show active" id="zh-tab-pending" role="tabpanel">
-      {# Preenchido pelo JS com cards de aprovação #}
+      {# Preenchido pelo JS com cards de aprovaÃ§Ã£o #}
       <div id="zh-tab-pending">
         <div class="text-center py-5">
           <div class="spinner-border text-zombie-blue mb-3" style="width:2rem;height:2rem;"></div>
-          <p class="text-muted-zh mb-0">Carregando aprovações pendentes…</p>
+          <p class="text-muted-zh mb-0">Carregando aprovaÃ§Ãµes pendentesâ€¦</p>
         </div>
       </div>
     </div>
 
-    {# ── Aba Executadas ───────────────────────────────────────────────────── #}
+    {# â”€â”€ Aba Executadas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
     <div class="tab-pane fade" id="zh-tab-executed" role="tabpanel">
       <div id="zh-tab-executed">
         <div class="text-center py-5">
           <div class="spinner-border text-zombie-blue mb-3" style="width:2rem;height:2rem;"></div>
-          <p class="text-muted-zh mb-0">Carregando…</p>
+          <p class="text-muted-zh mb-0">Carregandoâ€¦</p>
         </div>
       </div>
     </div>
 
-    {# ── Aba Canceladas / Expiradas ───────────────────────────────────────── #}
+    {# â”€â”€ Aba Canceladas / Expiradas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
     <div class="tab-pane fade" id="zh-tab-cancelled" role="tabpanel">
       <div id="zh-tab-cancelled">
         <div class="text-center py-5">
           <div class="spinner-border text-zombie-blue mb-3" style="width:2rem;height:2rem;"></div>
-          <p class="text-muted-zh mb-0">Carregando…</p>
+          <p class="text-muted-zh mb-0">Carregandoâ€¦</p>
         </div>
       </div>
     </div>
 
-    {# ── Aba Audit Log ────────────────────────────────────────────────────── #}
+    {# â”€â”€ Aba Audit Log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
     <div class="tab-pane fade" id="zh-tab-audit" role="tabpanel">
       <div class="zh-card">
         <div class="card-header d-flex align-items-center gap-2">
           <i class="bi bi-journal-text text-zombie-blue"></i>
-          Audit Log — Histórico Imutável
+          Audit Log â€” HistÃ³rico ImutÃ¡vel
           <span class="text-muted-zh ms-1" style="font-size:.75rem;">
-            (últimas 100 entradas)
+            (Ãºltimas 100 entradas)
           </span>
         </div>
         <div class="card-body p-0">
@@ -282,7 +308,7 @@ Visível somente quando existem tokens expirando em < 2h
                 <tr>
                   <th style="padding:10px 14px;white-space:nowrap;">Timestamp</th>
                   <th style="padding:10px 14px;">Analista</th>
-                  <th style="padding:10px 14px;">Ação</th>
+                  <th style="padding:10px 14px;">AÃ§Ã£o</th>
                   <th style="padding:10px 14px;">VMDK Path</th>
                   <th style="padding:10px 14px;text-align:center;">Dry-run</th>
                   <th style="padding:10px 14px;">Status</th>
@@ -293,7 +319,7 @@ Visível somente quando existem tokens expirando em < 2h
                 {# Preenchido pelo JS via loadAuditLog() #}
                 <tr>
                   <td colspan="7" class="text-center py-3 text-muted-zh">
-                    Selecione esta aba para carregar o histórico.
+                    Selecione esta aba para carregar o histÃ³rico.
                   </td>
                 </tr>
               </tbody>
@@ -306,10 +332,10 @@ Visível somente quando existem tokens expirando em < 2h
   </div>{# fim tab-content #}
 
 
-  {# ═══════════════════════════════════════════════════════════════════════════
-  MODAL 1 — DRY-RUN
-  Exibe resultado da simulação. Analista valida aqui antes de confirmar.
-  ════════════════════════════════════════════════════════════════════════════ #}
+  {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  MODAL 1 â€” DRY-RUN
+  Exibe resultado da simulaÃ§Ã£o. Analista valida aqui antes de confirmar.
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
   <div class="modal fade" id="zh-modal-dryrun" tabindex="-1" aria-labelledby="dryrun-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
       <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
@@ -318,33 +344,33 @@ Visível somente quando existem tokens expirando em < 2h
           <h5 class="modal-title d-flex align-items-center gap-2" id="dryrun-modal-label">
             <i class="bi bi-search text-zombie-yellow"></i>
             Resultado do DRY-RUN
-            <span class="badge text-bg-warning ms-1" style="font-size:.7rem;">SIMULAÇÃO — NADA FOI ALTERADO</span>
+            <span class="badge text-bg-warning ms-1" style="font-size:.7rem;">SIMULAÃ‡ÃƒO â€” NADA FOI ALTERADO</span>
           </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
 
-        {# Conteúdo dinâmico — preenchido pelo JS #}
+        {# ConteÃºdo dinÃ¢mico â€” preenchido pelo JS #}
         <div class="modal-body" id="dry-modal-result" style="font-size:.875rem;">
           <div class="text-center py-4">
             <div class="spinner-border text-zombie-yellow mb-3" style="width:2rem;height:2rem;"></div>
-            <p class="text-muted-zh">Consultando vCenter…</p>
+            <p class="text-muted-zh">Consultando vCenterâ€¦</p>
           </div>
         </div>
 
         <div class="modal-footer d-flex justify-content-between" style="border-color:var(--zh-border);">
           <div class="text-muted-zh" style="font-size:.75rem;">
             <i class="bi bi-info-circle me-1"></i>
-            Clique em "Confirmar Execução" apenas se os dados acima estiverem corretos.
+            Clique em "Confirmar ExecuÃ§Ã£o" apenas se os dados acima estiverem corretos.
           </div>
           <div class="d-flex gap-2">
             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
               Fechar
             </button>
-            {# Este botão aparece somente quando is_safe_to_proceed=true #}
+            {# Este botÃ£o aparece somente quando is_safe_to_proceed=true #}
             <button id="dry-modal-confirm" type="button"
               class="btn btn-sm btn-danger d-none d-flex align-items-center gap-2">
               <i class="bi bi-play-fill"></i>
-              Confirmar Execução
+              Confirmar ExecuÃ§Ã£o
             </button>
           </div>
         </div>
@@ -354,10 +380,10 @@ Visível somente quando existem tokens expirando em < 2h
   </div>
 
 
-  {# ═══════════════════════════════════════════════════════════════════════════
-  MODAL 2 — CONFIRMAÇÃO FINAL DE EXECUÇÃO
-  Última barreira antes da ação real. Exige checkbox explícito + analista.
-  ════════════════════════════════════════════════════════════════════════════ #}
+  {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  MODAL 2 â€” CONFIRMAÃ‡ÃƒO FINAL DE EXECUÃ‡ÃƒO
+  Ãšltima barreira antes da aÃ§Ã£o real. Exige checkbox explÃ­cito + analista.
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
   <div class="modal fade" id="zh-modal-execute" tabindex="-1" aria-labelledby="execute-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
@@ -365,7 +391,7 @@ Visível somente quando existem tokens expirando em < 2h
         <div class="modal-header" style="border-color:var(--zh-border);">
           <h5 class="modal-title d-flex align-items-center gap-2" id="execute-modal-label">
             <i class="bi bi-exclamation-triangle-fill text-zombie-red"></i>
-            Confirmação Final de Execução
+            ConfirmaÃ§Ã£o Final de ExecuÃ§Ã£o
           </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
@@ -377,20 +403,20 @@ Visível somente quando existem tokens expirando em < 2h
             style="background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.4);">
             <i class="bi bi-radiation flex-shrink-0 mt-1" style="font-size:1.5rem;color:#f85149;"></i>
             <div>
-              <div class="fw-bold mb-1" style="color:#f85149;">Esta ação será executada no vCenter agora.</div>
+              <div class="fw-bold mb-1" style="color:#f85149;">Esta aÃ§Ã£o serÃ¡ executada no vCenter agora.</div>
               <div class="text-muted-zh" style="font-size:.82rem;">
-                Após confirmar, não é possível desfazer uma ação de DELETE.
+                ApÃ³s confirmar, nÃ£o Ã© possÃ­vel desfazer uma aÃ§Ã£o de DELETE.
                 Certifique-se de ter revisado o resultado do DRY-RUN.
               </div>
             </div>
           </div>
 
-          {# Resumo da ação #}
+          {# Resumo da aÃ§Ã£o #}
           <div class="zh-card p-3 mb-4" style="background-color:var(--zh-bg-sidebar);">
             <div class="row g-2" style="font-size:.83rem;">
               <div class="col-12">
                 <div class="text-muted-zh mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">
-                  Ação</div>
+                  AÃ§Ã£o</div>
                 <div id="exec-confirm-action"></div>
               </div>
               <div class="col-12">
@@ -400,7 +426,7 @@ Visível somente quando existem tokens expirando em < 2h
               </div>
               <div class="col-6">
                 <div class="text-muted-zh mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">
-                  Espaço a liberar</div>
+                  EspaÃ§o a liberar</div>
                 <span class="text-zombie-yellow fw-bold" id="exec-confirm-gb"></span>
               </div>
               <div class="col-6">
@@ -411,13 +437,13 @@ Visível somente quando existem tokens expirando em < 2h
             </div>
           </div>
 
-          {# Checkbox de confirmação explícita — obrigatório #}
+          {# Checkbox de confirmaÃ§Ã£o explÃ­cita â€” obrigatÃ³rio #}
           <div class="form-check p-3 rounded-2 mb-3"
             style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.25);">
             <input class="form-check-input" type="checkbox" id="exec-confirm-check" style="border-color:#f85149;" />
             <label class="form-check-label" for="exec-confirm-check" style="font-size:.84rem;">
               <strong>Confirmo que revisei o resultado do DRY-RUN</strong> e estou ciente de que
-              esta ação <strong>não pode ser desfeita</strong> em caso de DELETE.
+              esta aÃ§Ã£o <strong>nÃ£o pode ser desfeita</strong> em caso de DELETE.
             </label>
           </div>
 
@@ -433,7 +459,7 @@ Visível somente quando existem tokens expirando em < 2h
           <button id="exec-btn-submit" type="button" class="btn btn-sm btn-danger d-flex align-items-center gap-2"
             disabled>
             <i class="bi bi-play-fill"></i>
-            Confirmar Execução
+            Confirmar ExecuÃ§Ã£o
           </button>
         </div>
 
@@ -442,9 +468,9 @@ Visível somente quando existem tokens expirando em < 2h
   </div>
 
 
-  {# ═══════════════════════════════════════════════════════════════════════════
-  MODAL 3 — CANCELAMENTO DE TOKEN
-  ════════════════════════════════════════════════════════════════════════════ #}
+  {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  MODAL 3 â€” CANCELAMENTO DE TOKEN
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
   <div class="modal fade" id="zh-modal-cancel" tabindex="-1" aria-labelledby="cancel-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
@@ -459,15 +485,15 @@ Visível somente quando existem tokens expirando em < 2h
 
         <div class="modal-body">
           <p style="font-size:.875rem;">
-            Você está cancelando o token de aprovação para:
+            VocÃª estÃ¡ cancelando o token de aprovaÃ§Ã£o para:
           </p>
           <div class="zh-card p-3 mb-3" style="background-color:var(--zh-bg-sidebar);">
             <code id="cancel-modal-path" style="font-size:.8rem;word-break:break-all;color:#e6edf3;"></code>
           </div>
           <p class="text-muted-zh mb-0" style="font-size:.82rem;">
-            O token será marcado como <strong>cancelado</strong> e um novo token precisará
-            ser emitido caso a ação ainda seja necessária.
-            O cancelamento será registrado no Audit Log.
+            O token serÃ¡ marcado como <strong>cancelado</strong> e um novo token precisarÃ¡
+            ser emitido caso a aÃ§Ã£o ainda seja necessÃ¡ria.
+            O cancelamento serÃ¡ registrado no Audit Log.
           </p>
           <div id="cancel-modal-error" class="alert alert-danger d-none mt-3 py-2" style="font-size:.82rem;"
             role="alert"></div>
@@ -489,32 +515,65 @@ Visível somente quando existem tokens expirando em < 2h
   </div>
 
 
-  {# ── Container de toasts de feedback (canto inferior direito) ─────────────── #}
+  {# â”€â”€ Container de toasts de feedback (canto inferior direito) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
   <div id="zh-toast-container" class="position-fixed d-flex flex-column align-items-end"
     style="bottom:20px;right:20px;z-index:1090;" aria-live="polite" aria-atomic="true"></div>
 
   {% endblock %}{# fim block content #}
 
 
-  {# ═══════════════════════════════════════════════════════════════════════════
+  {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   SCRIPTS
-  ════════════════════════════════════════════════════════════════════════════ #}
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
   {% block scripts %}
   <style>
-    /* ── Filtros rápidos ──────────────────────────────────────────────────── */
+    .zh-operational-guide {
+      border: 1px solid var(--zh-border);
+      border-left-width: 4px;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .zh-operational-guide.is-info {
+      border-left-color: rgba(88, 166, 255, .95);
+    }
+
+    .zh-operational-guide.is-success {
+      border-left-color: rgba(63, 185, 80, .9);
+    }
+
+    .zh-operational-guide.is-warning {
+      border-left-color: rgba(210, 153, 34, .95);
+    }
+
+    .zh-operational-guide.is-danger {
+      border-left-color: rgba(248, 81, 73, .95);
+    }
+
+    .zh-guide-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .25rem .6rem;
+      border-radius: 999px;
+      border: 1px solid var(--zh-border);
+      background: rgba(139, 148, 158, .08);
+      font-size: .74rem;
+      color: var(--zh-text-muted);
+    }
+    /* â”€â”€ Filtros rÃ¡pidos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     #zh-quick-filters {
       border: 1px solid var(--zh-border);
       background-color: var(--zh-bg-card);
     }
 
-    /* ── Countdown urgente (< 2h) ─────────────────────────────────────────── */
+    /* â”€â”€ Countdown urgente (< 2h) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .zh-timer-urgent {
       color: var(--zh-accent-red) !important;
       font-weight: 700;
       animation: zh-pulse-red 1s ease-in-out infinite;
     }
 
-    /* ── Badges de status ────────────────────────────────────────────────── */
+    /* â”€â”€ Badges de status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .zh-status-pill {
       display: inline-flex;
       align-items: center;
@@ -557,7 +616,7 @@ Visível somente quando existem tokens expirando em < 2h
       color: var(--zh-accent-red);
     }
 
-    /* ── VMDK details table ──────────────────────────────────────────────── */
+    /* â”€â”€ VMDK details table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .zh-vmdk-table {
       width: 100%;
       border-collapse: collapse;
@@ -584,18 +643,18 @@ Visível somente quando existem tokens expirando em < 2h
       border-bottom: none;
     }
 
-    /* ── Countdown timer ────────────────────────────────────────────────── */
+    /* â”€â”€ Countdown timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .zh-live-timer {
       font-variant-numeric: tabular-nums;
     }
 
-    /* ── Justificativa obrigatória no modal de aprovação ───────────────── */
+    /* â”€â”€ Justificativa obrigatÃ³ria no modal de aprovaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     #zh-modal-justify .modal-content {
       background-color: var(--zh-bg-card);
       border-color: var(--zh-border);
     }
 
-    /* ── Cards de aprovação ───────────────────────────────────────────────── */
+    /* â”€â”€ Cards de aprovaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .zh-approval-card {
       background-color: var(--zh-bg-card);
       border: 1px solid var(--zh-border);
@@ -613,7 +672,7 @@ Visível somente quando existem tokens expirando em < 2h
       border-left-color: #6e7681 !important;
     }
 
-    /* Badge de ação (QUARANTINE / DELETE) */
+    /* Badge de aÃ§Ã£o (QUARANTINE / DELETE) */
     .zh-action-badge {
       display: inline-flex;
       align-items: center;
@@ -624,7 +683,7 @@ Visível somente quando existem tokens expirando em < 2h
       letter-spacing: .4px;
     }
 
-    /* Células de informação dentro dos cards */
+    /* CÃ©lulas de informaÃ§Ã£o dentro dos cards */
     .zh-info-cell {
       background: var(--zh-bg-sidebar);
       border: 1px solid var(--zh-border);
@@ -648,7 +707,7 @@ Visível somente quando existem tokens expirando em < 2h
       word-break: break-word;
     }
 
-    /* Bloco de informações do VMDK no card */
+    /* Bloco de informaÃ§Ãµes do VMDK no card */
     .zh-vmdk-info {
       background: var(--zh-bg-sidebar);
       border: 1px solid var(--zh-border);
@@ -668,7 +727,7 @@ Visível somente quando existem tokens expirando em < 2h
       scrollbar-color: var(--zh-border) transparent;
     }
 
-    /* Countdown — animação de pulso quando < 1h */
+    /* Countdown â€” animaÃ§Ã£o de pulso quando < 1h */
     .zh-countdown[data-urgent="true"] {
       animation: zh-pulse-red 1s ease-in-out infinite;
     }
@@ -707,30 +766,30 @@ Visível somente quando existem tokens expirando em < 2h
       font-weight: 600;
     }
 
-    /* Tabela de audit log — hover */
+    /* Tabela de audit log â€” hover */
     #zh-audit-table-body tr:hover td {
       background-color: rgba(88, 166, 255, .04);
     }
   </style>
 
-  {# Injeta readonly_mode como variável JS global #}
+  {# Injeta readonly_mode como variÃ¡vel JS global #}
   <script>
     window.ZH_READONLY_MODE = {{ 'true' if readonly_mode else 'false' }};
   </script>
 
-  {# ── Script: melhorias da página de aprovações ────────────────────────────── #}
+  {# â”€â”€ Script: melhorias da pÃ¡gina de aprovaÃ§Ãµes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
   <script>
     "use strict";
 
-    // ── Helpers de formatação ─────────────────────────────────────────────────
+    // â”€â”€ Helpers de formataÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     function zhFmtStatus(s) {
       const map = {
-        pending_dryrun: ['pending', '🕐 Pendente Dry-run'],
-        dryrun_done: ['dryrun', '✅ Dry-run OK'],
-        executed: ['executed', '✔ Executado'],
-        cancelled: ['cancelled', '✖ Cancelado'],
-        expired: ['expired', '⏱ Expirado'],
-        invalidated: ['invalidated', '⚠ Invalidado'],
+        pending_dryrun: ['pending', 'ðŸ• Pendente Dry-run'],
+        dryrun_done: ['dryrun', 'âœ… Dry-run OK'],
+        executed: ['executed', 'âœ” Executado'],
+        cancelled: ['cancelled', 'âœ– Cancelado'],
+        expired: ['expired', 'â± Expirado'],
+        invalidated: ['invalidated', 'âš  Invalidado'],
       };
       const [cls, label] = map[s] || ['cancelled', s];
       return `<span class="zh-status-pill ${cls}">${label}</span>`;
@@ -756,7 +815,7 @@ Visível somente quando existem tokens expirando em < 2h
       return `<span class="${cls}" data-expires="${expiresAt}">${h}h ${m}m ${s}s</span>`;
     }
 
-    // ── Renderiza uma lista de aprovações como cards melhorados ───────────────
+    // â”€â”€ Renderiza uma lista de aprovaÃ§Ãµes como cards melhorados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     function zhRenderEnhancedCards(tokens, containerId) {
       const container = document.getElementById(containerId);
       if (!container) return;
@@ -778,13 +837,13 @@ Visível somente quando existem tokens expirando em < 2h
           : 'border-left:4px solid rgba(210,153,34,.6);';
 
         const justTrunc = t.justificativa?.length > 80
-          ? t.justificativa.slice(0, 80) + '…'
-          : (t.justificativa || '—');
+          ? t.justificativa.slice(0, 80) + 'â€¦'
+          : (t.justificativa || 'â€”');
 
         return `
     <div class="${cardClass}" style="${borderColor}" id="apv-card-${t.id}">
 
-      <!-- Linha 1: VMDK path + status + ação -->
+      <!-- Linha 1: VMDK path + status + aÃ§Ã£o -->
       <div class="d-flex align-items-start justify-content-between gap-2 mb-3 flex-wrap">
         <div class="d-flex flex-column gap-1 min-w-0">
           <code class="text-zombie-blue" style="font-size:.8rem;word-break:break-all;">${t.vmdk_path}</code>
@@ -824,9 +883,9 @@ Visível somente quando existem tokens expirando em < 2h
             <span class="zh-info-label">Dry-run</span>
             <span class="zh-info-value">
               ${t.dry_run_required
-            ? '<span class="text-zombie-yellow">⚠ Obrigatório</span>'
+            ? '<span class="text-zombie-yellow">âš  ObrigatÃ³rio</span>'
             : t.dryrun_completed_at
-              ? '<span class="text-zombie-green">✔ Concluído</span>'
+              ? '<span class="text-zombie-green">âœ” ConcluÃ­do</span>'
               : '<span class="text-muted-zh">N/A</span>'}
             </span>
           </div>
@@ -846,16 +905,16 @@ Visível somente quando existem tokens expirando em < 2h
             <table class="zh-vmdk-table">
               <thead><tr><th>Tipo zombie</th><th>Tamanho</th><th>Datacenter</th></tr></thead>
               <tbody><tr>
-                <td>${t.vmdk_tipo_zombie || '—'}</td>
-                <td>${t.vmdk_size_gb != null ? zhFormatSizeGB(t.vmdk_size_gb) : '—'}</td>
-                <td>${t.vmdk_datacenter || '—'}</td>
+                <td>${t.vmdk_tipo_zombie || 'â€”'}</td>
+                <td>${t.vmdk_size_gb != null ? zhFormatSizeGB(t.vmdk_size_gb) : 'â€”'}</td>
+                <td>${t.vmdk_datacenter || 'â€”'}</td>
               </tr></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- Linha 4: Ações -->
+      <!-- Linha 4: AÃ§Ãµes -->
       ${isActive ? `
       <div class="d-flex gap-2 flex-wrap">
         <button class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1" style="font-size:.78rem;"
@@ -864,7 +923,7 @@ Visível somente quando existem tokens expirando em < 2h
         </button>
         <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" style="font-size:.78rem;"
           onclick="zhOpenJustifyModal('${t.approval_token}', '${t.vmdk_path.replace(/'/g, '\\&apos;')}', '${t.action}', ${t.vmdk_size_gb || 0})"
-          ${t.dry_run_required ? 'disabled title="Execute o dry-run antes de confirmar"' : 'title="Confirmar execução"'}>
+          ${t.dry_run_required ? 'disabled title="Execute o dry-run antes de confirmar"' : 'title="Confirmar execuÃ§Ã£o"'}>
           <i class="bi bi-play-fill"></i>Confirmar
         </button>
         <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" style="font-size:.78rem;"
@@ -881,7 +940,7 @@ Visível somente quando existem tokens expirando em < 2h
       zhStartLiveTimers(containerId);
     }
 
-    // ── Timer ao vivo ─────────────────────────────────────────────────────────
+    // â”€â”€ Timer ao vivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     let _timerInterval = null;
     function zhStartLiveTimers(containerId) {
       if (_timerInterval) clearInterval(_timerInterval);
@@ -892,7 +951,7 @@ Visível somente quando existem tokens expirando em < 2h
       }, 1000);
     }
 
-    // ── Badge de expiração iminente ───────────────────────────────────────────
+    // â”€â”€ Badge de expiraÃ§Ã£o iminente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     function zhUpdateExpiryBanner(tokens) {
       const banner = document.getElementById('zh-expiry-banner');
       const text = document.getElementById('zh-expiry-banner-text');
@@ -907,13 +966,13 @@ Visível somente quando existem tokens expirando em < 2h
 
       if (urgent.length) {
         banner.classList.remove('d-none');
-        text.textContent = `${urgent.length} aprovação(ões) expira(m) em menos de 2 horas. Revise e execute antes que expirem.`;
+        text.textContent = `${urgent.length} aprovaÃ§Ã£o(Ãµes) expira(m) em menos de 2 horas. Revise e execute antes que expirem.`;
       } else {
         banner.classList.add('d-none');
       }
     }
 
-    // ── Modal de justificativa obrigatória ────────────────────────────────────
+    // â”€â”€ Modal de justificativa obrigatÃ³ria â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     let _pendingExecToken = null;
 
     function zhOpenJustifyModal(token, path, action, sizeGb) {
@@ -922,7 +981,7 @@ Visível somente quando existem tokens expirando em < 2h
       document.getElementById('zh-justify-action').textContent = action;
       document.getElementById('zh-justify-gb').textContent = zhFormatSizeGB ? zhFormatSizeGB(sizeGb) : sizeGb + ' GB';
       document.getElementById('zh-justify-text').value = '';
-      document.getElementById('zh-justify-char').textContent = '0 / 20 mín.';
+      document.getElementById('zh-justify-char').textContent = '0 / 20 mÃ­n.';
       document.getElementById('zh-justify-char').style.color = 'var(--zh-text-muted)';
       document.getElementById('zh-justify-error').classList.add('d-none');
       document.getElementById('zh-justify-submit').disabled = true;
@@ -931,7 +990,7 @@ Visível somente quando existem tokens expirando em < 2h
       new bootstrap.Modal(el).show();
     }
 
-    // ── Filtros: aplica filtro client-side nos cards visíveis ─────────────────
+    // â”€â”€ Filtros: aplica filtro client-side nos cards visÃ­veis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     function zhApplyFilters() {
       const status = document.getElementById('apf-status')?.value.trim().toLowerCase();
       const analista = document.getElementById('apf-analista')?.value.trim().toLowerCase();
@@ -953,16 +1012,16 @@ Visível somente quando existem tokens expirando em < 2h
       });
     }
 
-    // ── Intercept: patch loadTab para usar nossa renderização quando disponível ─
-    // Nós não sobrescrevemos loadTab — apenas observamos o DOM após a carga e
+    // â”€â”€ Intercept: patch loadTab para usar nossa renderizaÃ§Ã£o quando disponÃ­vel â”€
+    // NÃ³s nÃ£o sobrescrevemos loadTab â€” apenas observamos o DOM apÃ³s a carga e
     // re-renderizamos com nosso renderer melhorado.
     const _zhTabObserver = new MutationObserver((mutations) => {
       mutations.forEach(m => {
         m.addedNodes.forEach(node => {
-          if (node.classList?.contains?.('zh-approval-card')) return; // já nosso
+          if (node.classList?.contains?.('zh-approval-card')) return; // jÃ¡ nosso
           const pane = node.closest?.('#zh-tab-pending, #zh-tab-executed, #zh-tab-cancelled');
           if (!pane) return;
-          // O approvals.js terminou de renderizar — busca tokens e re-renderiza
+          // O approvals.js terminou de renderizar â€” busca tokens e re-renderiza
           setTimeout(() => zhFetchAndRender(pane.getAttribute('id')), 50);
         });
       });
@@ -971,7 +1030,7 @@ Visível somente quando existem tokens expirando em < 2h
       _zhTabObserver.observe(pane, { childList: true, subtree: false });
     });
 
-    // ── fetchAndRender: busca tokens filtrados e renderiza ────────────────────
+    // â”€â”€ fetchAndRender: busca tokens filtrados e renderiza â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async function zhFetchAndRender(tabId) {
       const statusMap = {
         'zh-tab-pending': 'pending_dryrun,dryrun_done',
@@ -984,7 +1043,7 @@ Visível somente quando existem tokens expirando em < 2h
       try {
         const promises = statuses.split(',').map(s =>
           fetch(`/api/v1/approvals/?status=${s}`, {
-            headers: { Accept: 'application/json', 'X-API-Key': window.ZH_API_KEY || '' }
+            headers: { Accept: 'application/json' }
           }).then(r => r.json())
         );
         const results = await Promise.all(promises);
@@ -999,7 +1058,7 @@ Visível somente quando existem tokens expirando em < 2h
       }
     }
 
-    // ── Wira filtros ──────────────────────────────────────────────────────────
+    // â”€â”€ Wira filtros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     document.getElementById('zh-filter-form-approvals')?.addEventListener('submit', e => {
       e.preventDefault();
       zhApplyFilters();
@@ -1009,7 +1068,7 @@ Visível somente quando existem tokens expirando em < 2h
       document.querySelectorAll('.zh-approval-card').forEach(c => c.style.display = '');
     });
 
-    // ── Carregamento inicial da aba pendentes ─────────────────────────────────
+    // â”€â”€ Carregamento inicial da aba pendentes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     window.addEventListener('load', () => {
       setTimeout(() => zhFetchAndRender('zh-tab-pending'), 300);
     });
@@ -1024,20 +1083,20 @@ Visível somente quando existem tokens expirando em < 2h
     });
   </script>
 
-  {# ── Modal 4: Justificativa obrigatória ao confirmar execução ──────────────── #}
+  {# â”€â”€ Modal 4: Justificativa obrigatÃ³ria ao confirmar execuÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
   <div class="modal fade" id="zh-modal-justify" tabindex="-1" aria-labelledby="justify-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="background-color:var(--zh-bg-card);border-color:var(--zh-border);">
         <div class="modal-header" style="border-color:var(--zh-border);">
           <h5 class="modal-title d-flex align-items-center gap-2" id="justify-modal-label">
             <i class="bi bi-shield-lock-fill text-zombie-yellow"></i>
-            Justificativa de Aprovação
+            Justificativa de AprovaÃ§Ã£o
           </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
         <div class="modal-body">
 
-          {# Resumo da ação #}
+          {# Resumo da aÃ§Ã£o #}
           <div class="zh-card p-3 mb-3" style="background-color:var(--zh-bg-sidebar);">
             <div class="row g-2" style="font-size:.83rem;">
               <div class="col-12">
@@ -1045,7 +1104,7 @@ Visível somente quando existem tokens expirando em < 2h
                 <code id="zh-justify-path" style="font-size:.78rem;word-break:break-all;color:#e6edf3;"></code>
               </div>
               <div class="col-6">
-                <span class="zh-info-label">Ação</span>
+                <span class="zh-info-label">AÃ§Ã£o</span>
                 <span id="zh-justify-action" class="fw-bold text-zombie-red"></span>
               </div>
               <div class="col-6">
@@ -1062,11 +1121,11 @@ Visível somente quando existem tokens expirando em < 2h
               Justificativa do aprovador <span class="text-zombie-red">*</span>
             </label>
             <textarea id="zh-justify-text" class="form-control form-control-sm" rows="3" maxlength="500"
-              placeholder="Descreva o motivo da aprovação (mínimo 20 caracteres)..."
+              placeholder="Descreva o motivo da aprovaÃ§Ã£o (mÃ­nimo 20 caracteres)..."
               style="background-color:var(--zh-bg-sidebar);border-color:var(--zh-border);color:#e6edf3;font-size:.83rem;resize:vertical;"></textarea>
             <div class="d-flex justify-content-between mt-1">
-              <small class="text-muted-zh" style="font-size:.72rem;">Registrada no Audit Log imutável</small>
-              <small id="zh-justify-char" style="font-size:.72rem;">0 / 20 mín.</small>
+              <small class="text-muted-zh" style="font-size:.72rem;">Registrada no Audit Log imutÃ¡vel</small>
+              <small id="zh-justify-char" style="font-size:.72rem;">0 / 20 mÃ­n.</small>
             </div>
           </div>
 
@@ -1077,7 +1136,7 @@ Visível somente quando existem tokens expirando em < 2h
           <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" id="zh-justify-submit" class="btn btn-sm btn-danger d-flex align-items-center gap-2"
             disabled>
-            <i class="bi bi-play-fill"></i>Confirmar Execução
+            <i class="bi bi-play-fill"></i>Confirmar ExecuÃ§Ã£o
           </button>
         </div>
       </div>
@@ -1086,7 +1145,7 @@ Visível somente quando existem tokens expirando em < 2h
 
   <script>
     "use strict";
-    // ── Lógica do modal de justificativa ─────────────────────────────────────
+    // â”€â”€ LÃ³gica do modal de justificativa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const _justifyTextEl = document.getElementById('zh-justify-text');
     const _justifyCharEl = document.getElementById('zh-justify-char');
     const _justifySubmit = document.getElementById('zh-justify-submit');
@@ -1094,7 +1153,7 @@ Visível somente quando existem tokens expirando em < 2h
 
     _justifyTextEl?.addEventListener('input', () => {
       const len = _justifyTextEl.value.trim().length;
-      _justifyCharEl.textContent = `${len} / 20 mín.`;
+      _justifyCharEl.textContent = `${len} / 20 mÃ­n.`;
       _justifyCharEl.style.color = len >= 20 ? 'var(--zh-accent-green)' : 'var(--zh-text-muted)';
       _justifySubmit.disabled = len < 20;
       if (len >= 20) _justifyTextEl.classList.remove('is-invalid');
@@ -1109,17 +1168,16 @@ Visível somente quando existem tokens expirando em < 2h
       }
 
       _justifySubmit.disabled = true;
-      _justifySubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Executando…';
+      _justifySubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Executandoâ€¦';
       _justifyError.classList.add('d-none');
 
       try {
-        // Injeta justificativa no header customizado (o execute só precisa do token)
+        // Injeta justificativa no header customizado (o execute sÃ³ precisa do token)
         const resp = await fetch(`/api/v1/approvals/${_pendingExecToken}/execute`, {
           method: 'POST',
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            'X-API-Key': window.ZH_API_KEY || '',
             'X-Approve-Note': nota,
           },
         });
@@ -1133,7 +1191,7 @@ Visível somente quando existem tokens expirando em < 2h
         // Toast de sucesso
         const toastEl = document.createElement('div');
         toastEl.className = 'toast align-items-center text-bg-success border-0 show';
-        toastEl.innerHTML = `<div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>Ação executada com sucesso!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+        toastEl.innerHTML = `<div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>AÃ§Ã£o executada com sucesso!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
         document.getElementById('zh-toast-container')?.appendChild(toastEl);
         setTimeout(() => toastEl.remove(), 5000);
 
@@ -1142,19 +1200,19 @@ Visível somente quando existem tokens expirando em < 2h
         _justifyError.classList.remove('d-none');
       } finally {
         _justifySubmit.disabled = false;
-        _justifySubmit.innerHTML = '<i class="bi bi-play-fill"></i>Confirmar Execução';
+        _justifySubmit.innerHTML = '<i class="bi bi-play-fill"></i>Confirmar ExecuÃ§Ã£o';
       }
     });
   </script>
 
-  {# Script principal da página #}
+  {# Script principal da pÃ¡gina #}
   <script src="/static/js/approvals.js?v={{ api_version }}"></script>
 
   {# Sincroniza tab Bootstrap com carregamento de dados #}
   <script>
     "use strict";
 
-    // Quando uma aba Bootstrap é mostrada, carrega seus dados
+    // Quando uma aba Bootstrap Ã© mostrada, carrega seus dados
     document.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
       btn.addEventListener("shown.bs.tab", () => {
         const tab = btn.dataset.zhTab;
@@ -1176,3 +1234,5 @@ Visível somente quando existem tokens expirando em < 2h
     }, 5000);
   </script>
   {% endblock %}
+
+

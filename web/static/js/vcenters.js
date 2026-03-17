@@ -1,14 +1,14 @@
 /**
- * vcenters.js — Gerenciamento de vCenters do ZombieHunter
+ * vcenters.js â€” Gerenciamento de vCenters do ZombieHunter
  * ========================================================
  * Responsabilidades:
  *   1. Carrega e renderiza cards dos vCenters via GET /api/v1/vcenters
  *   2. Polling de conectividade via GET /api/v1/vcenters/{id}/test a cada 60s
  *   3. Cadastro de novo vCenter via POST /api/v1/vcenters
- *   4. Edição via PATCH /api/v1/vcenters/{id}
- *   5. Remoção via DELETE /api/v1/vcenters/{id}
- *   6. Teste de conexão sob demanda
- *   7. "Testar antes de salvar" no formulário de cadastro/edição
+ *   4. EdiÃ§Ã£o via PATCH /api/v1/vcenters/{id}
+ *   5. RemoÃ§Ã£o via DELETE /api/v1/vcenters/{id}
+ *   6. Teste de conexÃ£o sob demanda
+ *   7. "Testar antes de salvar" no formulÃ¡rio de cadastro/ediÃ§Ã£o
  *
  * Endpoints consumidos:
  *   GET    /api/v1/vcenters
@@ -25,34 +25,55 @@
 const VC_API = "/api/v1/vcenters";
 const POLL_INTERVAL_MS = 60_000;
 
-// ── Estado ────────────────────────────────────────────────────────────────────
+function _buildApiHeaders(headersInit = {}) {
+  const headers = new Headers(headersInit || {});
+  headers.delete("X-API-Key");
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+  return headers;
+}
+
+async function _apiFetch(url, init = {}) {
+  return fetch(url, {
+    credentials: "same-origin",
+    ...init,
+    headers: _buildApiHeaders(init.headers || {}),
+  });
+}
+
+// â”€â”€ Estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let vcenters    = [];            // lista completa
 let pollTimer   = null;
-let editingId   = null;          // id do vCenter em edição (null = novo)
+let editingId   = null;          // id do vCenter em ediÃ§Ã£o (null = novo)
+let vcenterConnectivity = {};      // status por vCenter
 
-// ── Bootstrap modals (inicializados no DOMContentLoaded) ──────────────────────
+// â”€â”€ Bootstrap modals (inicializados no DOMContentLoaded) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let modalAdd   = null;
 let modalDel   = null;
 let deletingId = null;
 
-// ── Inicialização ─────────────────────────────────────────────────────────────
+// â”€â”€ InicializaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 document.addEventListener("DOMContentLoaded", async () => {
   modalAdd = new bootstrap.Modal(document.getElementById("zh-modal-vcenter"), { keyboard: false });
   modalDel = new bootstrap.Modal(document.getElementById("zh-modal-delete"),  { keyboard: false });
 
   _bindFormEvents();
+  _bindOperationalGuide();
+  _updateOperationalGuide({ loading: true });
 
   await loadVcenters();
   _startPolling();
 });
 
-// ── Carregamento ──────────────────────────────────────────────────────────────
+// â”€â”€ Carregamento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function loadVcenters() {
   _setLoading(true);
+  _updateOperationalGuide({ loading: true });
   if (window.zhFeedback) {
     window.zhFeedback.setInline("#zh-vc-feedback", {
       state: "loading",
@@ -61,7 +82,7 @@ async function loadVcenters() {
     });
   }
   try {
-    const resp = await fetch(VC_API, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" } });
+    const resp = await _apiFetch(VC_API);
     if (!resp.ok) {
       const err = new Error(`HTTP ${resp.status}`);
       err.status = resp.status;
@@ -71,6 +92,7 @@ async function loadVcenters() {
     _renderCards();
     _setText("zh-vc-count", vcenters.length);
     window.zhFeedback?.clear("#zh-vc-feedback");
+    _updateOperationalGuide();
   } catch (err) {
     const info = window.zhFeedback
       ? window.zhFeedback.toErrorInfo(err, "Falha ao carregar lista de vCenters.")
@@ -87,13 +109,14 @@ async function loadVcenters() {
           : "Verifique rede/API e clique novamente em atualizar.",
       });
     }
+    _updateOperationalGuide({ error: err });
     _showToast("danger", `Erro ao carregar vCenters: ${info.message}`);
   } finally {
     _setLoading(false);
   }
 }
 
-// ── Renderização de cards ─────────────────────────────────────────────────────
+// â”€â”€ RenderizaÃ§Ã£o de cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _renderCards() {
   const grid = document.getElementById("zh-vc-grid");
@@ -108,22 +131,27 @@ function _renderCards() {
           <i class="bi bi-plus-circle me-1"></i>Adicionar primeiro vCenter
         </button>
       </div>`;
+    vcenterConnectivity = {};
+    _updateOperationalGuide();
     return;
   }
 
+  vcenterConnectivity = {};
+  vcenters.forEach((vc) => { vcenterConnectivity[vc.id] = "unknown"; });
   grid.innerHTML = vcenters.map(_cardHtml).join("");
 
-  // Re-vincular tooltips após render
+  // Re-vincular tooltips apÃ³s render
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
     new bootstrap.Tooltip(el, { trigger: "hover" });
   });
+  _updateOperationalGuide();
 }
 
 function _cardHtml(vc) {
   const statusDot = `<span id="zh-dot-${vc.id}" class="zh-vc-dot zh-dot-unknown"
-    title="Conectividade desconhecida — aguarde polling"></span>`;
+    title="Conectividade desconhecida â€” aguarde polling"></span>`;
 
-  const statusLabel = `<span id="zh-status-label-${vc.id}" class="small text-muted-zh">Verificando…</span>`;
+  const statusLabel = `<span id="zh-status-label-${vc.id}" class="small text-muted-zh">Verificandoâ€¦</span>`;
 
   const lastScan = vc.last_scan_at
     ? `<span class="small text-muted-zh">${_fmtRelative(vc.last_scan_at)}</span>`
@@ -131,7 +159,7 @@ function _cardHtml(vc) {
 
   const zombieCount = vc.zombie_count != null
     ? `<span class="zh-badge-red" style="font-size:.75rem;">${vc.zombie_count} zombie${vc.zombie_count !== 1 ? "s" : ""}</span>`
-    : `<span class="small text-muted-zh">—</span>`;
+    : `<span class="small text-muted-zh">â€”</span>`;
 
   const sslBadge = vc.disable_ssl_verify
     ? `<span class="zh-badge-yellow" style="font-size:.68rem;">SSL ignorado</span>`
@@ -155,7 +183,7 @@ function _cardHtml(vc) {
           <i class="bi bi-hdd-network text-zombie-blue opacity-75"></i>
           <span class="font-monospace small text-body-secondary">${_esc(vc.host)}:${vc.port}</span>
         </div>
-        <!-- Usuário -->
+        <!-- UsuÃ¡rio -->
         <div class="mb-2 d-flex align-items-center gap-2">
           <i class="bi bi-person text-muted-zh opacity-75"></i>
           <span class="small text-muted-zh">${_esc(vc.username)}</span>
@@ -165,7 +193,7 @@ function _cardHtml(vc) {
           <i class="bi bi-wifi text-muted-zh opacity-75"></i>
           ${statusLabel}
         </div>
-        <!-- Última varredura -->
+        <!-- Ãšltima varredura -->
         <div class="mb-2 d-flex align-items-center gap-2">
           <i class="bi bi-clock-history text-muted-zh opacity-75"></i>
           ${lastScan}
@@ -196,21 +224,20 @@ function _cardHtml(vc) {
   </div>`;
 }
 
-// ── Teste de conexão (card individual) ───────────────────────────────────────
+// â”€â”€ Teste de conexÃ£o (card individual) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function testConnection(id) {
   const btn    = document.getElementById(`zh-btn-test-${id}`);
   const dot    = document.getElementById(`zh-dot-${id}`);
   const label  = document.getElementById(`zh-status-label-${id}`);
 
-  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Testando…`; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Testandoâ€¦`; }
   if (dot)   dot.className = "zh-vc-dot zh-dot-unknown";
-  if (label) label.textContent = "Testando…";
+  if (label) label.textContent = "Testandoâ€¦";
 
   try {
-    const resp = await fetch(`${VC_API}/${id}/test`, {
+    const resp = await _apiFetch(`${VC_API}/${id}/test`, {
       method:  "POST",
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" },
     });
 
     if (resp.ok) {
@@ -230,40 +257,44 @@ async function testConnection(id) {
 function _setCardOnline(id, data) {
   const dot   = document.getElementById(`zh-dot-${id}`);
   const label = document.getElementById(`zh-status-label-${id}`);
+  vcenterConnectivity[id] = "online";
   if (dot)   dot.className = "zh-vc-dot zh-dot-online";
   if (label) {
     const ver = data?.api_version ?? "";
     label.innerHTML = `<span class="text-success-zh fw-semibold">Online</span>`
-      + (ver ? ` <span class="text-muted-zh">— API v${_esc(ver)}</span>` : "");
+      + (ver ? ` <span class="text-muted-zh">â€” API v${_esc(ver)}</span>` : "");
   }
+  _updateOperationalGuide();
 }
 
 function _setCardOffline(id, reason) {
   const dot   = document.getElementById(`zh-dot-${id}`);
   const label = document.getElementById(`zh-status-label-${id}`);
+  vcenterConnectivity[id] = "offline";
   if (dot)   dot.className = "zh-vc-dot zh-dot-offline";
   if (label) label.innerHTML =
     `<span class="text-danger-zh fw-semibold">Offline</span>`
-    + ` <span class="text-muted-zh" title="${_esc(reason)}">— ${_esc(_trunc(reason, 40))}</span>`;
+    + ` <span class="text-muted-zh" title="${_esc(reason)}">â€” ${_esc(_trunc(reason, 40))}</span>`;
+  _updateOperationalGuide();
 }
 
-// ── Polling de status ─────────────────────────────────────────────────────────
+// â”€â”€ Polling de status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _startPolling() {
   pollTimer = setInterval(_pollAllVcenters, POLL_INTERVAL_MS);
-  // Dispara imediatamente na inicialização
+  // Dispara imediatamente na inicializaÃ§Ã£o
   _pollAllVcenters();
 }
 
 async function _pollAllVcenters() {
-  // Usa pool-status (endpoint único) quando disponível; fallback por card
+  // Usa pool-status (endpoint Ãºnico) quando disponÃ­vel; fallback por card
   try {
-    const resp = await fetch(`${VC_API}/pool-status`, { headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" } });
+    const resp = await _apiFetch(`${VC_API}/pool-status`);
     if (resp.ok) {
       const data = await resp.json();          // { "1": "online", "2": "offline", ... }
       Object.entries(data).forEach(([id, state]) => {
         if (state === "online")  _setCardOnline(Number(id), {});
-        else                     _setCardOffline(Number(id), "Inacessível");
+        else                     _setCardOffline(Number(id), "InacessÃ­vel");
       });
       return;
     }
@@ -272,8 +303,8 @@ async function _pollAllVcenters() {
   // Fallback: testa cada vCenter individualmente (silencioso)
   for (const vc of vcenters) {
     try {
-      const r = await fetch(`${VC_API}/${vc.id}/test`, {
-        method: "POST", headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" },
+      const r = await _apiFetch(`${VC_API}/${vc.id}/test`, {
+        method: "POST",
       });
       if (r.ok) _setCardOnline(vc.id, await r.json());
       else      _setCardOffline(vc.id, `HTTP ${r.status}`);
@@ -283,7 +314,149 @@ async function _pollAllVcenters() {
   }
 }
 
-// ── Modal de cadastro / edição ────────────────────────────────────────────────
+function _bindOperationalGuide() {
+  const btn = document.getElementById("zh-vc-guide-action");
+  if (!btn || btn.dataset.bound) return;
+
+  btn.dataset.bound = "true";
+  btn.addEventListener("click", () => {
+    const action = btn.dataset.action || "focus_grid";
+    if (action === "open_create") {
+      openAddModal();
+      return;
+    }
+    if (action === "focus_offline") {
+      const offlineDot = document.querySelector(".zh-dot-offline");
+      offlineDot?.closest(".card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (action === "focus_grid") {
+      document.getElementById("zh-vc-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    loadVcenters();
+  });
+}
+
+function _computeConnectivityStats() {
+  const total = vcenters.length;
+  let online = 0;
+  let offline = 0;
+  let unknown = 0;
+
+  vcenters.forEach((vc) => {
+    const state = vcenterConnectivity[vc.id] || "unknown";
+    if (state === "online") {
+      online += 1;
+    } else if (state === "offline") {
+      offline += 1;
+    } else {
+      unknown += 1;
+    }
+  });
+
+  return { total, online, offline, unknown };
+}
+
+function _updateOperationalGuide(meta = {}) {
+  const totalEl = document.getElementById("zh-vc-guide-total");
+  const onlineEl = document.getElementById("zh-vc-guide-online");
+  const offlineEl = document.getElementById("zh-vc-guide-offline");
+  if (!totalEl || !onlineEl || !offlineEl) return;
+
+  const stats = _computeConnectivityStats();
+  totalEl.textContent = String(stats.total);
+  onlineEl.textContent = String(stats.online);
+  offlineEl.textContent = String(stats.offline);
+
+  if (meta.loading) {
+    _setOperationalGuideState(
+      "info",
+      "Sincronizando inventario de vCenters",
+      "aguarde o carregamento para validar conectividade antes de operar.",
+      { key: "refresh", label: "Atualizar", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  if (meta.error) {
+    _setOperationalGuideState(
+      "danger",
+      "Falha ao carregar status dos vCenters",
+      "verifique sessao/rede e execute nova atualizacao.",
+      { key: "refresh", label: "Tentar novamente", btnClass: "btn-outline-danger" }
+    );
+    return;
+  }
+
+  if (stats.total === 0) {
+    _setOperationalGuideState(
+      "info",
+      "Nenhum vCenter cadastrado",
+      "cadastre ao menos um endpoint para habilitar varredura monitorada.",
+      { key: "open_create", label: "Cadastrar vCenter", btnClass: "btn-primary" }
+    );
+    return;
+  }
+
+  if (stats.offline > 0) {
+    _setOperationalGuideState(
+      "warning",
+      `${stats.offline} vCenter(s) offline`,
+      "revise conectividade/permissoes antes da proxima varredura.",
+      { key: "focus_offline", label: "Ver offline", btnClass: "btn-warning" }
+    );
+    return;
+  }
+
+  if (stats.unknown > 0) {
+    _setOperationalGuideState(
+      "info",
+      "Aguardando resultado de polling de conectividade",
+      "aguarde a validacao automatica ou force um refresh manual.",
+      { key: "refresh", label: "Atualizar", btnClass: "btn-outline-primary" }
+    );
+    return;
+  }
+
+  _setOperationalGuideState(
+    "success",
+    "Todos os vCenters estao online",
+    "prossiga com varreduras mantendo monitoramento periodico ativo.",
+    { key: "focus_grid", label: "Revisar grade", btnClass: "btn-outline-success" }
+  );
+}
+
+function _setOperationalGuideState(tone, titleText, nextStep, action = {}) {
+  const card = document.getElementById("zh-vc-guide");
+  const level = document.getElementById("zh-vc-guide-level");
+  const title = document.getElementById("zh-vc-guide-title");
+  const next = document.getElementById("zh-vc-guide-next");
+  const btn = document.getElementById("zh-vc-guide-action");
+  if (!card || !level || !title || !next || !btn) return;
+
+  card.classList.remove("is-info", "is-success", "is-warning", "is-danger");
+  card.classList.add(`is-${tone}`);
+
+  const badgeByTone = {
+    info: { cls: "text-bg-info", label: "Fluxo sugerido" },
+    success: { cls: "text-bg-success", label: "Operacao estavel" },
+    warning: { cls: "text-bg-warning", label: "Atencao operacional" },
+    danger: { cls: "text-bg-danger", label: "Falha na carga" },
+  };
+  const badge = badgeByTone[tone] || badgeByTone.info;
+
+  level.className = `badge rounded-pill ${badge.cls} mb-2`;
+  level.textContent = badge.label;
+  title.textContent = titleText;
+  next.textContent = `Proximo passo: ${nextStep}`;
+
+  btn.dataset.action = action.key || "focus_grid";
+  btn.className = `btn btn-sm ${action.btnClass || "btn-outline-primary"}`;
+  btn.textContent = action.label || "Ir para grade";
+}
+
+// â”€â”€ Modal de cadastro / ediÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function openAddModal() {
   editingId = null;
@@ -301,7 +474,7 @@ async function openEditModal(id) {
   if (!vc) return;
 
   _resetForm();
-  document.getElementById("zh-modal-vcenter-title").textContent = `Editar — ${vc.name}`;
+  document.getElementById("zh-modal-vcenter-title").textContent = `Editar â€” ${vc.name}`;
   document.getElementById("zh-field-name").value               = vc.name;
   document.getElementById("zh-field-host").value               = vc.host;
   document.getElementById("zh-field-port").value               = vc.port;
@@ -320,7 +493,7 @@ function _resetForm() {
   _setTestBtnState("idle");
 }
 
-// ── Envio do formulário ───────────────────────────────────────────────────────
+// â”€â”€ Envio do formulÃ¡rio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _bindFormEvents() {
   document.getElementById("zh-vc-form")?.addEventListener("submit", _handleFormSubmit);
@@ -332,31 +505,35 @@ async function _handleFormSubmit(e) {
 
   const btn = document.getElementById("zh-btn-save");
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Salvando…`;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Salvandoâ€¦`;
 
   try {
     const payload = _collectFormPayload();
     let resp;
 
     if (editingId) {
-      // Edição — senha só vai se preenchida
+      // EdiÃ§Ã£o â€” senha sÃ³ vai se preenchida
       if (!payload.password) delete payload.password;
-      resp = await fetch(`${VC_API}/${editingId}`, {
+      resp = await _apiFetch(`${VC_API}/${editingId}`, {
         method:  "PATCH",
-        headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Content-Type": "application/json", Accept: "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body:    JSON.stringify(payload),
       });
     } else {
-      resp = await fetch(VC_API, {
+      resp = await _apiFetch(VC_API, {
         method:  "POST",
-        headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Content-Type": "application/json", Accept: "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body:    JSON.stringify(payload),
       });
     }
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-      _showFormError(_extractDetail(err));
+      _showFormError(_extractDetail(err), {
+        title: editingId ? "Falha ao atualizar vCenter" : "Falha ao cadastrar vCenter",
+        impact: "Nenhuma alteracao foi persistida.",
+        nextStep: "Revise os dados e valide conectividade/permissoes antes de salvar.",
+      });
       return;
     }
 
@@ -365,7 +542,11 @@ async function _handleFormSubmit(e) {
     await loadVcenters();
 
   } catch (err) {
-    _showFormError(err.message);
+    _showFormError(err.message, {
+      title: editingId ? "Falha ao atualizar vCenter" : "Falha ao cadastrar vCenter",
+      impact: "A operacao foi interrompida antes de persistir os dados.",
+      nextStep: "Verifique conectividade com a API e tente novamente.",
+    });
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<i class="bi bi-floppy me-1"></i>Salvar`;
@@ -375,7 +556,12 @@ async function _handleFormSubmit(e) {
 async function _handleTestBeforeSave() {
   const payload = _collectFormPayload();
   if (!payload.host || !payload.username || !payload.password) {
-    _showFormError("Preencha host, usuário e senha antes de testar.");
+    _showFormError("Preencha host, usuario e senha antes de testar.", {
+      category: "validation",
+      title: "Dados incompletos para teste",
+      impact: "O teste de conectividade nao foi iniciado.",
+      nextStep: "Preencha host, usuario e senha e tente novamente.",
+    });
     return;
   }
 
@@ -383,51 +569,62 @@ async function _handleTestBeforeSave() {
   _clearFormError();
 
   try {
-    // Cadastra temporariamente? Não — chamamos /test com um body ad-hoc
-    // Como não há endpoint /test sem id, usamos POST /vcenters + DELETE
-    // Strategy: POST vCenter sem nome único → usar name "zh-test-probe-<ts>"
+    // Cadastra temporariamente? NÃ£o â€” chamamos /test com um body ad-hoc
+    // Como nÃ£o hÃ¡ endpoint /test sem id, usamos POST /vcenters + DELETE
+    // Strategy: POST vCenter sem nome Ãºnico â†’ usar name "zh-test-probe-<ts>"
     const probeName = `zh-test-probe-${Date.now()}`;
     const createPayload = { ...payload, name: probeName };
 
-    const createResp = await fetch(VC_API, {
+    const createResp = await _apiFetch(VC_API, {
       method:  "POST",
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Content-Type": "application/json", Accept: "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body:    JSON.stringify(createPayload),
     });
 
     if (!createResp.ok) {
       const err = await createResp.json().catch(() => ({}));
       _setTestBtnState("error");
-      _showFormError(`Erro ao criar probe: ${_extractDetail(err)}`);
+      _showFormError(`Erro ao criar probe: ${_extractDetail(err)}`, {
+        title: "Falha ao preparar teste de conexao",
+        impact: "Nao foi possivel validar a conectividade do vCenter.",
+        nextStep: "Revise credenciais/permissoes e repita o teste.",
+      });
       return;
     }
 
     const created = await createResp.json();
     const probeId = created.id;
 
-    const testResp = await fetch(`${VC_API}/${probeId}/test`, {
+    const testResp = await _apiFetch(`${VC_API}/${probeId}/test`, {
       method:  "POST",
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" },
     });
 
     // Limpa probe independente do resultado
-    await fetch(`${VC_API}/${probeId}`, { method: "DELETE", headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",   } }).catch(() => {});
+    await _apiFetch(`${VC_API}/${probeId}`, { method: "DELETE" }).catch(() => {});
 
     if (testResp.ok) {
       const result = await testResp.json();
       _setTestBtnState("success");
       _showFormSuccess(
-        `Conexão OK — API v${result.api_version ?? "?"} | UUID: ${result.instance_uuid ?? "?"}`
+        `ConexÃ£o OK â€” API v${result.api_version ?? "?"} | UUID: ${result.instance_uuid ?? "?"}`
       );
     } else {
       const err = await testResp.json().catch(() => ({}));
       _setTestBtnState("error");
-      _showFormError(`Falha na conexão: ${_extractDetail(err)}`);
+      _showFormError(`Falha na conexao: ${_extractDetail(err)}`, {
+        title: "Falha no teste de conexao",
+        impact: "A conexao com o vCenter nao foi validada.",
+        nextStep: "Valide host, porta, credenciais e SSL antes de salvar.",
+      });
     }
 
   } catch (e) {
     _setTestBtnState("error");
-    _showFormError(e.message);
+    _showFormError(e.message, {
+      title: "Erro inesperado no teste de conexao",
+      impact: "A validacao de conectividade foi interrompida.",
+      nextStep: "Verifique conectividade com a API e tente novamente.",
+    });
   }
 }
 
@@ -446,9 +643,9 @@ function _setTestBtnState(state) {
   const btn = document.getElementById("zh-btn-test-form");
   if (!btn) return;
   const map = {
-    idle:    { cls: "btn-outline-info",    ico: "bi-plug",            label: "Testar conexão", disabled: false },
-    loading: { cls: "btn-outline-secondary",ico: "",                  label: "Testando…",      disabled: true  },
-    success: { cls: "btn-outline-success", ico: "bi-check-circle",    label: "Conexão OK",     disabled: false },
+    idle:    { cls: "btn-outline-info",    ico: "bi-plug",            label: "Testar conexÃ£o", disabled: false },
+    loading: { cls: "btn-outline-secondary",ico: "",                  label: "Testandoâ€¦",      disabled: true  },
+    success: { cls: "btn-outline-success", ico: "bi-check-circle",    label: "ConexÃ£o OK",     disabled: false },
     error:   { cls: "btn-outline-danger",  ico: "bi-x-circle",        label: "Falhou",         disabled: false },
   };
   const s = map[state] ?? map.idle;
@@ -457,7 +654,7 @@ function _setTestBtnState(state) {
   btn.innerHTML = s.ico ? `<i class="bi ${s.ico} me-1"></i>${s.label}` : `<span class="spinner-border spinner-border-sm me-1"></span>${s.label}`;
 }
 
-// ── Exclusão ──────────────────────────────────────────────────────────────────
+// â”€â”€ ExclusÃ£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function confirmDelete(id, name) {
   deletingId = id;
@@ -471,9 +668,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!deletingId) return;
     const btn = document.getElementById("zh-btn-confirm-delete");
     btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Removendo…`;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Removendoâ€¦`;
     try {
-      const resp = await fetch(`${VC_API}/${deletingId}`, { method: "DELETE", headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",   } });
+      const resp = await _apiFetch(`${VC_API}/${deletingId}`, { method: "DELETE" });
       if (!resp.ok && resp.status !== 200) {
         const err = await resp.json().catch(() => ({}));
         throw new Error(_extractDetail(err));
@@ -482,32 +679,37 @@ document.addEventListener("DOMContentLoaded", () => {
       _showToast("success", "vCenter removido.");
       await loadVcenters();
     } catch (e) {
-      _showToast("danger", `Erro ao remover: ${e.message}`);
+      _showToast("danger", `Erro ao remover: ${e.message}`, {
+        title: "Falha ao remover vCenter",
+        impact: "O vCenter permanece cadastrado e pode continuar listado.",
+        nextStep: "Verifique dependencias/permissoes e tente novamente.",
+      });
     } finally {
       btn.disabled = false;
-      btn.innerHTML = `<i class="bi bi-trash3 me-1"></i>Confirmar remoção`;
+      btn.innerHTML = `<i class="bi bi-trash3 me-1"></i>Confirmar remoÃ§Ã£o`;
       deletingId = null;
     }
   });
 });
 
-// ── UI helpers ────────────────────────────────────────────────────────────────
+// â”€â”€ UI helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function _showFormError(msg) {
+function _showFormError(msg, opts = {}) {
   const el = document.getElementById("zh-form-feedback");
   if (!el) return;
+  const fallbackMessage = opts.fallbackMessage || "Falha ao validar dados do vCenter.";
   if (window.zhFeedback) {
-    const info = window.zhFeedback.toErrorInfo({ message: String(msg || "") }, "Falha ao validar dados do vCenter.");
+    const info = window.zhFeedback.toErrorInfo({ message: String(msg || "") }, fallbackMessage);
     el.classList.remove("d-none");
     el.innerHTML = window.zhFeedback.renderAlert({
       state: "error",
-      category: info.category,
-      title: "Falha ao salvar vCenter",
+      category: opts.category || info.category,
+      title: opts.title || "Falha ao salvar vCenter",
       happened: info.message,
-      impact: "Nenhuma alteracao foi persistida.",
-      nextStep: info.category === "validation"
+      impact: opts.impact || "Nenhuma alteracao foi persistida.",
+      nextStep: opts.nextStep || (info.category === "validation"
         ? "Revise os campos obrigatorios e tente novamente."
-        : "Valide conectividade/permissoes e repita a operacao.",
+        : "Valide conectividade/permissoes e repita a operacao."),
     });
     return;
   }
@@ -541,7 +743,7 @@ function _clearFormError() {
   if (el) el.classList.add("d-none");
 }
 
-function _showToast(type, msg) {
+function _showToast(type, msg, opts = {}) {
   if (window.zhFeedback) {
     const map = {
       success: {
@@ -575,12 +777,12 @@ function _showToast(type, msg) {
     };
     const cfg = map[type] || map.info;
     window.zhFeedback.showToast({
-      state: cfg.state,
-      category: cfg.category,
-      title: cfg.title,
+      state: opts.state || cfg.state,
+      category: opts.category || cfg.category,
+      title: opts.title || cfg.title,
       happened: msg,
-      impact: cfg.impact,
-      nextStep: cfg.nextStep,
+      impact: opts.impact || cfg.impact,
+      nextStep: opts.nextStep || cfg.nextStep,
     });
     return;
   }
@@ -619,13 +821,13 @@ function _extractDetail(err) {
 }
 
 function _fmtRelative(iso) {
-  if (!iso) return "—";
+  if (!iso) return "â€”";
   try {
     const diff = Date.now() - new Date(iso).getTime();
     if (diff < 60_000) return "agora";
-    if (diff < 3_600_000) return `há ${Math.floor(diff / 60_000)}min`;
-    if (diff < 86_400_000) return `há ${Math.floor(diff / 3_600_000)}h`;
-    return `há ${Math.floor(diff / 86_400_000)}d`;
+    if (diff < 3_600_000) return `hÃ¡ ${Math.floor(diff / 60_000)}min`;
+    if (diff < 86_400_000) return `hÃ¡ ${Math.floor(diff / 3_600_000)}h`;
+    return `hÃ¡ ${Math.floor(diff / 86_400_000)}d`;
   } catch {
     return String(iso).slice(0, 10);
   }
@@ -633,10 +835,23 @@ function _fmtRelative(iso) {
 
 function _setText(id, val) {
   const el = document.getElementById(id);
-  if (el) el.textContent = val ?? "—";
+  if (el) el.textContent = val ?? "â€”";
 }
 
 const _esc   = (s) => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;");
-const _trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "…" : (s ?? "");
+const _trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "â€¦" : (s ?? "");
+
+
+
+
+
+
+
+
+
+
+
+
+

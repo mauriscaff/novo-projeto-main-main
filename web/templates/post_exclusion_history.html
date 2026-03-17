@@ -1,0 +1,237 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Historico Pos-Exclusao{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h4 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-clock-history text-zombie-blue" aria-hidden="true"></i>
+      Historico Pos-Exclusao
+    </h4>
+    <small class="text-muted-zh">
+      Consulte o acumulado das verificacoes de exclusao, com sumario persistido e evidencia por arquivo quando disponivel.
+    </small>
+  </div>
+</div>
+
+<div id="zh-history-feedback" class="mb-3 d-none" aria-live="polite"></div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="zh-card zh-history-kpi p-3 h-100">
+      <div class="text-muted-zh small text-uppercase">Runs</div>
+      <div class="fs-4 fw-bold text-zombie-blue" id="zh-history-total-runs">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="zh-card zh-history-kpi p-3 h-100">
+      <div class="text-muted-zh small text-uppercase">Datastores Removidos</div>
+      <div class="fs-4 fw-bold text-zombie-green" id="zh-history-total-removed">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="zh-card zh-history-kpi p-3 h-100">
+      <div class="text-muted-zh small text-uppercase">VMDKs Excluidos</div>
+      <div class="fs-4 fw-bold text-zombie-red" id="zh-history-total-vmdks">0</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="zh-card zh-history-kpi p-3 h-100">
+      <div class="text-muted-zh small text-uppercase">GB Removidos</div>
+      <div class="fs-4 fw-bold text-zombie-yellow" id="zh-history-total-gb">0.000 GB</div>
+    </div>
+  </div>
+</div>
+
+<div class="zh-card mb-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-funnel-fill text-zombie-blue"></i>
+    <span>Filtros</span>
+  </div>
+  <div class="card-body">
+    <form id="zh-history-form" class="row g-3 align-items-end" autocomplete="off">
+      <div class="col-12 col-md-4">
+        <label for="zh-history-datastore" class="form-label mb-1 zh-history-label">Datastore</label>
+        <input id="zh-history-datastore" type="text" class="form-control form-control-sm zh-history-input" placeholder="Ex.: STA_LUN_08" />
+      </div>
+      <div class="col-12 col-md-3">
+        <label for="zh-history-vcenter" class="form-label mb-1 zh-history-label">vCenter</label>
+        <input id="zh-history-vcenter" type="text" class="form-control form-control-sm zh-history-input" placeholder="Ex.: s2001.ms" />
+      </div>
+      <div class="col-6 col-md-2">
+        <label for="zh-history-status" class="form-label mb-1 zh-history-label">Status</label>
+        <select id="zh-history-status" class="form-select form-select-sm zh-history-input">
+          <option value="">Todos</option>
+          <option value="datastore_removed">datastore_removed</option>
+          <option value="partial_cleanup">partial_cleanup</option>
+          <option value="no_cleanup">no_cleanup</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-1">
+        <label for="zh-history-limit" class="form-label mb-1 zh-history-label">Limite</label>
+        <input id="zh-history-limit" type="number" min="1" max="500" value="100" class="form-control form-control-sm zh-history-input" />
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button id="zh-history-refresh" type="submit" class="btn btn-sm btn-primary flex-fill d-flex align-items-center justify-content-center gap-2">
+          <span class="spinner-border spinner-border-sm d-none" id="zh-history-spinner" role="status"></span>
+          <i class="bi bi-arrow-repeat" id="zh-history-refresh-icon"></i>
+          <span>Atualizar</span>
+        </button>
+        <button id="zh-history-clear" type="button" class="btn btn-sm btn-outline-secondary">Limpar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="zh-card mb-3">
+  <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+    <span class="d-flex align-items-center gap-2">
+      <i class="bi bi-table text-zombie-blue"></i>
+      Execucoes Registradas
+    </span>
+    <small class="text-muted-zh" id="zh-history-updated-at">Aguardando carregamento.</small>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-sm align-middle mb-0 zh-history-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Datastore</th>
+            <th>vCenter</th>
+            <th>Status</th>
+            <th class="text-end">VMDKs</th>
+            <th class="text-end">GB</th>
+            <th class="text-end">Acao</th>
+          </tr>
+        </thead>
+        <tbody id="zh-history-body">
+          <tr>
+            <td colspan="7" class="text-muted-zh text-center py-4">Nenhum historico carregado.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="zh-history-detail" class="zh-card d-none">
+  <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+    <span class="d-flex align-items-center gap-2">
+      <i class="bi bi-file-earmark-bar-graph text-zombie-blue"></i>
+      Detalhe da Execucao
+    </span>
+    <small class="text-muted-zh" id="zh-history-detail-date">-</small>
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <span class="badge text-bg-secondary" id="zh-history-detail-datastore">Datastore: -</span>
+      <span class="badge text-bg-secondary" id="zh-history-detail-vcenter">vCenter: -</span>
+      <span class="badge text-bg-secondary" id="zh-history-detail-baseline">Baseline: -</span>
+      <span class="badge text-bg-secondary" id="zh-history-detail-verification">Verificacao: -</span>
+      <span class="badge" id="zh-history-detail-status">Status: -</span>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-lg-3">
+        <div class="zh-card zh-history-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">VMDKs Excluidos</div>
+          <div class="fs-4 fw-bold text-zombie-red" id="zh-history-detail-vmdks">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="zh-card zh-history-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">GB Removidos</div>
+          <div class="fs-4 fw-bold text-zombie-yellow" id="zh-history-detail-gb">0.000 GB</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="zh-card zh-history-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">Remanescentes</div>
+          <div class="fs-4 fw-bold text-zombie-green" id="zh-history-detail-remaining">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="zh-card zh-history-kpi p-3 h-100">
+          <div class="text-muted-zh small text-uppercase">Consistencia</div>
+          <div class="fs-6 fw-bold" id="zh-history-detail-consistency">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="zh-history-detail-note" class="alert alert-warning py-2 px-3 small d-none mb-3"></div>
+
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+      <div class="text-muted-zh small">Evidencia reconstruida por arquivo</div>
+      <small class="text-muted-zh">Usa baseline x verification dos jobs gravados no historico.</small>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-dark table-sm align-middle mb-0 zh-history-table">
+        <thead>
+          <tr>
+            <th>VMDK Path</th>
+            <th>Tipo</th>
+            <th>Datacenter</th>
+            <th>vCenter</th>
+            <th class="text-end">GB</th>
+          </tr>
+        </thead>
+        <tbody id="zh-history-evidence-body">
+          <tr>
+            <td colspan="5" class="text-muted-zh text-center py-4">Selecione uma execucao para ver a evidencia.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+  .zh-history-kpi {
+    border: 1px solid var(--zh-border);
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.92), rgba(9, 14, 24, 0.92));
+  }
+  .zh-history-label {
+    font-size: .78rem;
+    color: var(--zh-text-muted);
+  }
+  .zh-history-input {
+    background-color: var(--zh-bg-sidebar);
+    border-color: var(--zh-border);
+    color: #e6edf3;
+  }
+  .zh-history-table td, .zh-history-table th {
+    vertical-align: middle;
+  }
+  .zh-history-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .28rem .6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.12);
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .zh-history-status.ok {
+    color: #3ddc97;
+    background: rgba(61, 220, 151, .12);
+    border-color: rgba(61, 220, 151, .28);
+  }
+  .zh-history-status.warn {
+    color: #f6c453;
+    background: rgba(246, 196, 83, .12);
+    border-color: rgba(246, 196, 83, .28);
+  }
+  .zh-history-status.neutral {
+    color: #9baec8;
+    background: rgba(155, 174, 200, .12);
+    border-color: rgba(155, 174, 200, .24);
+  }
+</style>
+
+<script src="{{ url_for('static', path='js/post_exclusion_history.js') }}"></script>
+{% endblock %}

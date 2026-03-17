@@ -1,0 +1,454 @@
+{
+  "source_db": "C:\\Users\\mscaff\\Downloads\\novo-projeto-main-main\\novo-projeto-main-main\\vmdk_scanner.db",
+  "generated_at": "2026-03-13T19:26:33.155980Z",
+  "summary": {
+    "total_runs": 13,
+    "statuses": {
+      "datastore_removed": 7,
+      "no_cleanup": 6
+    },
+    "total_stored_deleted_vmdks": 25,
+    "total_stored_deleted_size_gb": 17647.128
+  },
+  "runs": [
+    {
+      "created_at": "2026-03-13 19:20:22",
+      "datastore": "STA_LUN_10",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "datastore_removed",
+      "baseline_job_id": "aee7556b-3869-4833-b333-96bbdef71690",
+      "verification_job_id": "aa301a0a-ac08-4ab2-a9e5-a36eb47974d3",
+      "stored_deleted_vmdk_count": 2,
+      "stored_deleted_size_gb": 355.738,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 2,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 2,
+      "reconstructed_deleted_size_gb": 355.738,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": [
+        {
+          "path": "[STA_LUN_10] S0825 - MS DYNATRACE PROD/S0825 - MS DYNATRACE PROD_1.vmdk",
+          "tamanho_gb": 325.738,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_10] S0072 - SGI EAST RACKTABLES PROD/S0072 - SGI EAST RACKTABLES PROD.vmdk",
+          "tamanho_gb": 30.0,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        }
+      ]
+    },
+    {
+      "created_at": "2026-03-13 13:35:42",
+      "datastore": "STA_LUN_09",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "datastore_removed",
+      "baseline_job_id": "b9018474-2a6e-4df2-b3c0-e1c80cf4934a",
+      "verification_job_id": "eb04078a-5bb2-4b6c-9449-62ea4190ad40",
+      "stored_deleted_vmdk_count": 1,
+      "stored_deleted_size_gb": 28.549,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 1,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 1,
+      "reconstructed_deleted_size_gb": 28.549,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": [
+        {
+          "path": "[STA_LUN_09] S1773 - PGE DC PROD/S1773 - PGE DC PROD.vmdk",
+          "tamanho_gb": 28.549,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        }
+      ]
+    },
+    {
+      "created_at": "2026-03-13 13:34:31",
+      "datastore": "STA_LUN_08",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "datastore_removed",
+      "baseline_job_id": "b9018474-2a6e-4df2-b3c0-e1c80cf4934a",
+      "verification_job_id": "6b74a2de-6212-48bb-b665-b6611adfe164",
+      "stored_deleted_vmdk_count": 4,
+      "stored_deleted_size_gb": 316.021,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 4,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 4,
+      "reconstructed_deleted_size_gb": 316.021,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": [
+        {
+          "path": "[STA_LUN_08] S1975 - SGI SERVIDOR TFS 2015 PROD (CLONE S1253)/S1975 - SGI SERVIDOR TFS 2015 PROD (CLONE S1253)_3.vmdk",
+          "tamanho_gb": 165.529,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_08] S0733 - SGI INFRA KIBANA ELASTICSEARCH PROXY PROD/S0733 - SGI INFRA KIBANA ELASTICSEARCH PROXY PROD.vmdk",
+          "tamanho_gb": 108.179,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_08] S1285 - FARM CONCURSOS PHP PROD (CLONE)/S1285 - FARM CONCURSOS PHP PROD (CLONE)_3.vmdk",
+          "tamanho_gb": 21.182,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_08] S1285 - FARM CONCURSOS PHP PROD (CLONE)_1/S1285 - FARM CONCURSOS PHP PROD (CLONE)_3.vmdk",
+          "tamanho_gb": 21.131,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        }
+      ]
+    },
+    {
+      "created_at": "2026-03-13 13:33:31",
+      "datastore": "STA_LUN_09",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "no_cleanup",
+      "baseline_job_id": "d50fbce4-1647-4f2e-8f3c-ee8f09b1933b",
+      "verification_job_id": "b9018474-2a6e-4df2-b3c0-e1c80cf4934a",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 0.0,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 0,
+      "verification_rows_current": 1,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": []
+    },
+    {
+      "created_at": "2026-03-13 13:33:23",
+      "datastore": "STA_LUN_08",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "no_cleanup",
+      "baseline_job_id": "3a465107-e498-4999-82aa-bc495ec42a40",
+      "verification_job_id": "b9018474-2a6e-4df2-b3c0-e1c80cf4934a",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 0.0,
+      "remaining_vmdk_count": 4,
+      "remaining_size_gb": 316.021,
+      "baseline_rows_current": 4,
+      "verification_rows_current": 4,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": []
+    },
+    {
+      "created_at": "2026-03-11 15:17:14",
+      "datastore": "STA_LUN_08",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "no_cleanup",
+      "baseline_job_id": "d50fbce4-1647-4f2e-8f3c-ee8f09b1933b",
+      "verification_job_id": "c0f2f262-f926-4781-b3d1-1c905a131063",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 0.0,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 0,
+      "verification_rows_current": 4,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": []
+    },
+    {
+      "created_at": "2026-03-10 12:17:26",
+      "datastore": "STA_LUN_06",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "datastore_removed",
+      "baseline_job_id": "12e4c594-fdfa-44a9-91d5-e8577c2c19d0",
+      "verification_job_id": "a7878e16-0931-4beb-a90c-77f5b40cdffa",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 7.18,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 0,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": false,
+      "reconstructed_deleted_vmdks": []
+    },
+    {
+      "created_at": "2026-03-10 12:06:18",
+      "datastore": "STA_LUN_03",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "no_cleanup",
+      "baseline_job_id": "12e4c594-fdfa-44a9-91d5-e8577c2c19d0",
+      "verification_job_id": "a7878e16-0931-4beb-a90c-77f5b40cdffa",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 0.0,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 0,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": []
+    },
+    {
+      "created_at": "2026-03-09 18:12:46",
+      "datastore": "STA_LUN_05",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "datastore_removed",
+      "baseline_job_id": "f75a2ee1-0ae0-48d7-986e-196ff47127c3",
+      "verification_job_id": "5d581e9f-7c3b-40f1-bed5-6c95df85f2ae",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 174.76,
+      "remaining_vmdk_count": 5,
+      "remaining_size_gb": 171.6,
+      "baseline_rows_current": 5,
+      "verification_rows_current": 5,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": false,
+      "reconstructed_deleted_vmdks": []
+    },
+    {
+      "created_at": "2026-03-09 18:09:46",
+      "datastore": "STA_LUN_03",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "no_cleanup",
+      "baseline_job_id": "fa96322e-77d0-4afe-9eb9-7614179fd0da",
+      "verification_job_id": "12e4c594-fdfa-44a9-91d5-e8577c2c19d0",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 0.0,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 0,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": []
+    },
+    {
+      "created_at": "2026-03-09 12:28:29",
+      "datastore": "STA_LUN_03",
+      "vcenter_host_scope": "s2000.ms",
+      "status": "datastore_removed",
+      "baseline_job_id": "d50fbce4-1647-4f2e-8f3c-ee8f09b1933b",
+      "verification_job_id": "08b71ff3-580d-42c6-b3b3-772594987a66",
+      "stored_deleted_vmdk_count": 6,
+      "stored_deleted_size_gb": 2.0,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 6,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 6,
+      "reconstructed_deleted_size_gb": 7814.199,
+      "evidence_consistent_with_stored_summary": false,
+      "reconstructed_deleted_vmdks": [
+        {
+          "path": "[STA_LUN_03] S0458 - MS DB HOMITC SQL HOM/S0458 - MS DB HOMITC SQL HOM_1.vmdk",
+          "tamanho_gb": 5120.0,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2000.ms",
+          "vcenter_host": "s2000.ms:443"
+        },
+        {
+          "path": "[STA_LUN_03] S0458 - MS DB HOMITC SQL HOM/S0458 - MS DB HOMITC SQL HOM_4.vmdk",
+          "tamanho_gb": 2150.4,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2000.ms",
+          "vcenter_host": "s2000.ms:443"
+        },
+        {
+          "path": "[STA_LUN_03] S0458 - MS DB HOMITC SQL HOM/S0458 - MS DB HOMITC SQL HOM_2.vmdk",
+          "tamanho_gb": 250.0,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2000.ms",
+          "vcenter_host": "s2000.ms:443"
+        },
+        {
+          "path": "[STA_LUN_03] S0458 - MS DB HOMITC SQL HOM/S0458 - MS DB HOMITC SQL HOM_3.vmdk",
+          "tamanho_gb": 200.0,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2000.ms",
+          "vcenter_host": "s2000.ms:443"
+        },
+        {
+          "path": "[STA_LUN_03] S0458 - MS DB HOMITC SQL HOM/S0458 - MS DB HOMITC SQL HOM_5.vmdk",
+          "tamanho_gb": 89.802,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2000.ms",
+          "vcenter_host": "s2000.ms:443"
+        },
+        {
+          "path": "[STA_LUN_03] S1440 - SEGOV SOFTEXPERT PROD/S1440 - SEGOV SOFTEXPERT PROD_2.vmdk",
+          "tamanho_gb": 3.997,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2000.ms",
+          "vcenter_host": "s2000.ms:443"
+        }
+      ]
+    },
+    {
+      "created_at": "2026-03-06 19:58:23",
+      "datastore": "STA_LUN_0000",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "datastore_removed",
+      "baseline_job_id": "bf2d4c54-0be3-4a36-ae0a-12854dc4c711",
+      "verification_job_id": "1f5ceb84-d596-4877-b294-2263dbaf2171",
+      "stored_deleted_vmdk_count": 12,
+      "stored_deleted_size_gb": 16762.88,
+      "remaining_vmdk_count": 0,
+      "remaining_size_gb": 0.0,
+      "baseline_rows_current": 12,
+      "verification_rows_current": 0,
+      "reconstructed_deleted_vmdk_count": 12,
+      "reconstructed_deleted_size_gb": 16744.0,
+      "evidence_consistent_with_stored_summary": false,
+      "reconstructed_deleted_vmdks": [
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk3.vmdk",
+          "tamanho_gb": 5129.999,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk4.vmdk",
+          "tamanho_gb": 5119.999,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk5.vmdk",
+          "tamanho_gb": 5119.999,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk2.vmdk",
+          "tamanho_gb": 1023.999,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk1.vmdk",
+          "tamanho_gb": 249.999,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk0.vmdk",
+          "tamanho_gb": 99.999,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk0-000002.vmdk",
+          "tamanho_gb": 0.001,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk1-000002.vmdk",
+          "tamanho_gb": 0.001,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk2-000002.vmdk",
+          "tamanho_gb": 0.001,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk3-000002.vmdk",
+          "tamanho_gb": 0.001,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk4-000002.vmdk",
+          "tamanho_gb": 0.001,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        },
+        {
+          "path": "[STA_LUN_0000] s0597.ms-restore-agent/disk5-000002.vmdk",
+          "tamanho_gb": 0.001,
+          "tipo_zombie": "UNREGISTERED_DIR",
+          "datacenter": "DTC-SGI",
+          "vcenter_name": "s2001.ms",
+          "vcenter_host": "s2001.ms:443"
+        }
+      ]
+    },
+    {
+      "created_at": "2026-03-06 19:52:39",
+      "datastore": "STA_LUN_0000",
+      "vcenter_host_scope": "s2001.ms",
+      "status": "no_cleanup",
+      "baseline_job_id": "d50fbce4-1647-4f2e-8f3c-ee8f09b1933b",
+      "verification_job_id": "bf2d4c54-0be3-4a36-ae0a-12854dc4c711",
+      "stored_deleted_vmdk_count": 0,
+      "stored_deleted_size_gb": 0.0,
+      "remaining_vmdk_count": 12,
+      "remaining_size_gb": 16744.0,
+      "baseline_rows_current": 12,
+      "verification_rows_current": 12,
+      "reconstructed_deleted_vmdk_count": 0,
+      "reconstructed_deleted_size_gb": 0,
+      "evidence_consistent_with_stored_summary": true,
+      "reconstructed_deleted_vmdks": []
+    }
+  ]
+}

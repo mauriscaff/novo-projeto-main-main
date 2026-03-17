@@ -8,6 +8,7 @@ def test_dashboard_does_not_expose_api_key_in_html(client):
     assert r.status_code == 200
     assert "window.ZH_API_KEY = \"\";" in r.text
     assert "change-me-in-production" not in r.text
+    assert "TROQUE_ESTA_API_KEY" not in r.text
     assert "zh_api_session=" not in r.headers.get("set-cookie", "")
 
 
@@ -49,3 +50,18 @@ def test_session_logout_revokes_cookie_for_next_requests(client):
 
     me = client.get("/api/v1/auth/session/me")
     assert me.status_code == 401
+
+
+def test_frontend_scripts_do_not_contain_placeholder_api_key(client):
+    script_paths = (
+        "/static/js/scan_results.js",
+        "/static/js/vcenters.js",
+        "/static/js/approvals.js",
+        "/static/js/audit.js",
+    )
+    for script_path in script_paths:
+        resp = client.get(script_path)
+        assert resp.status_code == 200
+        assert "TROQUE_ESTA_API_KEY" not in resp.text
+        assert "set(\"X-API-Key\"" not in resp.text
+        assert "window.ZH_API_KEY" not in resp.text

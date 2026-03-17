@@ -358,6 +358,7 @@ async def list_known_datastores(
                 live_rows.append(
                     {
                         "name": ds_name,
+                        "vcenter_id": int(vc.id),
                         "vcenter_name": vc.name or "",
                         "vcenter_host": vc.host or "",
                         "accessible": bool(ds.get("accessible", True)),
@@ -405,6 +406,7 @@ async def list_known_datastores(
         ds_name = row.datastore
         result.append({
             "name": ds_name,
+            "vcenter_id": None,
             "vcenter_name": row.vcenter_name or "",
             "vcenter_host": row.vcenter_host or "",
         })
@@ -1778,3 +1780,4 @@ async def get_executive_report(
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+

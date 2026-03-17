@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, text
 
-from app.api.routes import approvals, auth, dashboard, datastore_reports, scan, scanner, schedules, vcenter, webhooks
+from app.api.routes import approvals, auth, dashboard, datastore_reports, monitored_sources, scan, scanner, schedules, vcenter, webhooks, system_settings
 from app.core.scheduler import scheduler, start as scheduler_start, stop as scheduler_stop
 from app.core.vcenter.connection_manager import connection_manager
 from app.dependencies import get_current_user
@@ -20,7 +20,7 @@ from app.models.audit_log import ApprovalToken, TERMINAL_STATUSES
 from app.models.vcenter import VCenter
 from config import get_settings
 
-# ── Jinja2 + arquivos estáticos ───────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬ Jinja2 + arquivos estÃƒÂ¡ticos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 _WEB_DIR = Path(__file__).parent / "web"
 templates = Jinja2Templates(directory=str(_WEB_DIR / "templates"))
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ──────────────────────────────────────────────────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ Startup Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     await init_db()
     await _register_existing_vcenters()
     if settings.scheduler_enabled:
@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("APScheduler desabilitado por configuracao (SCHEDULER_ENABLED=false).")
     yield
-    # ── Shutdown ─────────────────────────────────────────────────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ Shutdown Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     if settings.scheduler_enabled:
         scheduler_stop()             # para o APScheduler graciosamente
     connection_manager.disconnect_all()
@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
 async def _register_existing_vcenters() -> None:
     """
     Ao iniciar, carrega todos os vCenters ativos do banco e os registra no pool.
-    As conexões são lazy — o pool conecta apenas no primeiro uso.
+    As conexÃƒÂµes sÃƒÂ£o lazy Ã¢â‚¬â€ o pool conecta apenas no primeiro uso.
     """
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -61,10 +61,10 @@ async def _register_existing_vcenters() -> None:
             logger.info("vCenter '%s' (%s) registrado no pool.", vc.name, vc.host)
         except Exception as exc:
             logger.warning(
-                "Não foi possível registrar vCenter '%s' no pool: %s", vc.name, exc
+                "NÃƒÂ£o foi possÃƒÂ­vel registrar vCenter '%s' no pool: %s", vc.name, exc
             )
 
-    logger.info("%d vCenter(s) registrado(s) no pool de conexões.", len(vcenters))
+    logger.info("%d vCenter(s) registrado(s) no pool de conexÃƒÂµes.", len(vcenters))
 
 
 app = FastAPI(
@@ -72,8 +72,8 @@ app = FastAPI(
     version=settings.app_version,
     description=(
         "API REST para varredura de VMDKs zombie/orphaned "
-        "em múltiplos vCenters VMware.\n\n"
-        "**Autenticação:** Bearer JWT (`POST /api/v1/auth/token`) "
+        "em mÃƒÂºltiplos vCenters VMware.\n\n"
+        "**AutenticaÃƒÂ§ÃƒÂ£o:** Bearer JWT (`POST /api/v1/auth/token`) "
         "ou header `X-API-Key`."
     ),
     docs_url="/docs",
@@ -81,8 +81,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: origens permitidas (CORS_ALLOWED_ORIGINS, separado por vírgula)
-# Fallback seguro: apenas localhost:8000 quando variável não definida
+# CORS: origens permitidas (CORS_ALLOWED_ORIGINS, separado por vÃƒÂ­rgula)
+# Fallback seguro: apenas localhost:8000 quando variÃƒÂ¡vel nÃƒÂ£o definida
 _cors_origins_raw = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8000")
 _cors_origins = [x.strip() for x in _cors_origins_raw.split(",") if x.strip()] or ["http://localhost:8000"]
 
@@ -94,7 +94,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router,      prefix="/api/v1/auth",       tags=["Autenticação"])
+app.include_router(auth.router,      prefix="/api/v1/auth",       tags=["AutenticaÃƒÂ§ÃƒÂ£o"])
 app.include_router(vcenter.router,   prefix="/api/v1/vcenters",   tags=["vCenters"])
 app.include_router(scan.router,      prefix="/api/v1/scans",      tags=["Varredura VMDK (legado)"])
 app.include_router(scanner.router,   prefix="/api/v1/scan",       tags=["Varredura Zombie"])
@@ -102,20 +102,22 @@ app.include_router(datastore_reports.router, prefix="/api/v1/datastore-reports",
 app.include_router(schedules.router, prefix="/api/v1/schedules",  tags=["Agendamentos"])
 app.include_router(webhooks.router,   prefix="/api/v1/webhooks",   tags=["Webhooks"])
 app.include_router(dashboard.router,  prefix="/api/v1/dashboard",  tags=["Dashboard"])
-app.include_router(approvals.router,  prefix="/api/v1/approvals",  tags=["Aprovações & Auditoria"])
+app.include_router(approvals.router,  prefix="/api/v1/approvals",  tags=["AprovaÃƒÂ§ÃƒÂµes & Auditoria"])
+app.include_router(monitored_sources.router, prefix="/api/v1/monitored-sources", tags=["Fontes Monitoradas"])
+app.include_router(system_settings.router, prefix="/api/v1/settings", tags=["Sistema"])
 
-# ── Arquivos estáticos (CSS, JS) ──────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬ Arquivos estÃƒÂ¡ticos (CSS, JS) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 app.mount("/static", StaticFiles(directory=str(_WEB_DIR / "static")), name="static")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Helper: contexto Jinja2 base (variáveis compartilhadas entre todos os templates)
-# ─────────────────────────────────────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# Helper: contexto Jinja2 base (variÃƒÂ¡veis compartilhadas entre todos os templates)
+# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 async def _base_ctx(request: Request) -> dict:
     """
-    Monta o dicionário de contexto comum a todas as páginas web.
-    Inclui status dos vCenters, modo readonly, contagem de aprovações pendentes.
+    Monta o dicionÃƒÂ¡rio de contexto comum a todas as pÃƒÂ¡ginas web.
+    Inclui status dos vCenters, modo readonly, contagem de aprovaÃƒÂ§ÃƒÂµes pendentes.
     """
     # Status de conectividade dos vCenters registrados no pool
     pool = connection_manager.pool_status()
@@ -124,7 +126,7 @@ async def _base_ctx(request: Request) -> dict:
         for name, info in pool.items()
     ]
 
-    # Contagem de tokens de aprovação pendentes
+    # Contagem de tokens de aprovaÃƒÂ§ÃƒÂ£o pendentes
     pending = 0
     try:
         async with AsyncSessionLocal() as db:
@@ -146,13 +148,13 @@ async def _base_ctx(request: Request) -> dict:
         "api_version":      settings.app_version,
         "last_scan_at":     None,   # preenchido por cada rota que precise
         "pending_approvals": pending,
-        "flash_messages":   [],     # lista de (category, message) — sem Flask
+        "flash_messages":   [],     # lista de (category, message) Ã¢â‚¬â€ sem Flask
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 # Rotas web (HTML)
-# ─────────────────────────────────────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 @app.get("/", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_dashboard(request: Request):
@@ -186,6 +188,12 @@ async def web_post_exclusion_report(request: Request):
     return templates.TemplateResponse("post_exclusion_report.html", ctx)
 
 
+@app.get("/operations/post-exclusion-history", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_post_exclusion_history(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("post_exclusion_history.html", ctx)
+
+
 @app.get("/approvals", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_approvals(request: Request):
     ctx = await _base_ctx(request)
@@ -204,16 +212,22 @@ async def web_vcenters(request: Request):
     return templates.TemplateResponse("vcenters.html", ctx)
 
 
+
+
+@app.get("/sources", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_sources(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("sources.html", ctx)
 @app.get("/whitelist", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_whitelist(request: Request):
-    """Redireciona para a página de resultados com filtro de whitelist."""
+    """Redireciona para a pÃƒÂ¡gina de resultados com filtro de whitelist."""
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/scan/results?status=WHITELIST")
 
 
 @app.get("/settings", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
 async def web_settings(request: Request):
-    """Página de configurações — redireciona para vcenters por enquanto."""
+    """PÃƒÂ¡gina de configuraÃƒÂ§ÃƒÂµes Ã¢â‚¬â€ redireciona para vcenters por enquanto."""
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/vcenters")
 
@@ -289,3 +303,4 @@ async def readiness_check(_: dict = Depends(get_current_user)) -> dict:
     Readiness autenticado com detalhes operacionais para diagnostico.
     """
     return await _build_readiness_report()
+

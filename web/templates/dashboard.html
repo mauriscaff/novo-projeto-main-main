@@ -124,6 +124,23 @@ TÃ­tulo + botÃ£o de atualizaÃ§Ã£o manual + timestamp de Ãºltima atuali
         </div>
       </div>
     </div>
+    <div id="zh-operational-focus" class="zh-card zh-focus-card p-3 mb-3" role="status" aria-live="polite">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+        <div>
+          <span id="zh-focus-level-badge" class="badge rounded-pill text-bg-success mb-2">Operacao estavel</span>
+          <h6 id="zh-focus-title" class="mb-1 fw-semibold">Sem pendencias criticas no momento</h6>
+          <p id="zh-focus-summary" class="text-muted-zh mb-0">Acompanhe os indicadores e execute varredura sob demanda.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button id="zh-focus-primary-action" class="btn btn-sm btn-danger" type="button" data-action="scan">
+            <i class="bi bi-play-fill me-1" aria-hidden="true"></i>Executar varredura
+          </button>
+          <a id="zh-focus-secondary-action" class="btn btn-sm btn-outline-secondary" href="/approvals">
+            <i class="bi bi-check2-square me-1" aria-hidden="true"></i>Ver aprovacoes
+          </a>
+        </div>
+      </div>
+    </div>
 
     <div id="zh-empty-state" class="zh-card p-4 mb-4 d-none" role="status" aria-live="polite">
       <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
@@ -531,7 +548,7 @@ TÃ­tulo + botÃ£o de atualizaÃ§Ã£o manual + timestamp de Ãºltima atuali
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <div class="modal-body">
-        <div id="zh-scan-inline-error" class="alert alert-danger py-2 d-none" style="font-size:.82rem;" role="alert"></div>
+        <div id="zh-scan-inline-error" class="mb-3 d-none" aria-live="polite"></div>
 
         <section class="border rounded p-3 mb-3" style="border-color:var(--zh-border) !important;">
           <div class="d-flex align-items-center justify-content-between mb-2">
@@ -577,7 +594,7 @@ TÃ­tulo + botÃ£o de atualizaÃ§Ã£o manual + timestamp de Ãºltima atuali
             <span class="text-muted-zh small">Carregando datastores...</span>
           </div>
           <div id="zh-scan-ds-count" class="text-muted-zh mt-2" style="font-size:.76rem;">Sem datastores carregados.</div>
-          <div class="text-muted-zh mt-1" style="font-size:.72rem;">Datastores em manutencao/inacessiveis sao ocultados por vCenter nesta lista.</div>
+          <div id="zh-scan-ds-meta" class="text-muted-zh mt-1" style="font-size:.72rem;">Datastores em manutencao sao ocultados; datastores inacessiveis aparecem como bloqueados para referencia.</div>
         </section>
 
         <div id="zh-scan-summary" class="alert alert-secondary py-2 mb-2" style="font-size:.8rem;">
@@ -818,6 +835,26 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
     text-transform: uppercase;
     letter-spacing: .55px;
     font-weight: 600;
+  }
+
+  .zh-focus-card {
+    border: 1px solid var(--zh-border);
+    background: linear-gradient(135deg, rgba(32, 40, 55, 0.7), rgba(15, 20, 30, 0.88));
+  }
+
+  .zh-focus-card.is-critical {
+    border-color: rgba(248, 81, 73, .45);
+    box-shadow: 0 0 0 1px rgba(248, 81, 73, 0.12) inset;
+  }
+
+  .zh-focus-card.is-warning {
+    border-color: rgba(210, 153, 34, .45);
+    box-shadow: 0 0 0 1px rgba(210, 153, 34, 0.12) inset;
+  }
+
+  .zh-focus-card.is-info {
+    border-color: rgba(88, 166, 255, .45);
+    box-shadow: 0 0 0 1px rgba(88, 166, 255, 0.1) inset;
   }
 
   .zh-accordion-item {
@@ -1115,6 +1152,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
                   style="font-size:.72rem;padding:2px 8px;"
                   data-vc-id="${vc.id ?? ''}"
                   data-vc-name="${vc.name}"
+                  data-vc-host="${vc.host ?? ''}"
                   title="Iniciar scan para ${vc.name}">
                   <i class="bi bi-play-fill me-1"></i>Scan
                 </button>
@@ -1202,6 +1240,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
       btn.addEventListener("click", () => {
         const vcId = btn.dataset.vcId;
         const vcName = btn.dataset.vcName;
+        const vcHost = btn.dataset.vcHost || "";
 
         // Abre o modal existente
         const modalEl = document.getElementById("zh-modal-scan");
@@ -1222,7 +1261,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
         const hiddenDiv = document.createElement("div");
         hiddenDiv.className = "zh-vc-hidden-pre";
         hiddenDiv.style.display = "none";
-        hiddenDiv.innerHTML = `<input class="zh-vc-check" type="checkbox" checked value="${vcId}">`;
+        hiddenDiv.innerHTML = `<input class="zh-vc-check" type="checkbox" checked value="${vcId}" data-host="${vcHost}" data-name="${vcName}">`;
         document.getElementById("zh-scan-vcenter-list")?.appendChild(hiddenDiv);
 
         bsModal.show();
@@ -1289,12 +1328,301 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
   const dsSearchInput = document.getElementById("zh-scan-ds-search");
   const scanVcCount = document.getElementById("zh-scan-vcenter-count");
   const scanDsCount = document.getElementById("zh-scan-ds-count");
+  const scanDsMeta = document.getElementById("zh-scan-ds-meta");
   const scanSummary = document.getElementById("zh-scan-summary");
   const scanInlineError = document.getElementById("zh-scan-inline-error");
+  let zhScanDatastoresRaw = [];
+
+  function zhNorm(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function zhNormalizeHost(value) {
+    const raw = String(value || "").trim().toLowerCase();
+    if (!raw) return "";
+    const noScheme = raw.replace(/^https?:\/\//, "");
+    const base = noScheme.split("/")[0].trim();
+    if (!base) return "";
+    const hostPort = base.split(":");
+    if (hostPort.length === 2) return hostPort[0].trim();
+    return base;
+  }
+
+  function zhIsTruthy(value) {
+    if (value === true) return true;
+    const norm = zhNorm(value);
+    return norm === "1" || norm === "true" || norm === "yes" || norm === "on";
+  }
+
+  function zhIsMaintenanceDatastore(ds) {
+    const maintenanceState = zhNorm(ds?.maintenance_state);
+    const maintenanceMode = zhIsTruthy(ds?.maintenance_mode);
+    if (maintenanceMode) return true;
+    if (!maintenanceState) return false;
+    return !["normal", "none", "false", "0", "off"].includes(maintenanceState);
+  }
+
+  function zhIsAccessibleDatastore(ds) {
+    if (ds?.accessible === false) return false;
+    return !["false", "0", "no", "off"].includes(zhNorm(ds?.accessible));
+  }
+
+  function zhDatastoreScopeKey(ds) {
+    const hostKey = zhNormalizeHost(ds?.vcenter_host);
+    const nameKey = zhNorm(ds?.vcenter_name);
+    const idVal = Number(ds?.vcenter_id);
+    if (hostKey) return `host:${hostKey}`;
+    if (nameKey) return `name:${nameKey}`;
+    if (Number.isFinite(idVal)) return `id:${idVal}`;
+    return "";
+  }
+
+  function zhDatastoreMergeKey(ds) {
+    const nameKey = zhNorm(ds?.name);
+    const scopeKey = zhDatastoreScopeKey(ds);
+    if (!nameKey || !scopeKey) return "";
+    return `${nameKey}::${scopeKey}`;
+  }
+
+  function zhMergeDatastoreCatalog(liveRows = [], knownRows = []) {
+    const merged = new Map();
+
+    const addKnown = (row) => {
+      const key = zhDatastoreMergeKey(row);
+      if (!key || merged.has(key)) return;
+      merged.set(key, {
+        name: String(row?.name || "").trim(),
+        vcenter_id: Number.isFinite(Number(row?.vcenter_id)) ? Number(row.vcenter_id) : null,
+        vcenter_name: String(row?.vcenter_name || "").trim(),
+        vcenter_host: String(row?.vcenter_host || "").trim(),
+        accessible: row?.accessible,
+        maintenance_mode: row?.maintenance_mode,
+        maintenance_state: row?.maintenance_state,
+      });
+    };
+
+    const addLive = (row) => {
+      const key = zhDatastoreMergeKey(row);
+      if (!key) return;
+      const prev = merged.get(key) || {};
+      merged.set(key, {
+        ...prev,
+        ...row,
+        name: String(row?.name || prev?.name || "").trim(),
+        vcenter_id: Number.isFinite(Number(row?.vcenter_id))
+          ? Number(row.vcenter_id)
+          : (Number.isFinite(Number(prev?.vcenter_id)) ? Number(prev.vcenter_id) : null),
+        vcenter_name: String(row?.vcenter_name || prev?.vcenter_name || "").trim(),
+        vcenter_host: String(row?.vcenter_host || prev?.vcenter_host || "").trim(),
+      });
+    };
+
+    (Array.isArray(knownRows) ? knownRows : []).forEach(addKnown);
+    (Array.isArray(liveRows) ? liveRows : []).forEach(addLive);
+    return [...merged.values()];
+  }
+
+  function zhBuildApiHeaders(withJsonContentType = false, accept = "application/json") {
+    const headers = { Accept: accept };    if (withJsonContentType) headers["Content-Type"] = "application/json";
+    return headers;
+  }
+
+  function zhScanClearFeedback() {
+    if (!scanInlineError) return;
+    if (window.zhFeedback) {
+      window.zhFeedback.clear(scanInlineError);
+      return;
+    }
+    scanInlineError.classList.add("d-none");
+    scanInlineError.classList.remove("alert", "alert-danger", "alert-secondary", "py-2");
+    scanInlineError.textContent = "";
+  }
+
+  function zhScanSetLoadingFeedback(title, detail) {
+    if (!scanInlineError) return;
+    if (window.zhFeedback) {
+      window.zhFeedback.setInline(scanInlineError, {
+        state: "loading",
+        text: title || "Carregando escopo da varredura",
+        detail: detail || "Sincronizando vCenters e datastores.",
+      });
+      return;
+    }
+    scanInlineError.classList.remove("d-none");
+    scanInlineError.classList.remove("alert-danger");
+    scanInlineError.classList.add("alert", "alert-secondary", "py-2");
+    scanInlineError.textContent = detail || title || "Carregando escopo da varredura";
+  }
+
+  function zhScanSetErrorFeedback(message, opts = {}) {
+    if (!scanInlineError) return;
+    const msg = String(message || "Falha ao preparar varredura.").trim();
+    if (!msg) {
+      zhScanClearFeedback();
+      return;
+    }
+
+    if (window.zhFeedback) {
+      const info = window.zhFeedback.toErrorInfo({ status: opts.status, message: msg }, msg);
+      window.zhFeedback.setInline(scanInlineError, {
+        state: "error",
+        category: opts.category || info.category,
+        title: opts.title || "Falha ao preparar varredura",
+        happened: msg,
+        impact: opts.impact || "O escopo exibido pode estar incompleto.",
+        nextStep: opts.nextStep || "Revise os filtros e tente novamente.",
+      });
+      return;
+    }
+
+    scanInlineError.classList.remove("d-none");
+    scanInlineError.classList.remove("alert-secondary");
+    scanInlineError.classList.add("alert", "alert-danger", "py-2");
+    scanInlineError.textContent = msg;
+  }
+
+  function zhUpdateDatastoreMeta(meta = {}) {
+    if (!scanDsMeta) return;
+    const selectedVcs = Number(meta.selectedVcs || 0);
+    if (!selectedVcs) {
+      scanDsMeta.textContent = "Selecione ao menos um vCenter para listar datastores.";
+      return;
+    }
+
+    const listed = Number(meta.listed || 0);
+    const hiddenMaintenance = Number(meta.hiddenMaintenance || 0);
+    const inaccessible = Number(meta.inaccessible || 0);
+    scanDsMeta.textContent =
+      `Lista visivel: ${listed} datastores (manutencao ocultados: ${hiddenMaintenance}; inacessiveis bloqueados: ${inaccessible}).`;
+  }
+
+  function zhGetSelectedVcenterScope() {
+    const scope = { ids: new Set(), hosts: new Set(), names: new Set() };
+    document.querySelectorAll(".zh-vc-check:checked").forEach((el) => {
+      const id = Number(el.value);
+      const host = zhNormalizeHost(el.getAttribute("data-host"));
+      const name = zhNorm(el.getAttribute("data-name"));
+      if (Number.isFinite(id)) scope.ids.add(id);
+      if (host) scope.hosts.add(host);
+      if (name) scope.names.add(name);
+    });
+    return scope;
+  }
+
+  function zhRenderDatastoreList() {
+    const dsList = document.getElementById("zh-scan-ds-list");
+    if (!dsList) return;
+
+    const selectedVcCount = document.querySelectorAll(".zh-vc-check:checked").length;
+    if (!selectedVcCount) {
+      dsList.innerHTML =
+        `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Selecione ao menos um vCenter para listar datastores.</span>`;
+      zhUpdateDatastoreMeta({ selectedVcs: 0 });
+      zhBindScanSelectionEvents();
+      zhUpdateScanSummary();
+      return;
+    }
+
+    const scope = zhGetSelectedVcenterScope();
+    const dsMap = new Map();
+    const seenInScope = new Set();
+    const stats = {
+      hiddenMaintenance: 0,
+      inaccessible: 0,
+    };
+
+    for (const ds of (Array.isArray(zhScanDatastoresRaw) ? zhScanDatastoresRaw : [])) {
+      const dsName = String(ds?.name || "").trim();
+      if (!dsName) continue;
+
+      const dsVcenterId = Number(ds?.vcenter_id);
+      const vcHost = String(ds?.vcenter_host || "").trim();
+      const vcName = String(ds?.vcenter_name || "").trim();
+      const vcHostNorm = zhNormalizeHost(vcHost);
+      const vcNameNorm = zhNorm(vcName);
+      const inScope = (
+        (Number.isFinite(dsVcenterId) && scope.ids.has(dsVcenterId)) ||
+        (!!vcHostNorm && scope.hosts.has(vcHostNorm)) ||
+        (!!vcNameNorm && scope.names.has(vcNameNorm))
+      );
+      if (!inScope) continue;
+
+      const key = `${zhNorm(dsName)}::${Number.isFinite(dsVcenterId) ? dsVcenterId : (vcHostNorm || vcNameNorm)}`;
+      if (seenInScope.has(key)) continue;
+      seenInScope.add(key);
+
+      const maintenanceFlag = zhIsMaintenanceDatastore(ds);
+      if (maintenanceFlag) {
+        stats.hiddenMaintenance += 1;
+        continue;
+      }
+
+      const accessible = zhIsAccessibleDatastore(ds);
+      if (!accessible) stats.inaccessible += 1;
+
+      dsMap.set(key, {
+        name: dsName,
+        vcenter_id: Number.isFinite(dsVcenterId) ? dsVcenterId : null,
+        vcenter_name: vcName,
+        vcenter_host: vcHost,
+        accessible,
+      });
+    }
+
+    const datastores = [...dsMap.values()].sort((a, b) => {
+      const nameCmp = a.name.localeCompare(b.name);
+      if (nameCmp !== 0) return nameCmp;
+      return String(a.vcenter_host || a.vcenter_name).localeCompare(String(b.vcenter_host || b.vcenter_name));
+    });
+
+    if (!datastores.length) {
+      dsList.innerHTML =
+        `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Nenhum datastore elegivel no escopo selecionado.</span>`;
+      zhUpdateDatastoreMeta({
+        selectedVcs: selectedVcCount,
+        listed: 0,
+        hiddenMaintenance: stats.hiddenMaintenance,
+        inaccessible: stats.inaccessible,
+      });
+      zhBindScanSelectionEvents();
+      zhUpdateScanSummary();
+      return;
+    }
+
+    dsList.innerHTML = datastores.map((ds, i) => {
+      const disabledAttr = ds.accessible ? "" : "disabled";
+      const checkedAttr = ds.accessible ? "checked" : "";
+      const rowClass = ds.accessible ? "" : " opacity-75";
+      const accessibilityBadge = ds.accessible
+        ? ""
+        : `<span class="badge text-bg-warning" style="font-size:.62rem;">inacessivel</span>`;
+      return `
+        <div class="form-check zh-ds-item border rounded px-2 py-1${rowClass}" style="border-color:var(--zh-border) !important;" data-ds-name="${ds.name} ${ds.vcenter_name || ""} ${ds.vcenter_host || ""}">
+          <input class="form-check-input zh-ds-check" type="checkbox" value="${ds.name}" id="ds-check-${i}" ${checkedAttr} ${disabledAttr} />
+          <label class="form-check-label d-flex align-items-center gap-2" for="ds-check-${i}" style="font-size:.82rem;">
+            <i class="bi bi-device-hdd text-muted-zh" style="font-size:.7rem;"></i>
+            ${ds.name}
+            <span class="text-muted-zh" style="font-size:.7rem;">(${ds.vcenter_host || ds.vcenter_name || "sem origem"})</span>
+            ${accessibilityBadge}
+          </label>
+        </div>
+      `;
+    }).join("");
+
+    zhUpdateDatastoreMeta({
+      selectedVcs: selectedVcCount,
+      listed: datastores.length,
+      hiddenMaintenance: stats.hiddenMaintenance,
+      inaccessible: stats.inaccessible,
+    });
+    zhBindScanSelectionEvents();
+    zhApplyDatastoreSearch();
+    zhUpdateScanSummary();
+  }
 
   function zhUpdateScanSummary() {
     const vcChecks = [...document.querySelectorAll(".zh-vc-check")];
-    const dsChecks = [...document.querySelectorAll(".zh-ds-check")];
+    const dsChecks = [...document.querySelectorAll(".zh-ds-check")].filter((el) => !el.disabled);
     const selectedVcs = vcChecks.filter((el) => el.checked).length;
     const selectedDs = dsChecks.filter((el) => el.checked).length;
     const skippedDs = Math.max(0, dsChecks.length - selectedDs);
@@ -1318,7 +1646,15 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
 
   function zhBindScanSelectionEvents() {
     document.querySelectorAll(".zh-vc-check, .zh-ds-check").forEach((el) => {
-      el.addEventListener("change", zhUpdateScanSummary);
+      if (el.dataset.scanBound === "1") return;
+      el.dataset.scanBound = "1";
+      el.addEventListener("change", () => {
+        if (el.classList.contains("zh-vc-check")) {
+          zhRenderDatastoreList();
+          return;
+        }
+        zhUpdateScanSummary();
+      });
     });
     zhUpdateScanSummary();
   }
@@ -1329,27 +1665,29 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
       const hay = String(row.getAttribute("data-ds-name") || "").toLowerCase();
       row.classList.toggle("d-none", query && !hay.includes(query));
     });
+    zhUpdateScanSummary();
   }
 
   // Abre modal e carrega lista de vCenters disponÃ­veis
   btnNewScan?.addEventListener("click", async () => {
     const bsModal = new bootstrap.Modal(modalScan);
     bsModal.show();
-    if (scanInlineError) {
-      scanInlineError.classList.add("d-none");
-      scanInlineError.textContent = "";
-    }
     if (dsSearchInput) dsSearchInput.value = "";
+
+    zhScanClearFeedback();
+    zhScanSetLoadingFeedback(
+      "Carregando escopo da varredura",
+      "Sincronizando vCenters e datastores elegiveis para selecao."
+    );
+
+    let hadLoadError = false;
 
     // Carrega vCenters cadastrados via API
     try {
       const resp = await fetch("/api/v1/vcenters", {
-        headers: {
-          Accept: "application/json",
-          "X-API-Key": window.ZH_API_KEY || ""
-        }
+        headers: zhBuildApiHeaders()
       });
-      if (!resp.ok) throw new Error("Erro ao carregar vCenters");
+      if (!resp.ok) throw new Error(`Erro ao carregar vCenters (HTTP ${resp.status}).`);
       const vcentersRaw = await resp.json();
       const seenVcs = new Set();
       const vcenters = (Array.isArray(vcentersRaw) ? vcentersRaw : [])
@@ -1372,6 +1710,8 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
             type="checkbox"
             value="${vc.id}"
             id="vc-check-${vc.id}"
+            data-host="${vc.host ?? ''}"
+            data-name="${vc.name ?? ''}"
             checked
           />
           <label class="form-check-label d-flex align-items-center gap-2" for="vc-check-${vc.id}" style="font-size:.85rem;">
@@ -1384,66 +1724,59 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
       }
 
     } catch (err) {
+      hadLoadError = true;
       vcenterList.innerHTML =
         `<span class="text-zombie-red small"><i class="bi bi-x-circle me-1"></i>${err.message}</span>`;
+      zhScanSetErrorFeedback(err?.message || "Nao foi possivel carregar os vCenters.", {
+        category: "transient",
+        impact: "Sem vCenters carregados, o escopo da varredura fica bloqueado.",
+        nextStep: "Revise conectividade/permissoes e tente novamente.",
+      });
     }
 
-    // Carrega datastores ao vivo por vCenter (maintenance-aware)
-    const dsList = document.getElementById("zh-scan-ds-list");
+    // Carrega catalogo de datastores (live + known) para reduzir lacunas por indisponibilidade pontual
     try {
-      const dsResp = await fetch("/api/v1/scan/datastores?source=live", {
-        headers: { Accept: "application/json", "X-API-Key": window.ZH_API_KEY || "" }
-      });
-      if (!dsResp.ok) throw new Error("Erro ao carregar datastores");
-      const datastoresRaw = await dsResp.json();
-      const dsMap = new Map();
-      for (const ds of (Array.isArray(datastoresRaw) ? datastoresRaw : [])) {
-        const dsName = String(ds?.name || "").trim();
-        if (!dsName) continue;
+      const [liveResp, knownResp] = await Promise.all([
+        fetch("/api/v1/scan/datastores?source=live", { headers: zhBuildApiHeaders() }),
+        fetch("/api/v1/scan/datastores?source=known", { headers: zhBuildApiHeaders() }),
+      ]);
 
-        const maintenanceFlag = Boolean(ds?.maintenance_mode) || (
-          String(ds?.maintenance_state || "").toLowerCase() !== "" &&
-          String(ds?.maintenance_state || "").toLowerCase() !== "normal"
+      const liveRows = liveResp.ok ? await liveResp.json() : [];
+      const knownRows = knownResp.ok ? await knownResp.json() : [];
+
+      if (!liveResp.ok && !knownResp.ok) {
+        throw new Error(
+          `Erro ao carregar datastores (live=${liveResp.status}; known=${knownResp.status}).`
         );
-        if (maintenanceFlag) continue;
-        if (ds?.accessible === false) continue;
-
-        const vcHost = String(ds?.vcenter_host || "").trim();
-        const vcName = String(ds?.vcenter_name || "").trim();
-        const key = `${dsName.toLowerCase()}::${vcHost.toLowerCase()}`;
-        if (dsMap.has(key)) continue;
-
-        dsMap.set(key, {
-          name: dsName,
-          vcenter_name: vcName,
-          vcenter_host: vcHost,
-        });
       }
-      const datastores = [...dsMap.values()].sort((a, b) => {
-        const nameCmp = a.name.localeCompare(b.name);
-        if (nameCmp !== 0) return nameCmp;
-        return String(a.vcenter_host || a.vcenter_name).localeCompare(String(b.vcenter_host || b.vcenter_name));
-      });
 
-      if (!datastores.length) {
-        dsList.innerHTML =
-          `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Nenhum datastore elegivel encontrado (manutencao/inacessivel foi ocultado).</span>`;
-      } else {
-        dsList.innerHTML = datastores.map((ds, i) => `
-        <div class="form-check zh-ds-item border rounded px-2 py-1" style="border-color:var(--zh-border) !important;" data-ds-name="${ds.name} ${ds.vcenter_name || ""} ${ds.vcenter_host || ""}">
-          <input class="form-check-input zh-ds-check" type="checkbox"
-            value="${ds.name}" id="ds-check-${i}" checked />
-          <label class="form-check-label d-flex align-items-center gap-2" for="ds-check-${i}" style="font-size:.82rem;">
-            <i class="bi bi-device-hdd text-muted-zh" style="font-size:.7rem;"></i>
-            ${ds.name}
-            <span class="text-muted-zh" style="font-size:.7rem;">(${ds.vcenter_host || ds.vcenter_name || "sem origem"})</span>
-          </label>
-        </div>
-        `).join("");
+      zhScanDatastoresRaw = zhMergeDatastoreCatalog(liveRows, knownRows);
+      zhRenderDatastoreList();
+
+      if (!liveResp.ok && knownResp.ok) {
+        hadLoadError = true;
+        zhScanSetErrorFeedback(
+          `Catalogo live indisponivel (HTTP ${liveResp.status}). Exibindo fallback historico.`,
+          {
+            category: "transient",
+            impact: "Flags de manutencao/acessibilidade podem estar desatualizadas para alguns datastores.",
+            nextStep: "Valide os datastores criticos no vCenter antes de iniciar a varredura.",
+          }
+        );
       }
     } catch (dsErr) {
+      hadLoadError = true;
+      const dsList = document.getElementById("zh-scan-ds-list");
+      zhScanDatastoresRaw = [];
       dsList.innerHTML =
-        `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>NÃ£o foi possÃ­vel carregar datastores.</span>`;
+        `<span class="text-muted-zh small"><i class="bi bi-info-circle me-1"></i>Nao foi possivel carregar datastores.</span>`;
+      zhUpdateDatastoreMeta({ selectedVcs: document.querySelectorAll(".zh-vc-check:checked").length });
+      zhUpdateScanSummary();
+      zhScanSetErrorFeedback(dsErr?.message || "Nao foi possivel carregar os datastores.", {
+        category: "transient",
+        impact: "A selecao de escopo pode ficar incompleta.",
+        nextStep: "Tente novamente ou siga com vCenters sem filtro de datastore.",
+      });
     }
 
     zhBindScanSelectionEvents();
@@ -1451,6 +1784,10 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
     if (vcToggleAll) vcToggleAll.textContent = "desmarcar todos";
     if (dsToggleAll) dsToggleAll.textContent = "desmarcar todos";
     zhUpdateScanSummary();
+
+    if (!hadLoadError) {
+      zhScanClearFeedback();
+    }
   });
 
   vcToggleAll?.addEventListener("click", (e) => {
@@ -1460,12 +1797,12 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
     const allChecked = [...checks].every((c) => c.checked);
     checks.forEach((c) => (c.checked = !allChecked));
     vcToggleAll.textContent = allChecked ? "selecionar todos" : "desmarcar todos";
-    zhUpdateScanSummary();
+    zhRenderDatastoreList();
   });
 
   dsToggleAll?.addEventListener("click", (e) => {
     e.preventDefault();
-    const checks = document.querySelectorAll(".zh-ds-check");
+    const checks = [...document.querySelectorAll(".zh-ds-check")].filter((c) => !c.disabled);
     if (!checks.length) return;
     const allChecked = [...checks].every((c) => c.checked);
     checks.forEach((c) => (c.checked = !allChecked));
@@ -1477,18 +1814,16 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
 
   // Dispara a varredura via POST /api/v1/scan/start
   btnConfirmScan?.addEventListener("click", async () => {
-    if (scanInlineError) {
-      scanInlineError.classList.add("d-none");
-      scanInlineError.textContent = "";
-    }
+    zhScanClearFeedback();
 
     // Coleta vCenters selecionados
     const checked = [...document.querySelectorAll(".zh-vc-check:checked")].map((el) => el.value);
     if (!checked.length) {
-      if (scanInlineError) {
-        scanInlineError.textContent = "Selecione ao menos um vCenter para iniciar a varredura.";
-        scanInlineError.classList.remove("d-none");
-      }
+      zhScanSetErrorFeedback("Selecione ao menos um vCenter para iniciar a varredura.", {
+        category: "validation",
+        impact: "Sem vCenter selecionado, nao ha escopo para executar o scan.",
+        nextStep: "Selecione ao menos um vCenter e tente novamente.",
+      });
       return;
     }
 
@@ -1497,19 +1832,20 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
     const dcList = dcRaw ? dcRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
     // Coleta datastores selecionados (checkboxes)
-    const allDsChecks = document.querySelectorAll(".zh-ds-check");
-    const checkedDsRaw = [...document.querySelectorAll(".zh-ds-check:checked")].map((el) => el.value);
+    const allDsChecks = [...document.querySelectorAll(".zh-ds-check")].filter((el) => !el.disabled);
+    const checkedDsRaw = allDsChecks.filter((el) => el.checked).map((el) => el.value);
     const checkedDs = [...new Set(checkedDsRaw)];
     // Se todos estao marcados, nao envia filtro (= varrer tudo)
     const dsFilter = (allDsChecks.length > 0 && checkedDsRaw.length < allDsChecks.length) ? checkedDs : [];
 
-    // Estado visual do botÃ£o
+    // Estado visual do botao
     scanSpinner?.classList.remove("d-none");
     scanIcon?.classList.add("d-none");
-    if (scanBtnText) scanBtnText.textContent = "Iniciandoâ€¦";
+    if (scanBtnText) scanBtnText.textContent = "Iniciando...";
     if (btnConfirmScan) btnConfirmScan.disabled = true;
+    zhScanSetLoadingFeedback("Iniciando varredura", "Validando o escopo e criando o job de varredura.");
 
-    // Monta payload â€ inclui datastores somente se preenchido
+    // Monta payload: inclui datastores somente se preenchido
     const payload = { vcenter_ids: checked };
     if (dcList.length) payload.datacenters = dcList;
     if (dsFilter.length) payload.datastores = dsFilter;
@@ -1517,11 +1853,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
     try {
       const resp = await fetch("/api/v1/scan/start", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY"
-        },
+        headers: zhBuildApiHeaders(true),
         body: JSON.stringify(payload),
       });
 
@@ -1537,15 +1869,16 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
       }
       if (!resp.ok) throw new Error(result.detail ?? "Erro ao iniciar varredura");
 
-      // Fecha modal e redireciona para pÃ¡gina de resultados do job
+      // Fecha modal e redireciona para pagina de resultados do job
       bootstrap.Modal.getInstance(modalScan)?.hide();
       window.location.href = `/scan/results/${result.job_id}`;
 
     } catch (err) {
-      if (scanInlineError) {
-        scanInlineError.textContent = err?.message || "Falha ao iniciar varredura.";
-        scanInlineError.classList.remove("d-none");
-      }
+      zhScanSetErrorFeedback(err?.message || "Falha ao iniciar varredura.", {
+        category: "transient",
+        impact: "Nenhum job foi iniciado ate a falha ser resolvida.",
+        nextStep: "Revise escopo/permissoes e tente novamente.",
+      });
 
     } finally {
       scanSpinner?.classList.add("d-none");
@@ -1555,7 +1888,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
     }
   });
 
-  // â€â€ Laudo de exclusÃ£o de datastore (snapshot) â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€â€
+  // Laudo de exclusao de datastore (snapshot)
   const modalDsLaudo = document.getElementById("zh-modal-ds-laudo");
   const btnOpenDsLaudo = document.getElementById("zh-btn-open-ds-laudo");
   const btnGenerateDsLaudo = document.getElementById("zh-btn-generate-ds-laudo");
@@ -1585,12 +1918,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
   };
 
   function _dsLaudoHeaders(withJsonContentType = false) {
-    const headers = {
-      Accept: "application/json",
-      "X-API-Key": window.ZH_API_KEY || "",
-    };
-    if (withJsonContentType) headers["Content-Type"] = "application/json";
-    return headers;
+    return zhBuildApiHeaders(withJsonContentType);
   }
 
   function _extractDownloadFilename(contentDisposition, fallbackName) {
@@ -1605,10 +1933,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
 
   async function _downloadWithApiKey(url, fallbackName) {
     const resp = await fetch(url, {
-      headers: {
-        "X-API-Key": window.ZH_API_KEY || "",
-        Accept: "application/json, text/csv, application/octet-stream",
-      },
+      headers: zhBuildApiHeaders(false, "application/json, text/csv, application/octet-stream"),
     });
 
     if (!resp.ok) {
@@ -1932,10 +2257,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
   };
 
   function _postCompareHeaders() {
-    return {
-      Accept: "application/json",
-      "X-API-Key": window.ZH_API_KEY || "",
-    };
+    return (window.zhBuildApiHeaders || zhBuildApiHeaders)(false);
   }
 
   function _postCompareShowError(msg) {
@@ -2183,3 +2505,7 @@ SCRIPTS â€ carregados apÃ³s os scripts do base.html
 </script>
 
 {% endblock %}{# fim block scripts #}
+
+
+
+

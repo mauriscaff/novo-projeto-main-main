@@ -14,6 +14,22 @@
 "use strict";
 
 const AUDIT_API = "/api/v1/approvals/audit-log";
+function _buildApiHeaders(headersInit = {}) {
+  const headers = new Headers(headersInit || {});
+  headers.delete("X-API-Key");
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+  return headers;
+}
+
+async function _apiFetch(url, init = {}) {
+  return fetch(url, {
+    credentials: "same-origin",
+    ...init,
+    headers: _buildApiHeaders(init.headers || {}),
+  });
+}
 
 // ── Metadados de ação → badge ─────────────────────────────────────────────────
 
@@ -69,18 +85,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadAuditLog() {
   _setLoading(true);
+  const fallbackError = document.getElementById("zh-audit-error");
+  if (fallbackError) {
+    fallbackError.classList.add("d-none");
+    fallbackError.textContent = "";
+  }
+  if (window.zhFeedback) {
+    window.zhFeedback.setInline("#zh-audit-feedback", {
+      state: "loading",
+      text: "Carregando audit log",
+      detail: "Sincronizando registros e sumario operacional.",
+    });
+  }
 
   try {
     const params = _buildApiParams();
     const qs     = new URLSearchParams(params).toString();
-    const resp   = await fetch(`${AUDIT_API}${qs ? "?" + qs : ""}`, {
-      headers: { "X-API-Key": window.ZH_API_KEY || "TROQUE_ESTA_API_KEY",  "Accept": "application/json" },
-    });
+    const resp   = await _apiFetch(`${AUDIT_API}${qs ? "?" + qs : ""}`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
 
     allRecords = await resp.json();
     _applyToTable(allRecords);
     _updateSummary(allRecords);
+    window.zhFeedback?.clear("#zh-audit-feedback");
 
   } catch (err) {
     console.error("[ZH Audit] Erro:", err);
@@ -350,9 +377,24 @@ function _setLoading(on) {
 }
 
 function _showError(msg) {
+  const message = String(msg || "Erro nao detalhado");
+  if (window.zhFeedback) {
+    const info = window.zhFeedback.toErrorInfo({ message }, "Falha ao carregar audit log.");
+    window.zhFeedback.setInline("#zh-audit-feedback", {
+      state: "error",
+      category: info.category,
+      title: "Falha ao carregar audit log",
+      happened: info.message,
+      impact: "A tabela e os totais podem ficar desatualizados.",
+      nextStep: info.category === "auth"
+        ? "Refaca o login e tente novamente."
+        : "Revise filtros/conectividade e atualize.",
+    });
+  }
+
   const el = document.getElementById("zh-audit-error");
   if (el) {
-    el.textContent = `Erro ao carregar: ${msg}`;
+    el.textContent = `Erro ao carregar: ${message}`;
     el.classList.remove("d-none");
   }
 }
@@ -366,3 +408,4 @@ const _esc   = (s) => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;");
 const _trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "…" : (s ?? "");
+

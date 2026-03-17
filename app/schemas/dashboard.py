@@ -29,12 +29,14 @@ class TrendEntry(BaseModel):
 class RecentVmdkEntry(BaseModel):
     """Uma linha da tabela 'VMDKs detectados recentemente'."""
 
+    id: int
+    job_id: str
     path: str
+    vcenter_id: str
     vcenter_host: str
     tamanho_gb: float | None
     tipo_zombie: str
     created_at: datetime | None
-
 
 class DashboardResponse(BaseModel):
     # ── Totais históricos (todos os registros de todas as varreduras) ─────────

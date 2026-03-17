@@ -114,6 +114,28 @@ function _bindUiHooks() {
     });
   }
 
+  const focusPrimaryBtn = document.getElementById("zh-focus-primary-action");
+  if (focusPrimaryBtn) {
+    focusPrimaryBtn.addEventListener("click", () => {
+      const action = focusPrimaryBtn.dataset.action || "scan";
+      if (action === "scan") {
+        document.getElementById("zh-btn-new-scan")?.click();
+        return;
+      }
+      if (action === "vcenters") {
+        window.location.assign("/vcenters");
+        return;
+      }
+      if (action === "approvals") {
+        window.location.assign("/approvals");
+        return;
+      }
+      if (action === "results") {
+        window.location.assign("/scan/results");
+      }
+    });
+  }
+
   document.querySelectorAll("#zh-dashboard-ops-accordion .accordion-collapse").forEach((el) => {
     el.addEventListener("shown.bs.collapse", () => {
       _resizeAllCharts();
@@ -160,7 +182,10 @@ async function loadDashboard(forceSpinner = false) {
     });
 
     if (!resp.ok) {
-      throw new Error(`API Dashboard retornou HTTP ${resp.status}: ${resp.statusText}`);
+      const err = new Error(`API Dashboard retornou HTTP ${resp.status}: ${resp.statusText}`);
+      err.status = resp.status;
+      err.statusText = resp.statusText;
+      throw err;
     }
     if (!storageResp.ok) {
       console.warn(`API Storage retornou HTTP ${storageResp.status}`);
@@ -214,7 +239,7 @@ async function loadDashboard(forceSpinner = false) {
 
   } catch (err) {
     console.error("[ZombieHunter Dashboard] Erro ao carregar dados:", err);
-    _setErrorState(err.message);
+    _setErrorState(err);
     _setLoadingState(false);
   }
 }
@@ -228,11 +253,12 @@ async function loadDashboard(forceSpinner = false) {
 function _renderCards(data) {
   const totalVmdks = Number(data.total_zombies ?? data.total_vmdks_all_time ?? 0);
   const totalGb = Number(data.total_size_gb ?? data.total_size_all_time_gb ?? 0);
+  const pendingApprovals = Number(data.pending_approvals ?? 0);
 
   // Flask: total_zombies / total_size_gb; FastAPI: total_vmdks_all_time / total_size_all_time_gb
   _setCard("zh-card-total-vmdks", _fmt(totalVmdks));
   _setCard("zh-card-total-gb", _fmtGb(totalGb));
-  _setCard("zh-card-pending", _fmt(data.pending_approvals ?? 0));
+  _setCard("zh-card-pending", _fmt(pendingApprovals));
   _setCard("zh-card-vcenter-count", _fmt(data.vcenter_count ?? 0));
   const failedVcenters = _getFailedVcenters(data);
   _setCard("zh-card-vcenter-failed", _fmt(failedVcenters));
@@ -241,8 +267,14 @@ function _renderCards(data) {
     failedVcenters > 0 ? "requer atencao imediata" : "sem falhas de conectividade"
   );
   _renderEmptyState(data, totalVmdks, totalGb, failedVcenters);
+  _renderOperationalFocus(data, {
+    totalVmdks,
+    totalGb,
+    failedVcenters,
+    pendingApprovals,
+  });
 
-  // Timestamp da última varredura com formatação local
+  // Timestamp da ultima varredura com formatacao local
   const lastScanEl = document.getElementById("zh-card-last-scan");
   if (lastScanEl) {
     if (data.last_scan_at) {
@@ -251,15 +283,14 @@ function _renderCards(data) {
         + window.zhFormatDate(data.last_scan_at)
         + `</time>`;
     } else {
-      lastScanEl.textContent = "—";
+      lastScanEl.textContent = "-";
     }
   }
 
-  // Aplica destaque vermelho se houver aprovações pendentes
+  // Aplica destaque vermelho se houver aprovacoes pendentes
   const pendingCard = document.getElementById("zh-pending-card-wrapper");
   if (pendingCard) {
-    const count = data.pending_approvals ?? 0;
-    pendingCard.classList.toggle("zh-card-alert", count > 0);
+    pendingCard.classList.toggle("zh-card-alert", pendingApprovals > 0);
   }
 }
 
@@ -301,6 +332,88 @@ function _renderEmptyState(data, totalVmdks, totalGb, failedVcenters) {
   msgEl.textContent = "Execute uma varredura para preencher os indicadores operacionais.";
 }
 
+
+function _renderOperationalFocus(data, metrics) {
+  const card = document.getElementById("zh-operational-focus");
+  const badge = document.getElementById("zh-focus-level-badge");
+  const title = document.getElementById("zh-focus-title");
+  const summary = document.getElementById("zh-focus-summary");
+  const primary = document.getElementById("zh-focus-primary-action");
+  const secondary = document.getElementById("zh-focus-secondary-action");
+  if (!card || !badge || !title || !summary || !primary || !secondary) return;
+
+  const hasRecentRows = Array.isArray(data.recent_alerts ?? data.recent_vmdks)
+    && (data.recent_alerts ?? data.recent_vmdks).length > 0;
+  const hasMetrics = metrics.totalVmdks > 0 || metrics.totalGb > 0 || Boolean(data.last_scan_at) || hasRecentRows;
+  const vcenterCount = Number(data.vcenter_count ?? 0);
+
+  card.classList.remove("is-critical", "is-warning", "is-info");
+
+  if (metrics.failedVcenters > 0) {
+    _setFocusBadge(badge, "danger", "Critico");
+    title.textContent = `${_fmt(metrics.failedVcenters)} vCenter(s) com falha de conectividade`;
+    summary.textContent = "Sem conectividade estavel os resultados podem ficar incompletos.";
+    card.classList.add("is-critical");
+    _setFocusPrimaryAction(primary, "vcenters", "Corrigir conectividade", "bi-hdd-network");
+    secondary.href = "/approvals";
+    secondary.innerHTML = '<i class="bi bi-check2-square me-1" aria-hidden="true"></i>Ver aprovacoes';
+    return;
+  }
+
+  if (metrics.pendingApprovals > 0) {
+    _setFocusBadge(badge, "warning", "Atencao");
+    title.textContent = `${_fmt(metrics.pendingApprovals)} aprovacao(oes) pendente(s)`;
+    summary.textContent = "Existem acoes aguardando validacao antes da execucao operacional.";
+    card.classList.add("is-warning");
+    _setFocusPrimaryAction(primary, "approvals", "Revisar aprovacoes", "bi-check2-square");
+    secondary.href = "/scan/results";
+    secondary.innerHTML = '<i class="bi bi-table me-1" aria-hidden="true"></i>Ver resultados';
+    return;
+  }
+
+  if (!hasMetrics || vcenterCount === 0) {
+    _setFocusBadge(badge, "primary", "Acao recomendada");
+    if (vcenterCount === 0) {
+      title.textContent = "Nenhum vCenter ativo configurado";
+      summary.textContent = "Cadastre ao menos um vCenter para iniciar uma varredura valida.";
+      _setFocusPrimaryAction(primary, "vcenters", "Cadastrar vCenter", "bi-hdd-network");
+      secondary.href = "/health";
+      secondary.innerHTML = '<i class="bi bi-heart-pulse me-1" aria-hidden="true"></i>Ver health';
+    } else {
+      title.textContent = "Sem dados de varredura no dashboard";
+      summary.textContent = "Execute uma varredura para preencher os indicadores operacionais.";
+      _setFocusPrimaryAction(primary, "scan", "Executar varredura", "bi-play-fill");
+      secondary.href = "/scan/results";
+      secondary.innerHTML = '<i class="bi bi-table me-1" aria-hidden="true"></i>Ver resultados';
+    }
+    card.classList.add("is-info");
+    return;
+  }
+
+  _setFocusBadge(badge, "success", "Operacao estavel");
+  title.textContent = "Monitoramento em andamento sem bloqueios criticos";
+  summary.textContent = "Use os graficos e a tabela para priorizar o proximo lote de limpeza.";
+  _setFocusPrimaryAction(primary, "results", "Ver resultados", "bi-table");
+  secondary.href = "/approvals";
+  secondary.innerHTML = '<i class="bi bi-check2-square me-1" aria-hidden="true"></i>Ver aprovacoes';
+}
+
+function _setFocusBadge(el, tone, text) {
+  el.className = `badge rounded-pill mb-2 text-bg-${tone}`;
+  el.textContent = text;
+}
+
+function _setFocusPrimaryAction(btn, action, label, icon) {
+  const toneByAction = {
+    vcenters: "btn-danger",
+    approvals: "btn-warning",
+    scan: "btn-danger",
+    results: "btn-primary",
+  };
+  btn.dataset.action = action;
+  btn.className = `btn btn-sm ${toneByAction[action] || "btn-danger"}`;
+  btn.innerHTML = `<i class="bi ${icon} me-1" aria-hidden="true"></i>${label}`;
+}
 function _setCard(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
@@ -1082,13 +1195,20 @@ function _setLoadingState(loading) {
  * Exibe ou limpa a mensagem de erro global.
  * @param {string|null} msg
  */
-function _setErrorState(msg) {
+function _setErrorState(errOrMessage) {
   const el = document.getElementById("zh-error-banner");
   if (!el) return;
-  if (msg) {
+  if (errOrMessage) {
+    const errorObj = typeof errOrMessage === "string"
+      ? { message: errOrMessage }
+      : errOrMessage;
+    const fallbackMessage = "Falha ao carregar dashboard.";
     const info = window.zhFeedback
-      ? window.zhFeedback.toErrorInfo({ message: String(msg || "") }, "Falha ao carregar dashboard.")
-      : { category: "unknown", message: String(msg || "Falha ao carregar dashboard.") };
+      ? window.zhFeedback.toErrorInfo(errorObj, fallbackMessage)
+      : {
+        category: "unknown",
+        message: String(errorObj?.message || fallbackMessage),
+      };
 
     const nextByCategory = {
       auth: "Valide a sessao de usuario e tente atualizar novamente.",
@@ -1168,3 +1288,4 @@ _styleEl.textContent = `
   .spin { display: inline-block; animation: zh-spin .7s linear infinite; }
 `;
 document.head.appendChild(_styleEl);
+

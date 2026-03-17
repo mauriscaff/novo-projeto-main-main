@@ -60,6 +60,23 @@ function Get-ListeningPid([int]$PortNumber) {
     return [int]$parts[-1]
 }
 
+function Normalize-ProcessPathVariable {
+    $processPath = [System.Environment]::GetEnvironmentVariable("Path", "Process")
+    $processPATH = [System.Environment]::GetEnvironmentVariable("PATH", "Process")
+
+    if (-not $processPath -and -not $processPATH) {
+        return
+    }
+
+    $normalizedPath = $processPath
+    if (-not $normalizedPath) {
+        $normalizedPath = $processPATH
+    }
+
+    [System.Environment]::SetEnvironmentVariable("Path", $normalizedPath, "Process")
+    [System.Environment]::SetEnvironmentVariable("PATH", $null, "Process")
+}
+
 if (Test-Path $PidFile) {
     $existingPidRaw = Get-Content $PidFile -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($existingPidRaw -match "^\d+$") {
@@ -101,6 +118,7 @@ if ($Foreground) {
     exit $LASTEXITCODE
 }
 
+Normalize-ProcessPathVariable
 $process = Start-Process `
     -FilePath $pythonCmd.FilePath `
     -ArgumentList $args `
@@ -114,7 +132,14 @@ $process.Id | Set-Content -Path $PidFile -Encoding ASCII
 $started = $false
 for ($i = 0; $i -lt $StartupTimeoutSec; $i++) {
     Start-Sleep -Seconds 1
-    $probe = Invoke-WebRequest -Uri "http://$HostAddress`:$Port/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+
+    $probe = $null
+    try {
+        $probe = Invoke-WebRequest -Uri "http://$HostAddress`:$Port/health" -UseBasicParsing -TimeoutSec 2
+    } catch {
+        $probe = $null
+    }
+
     if ($probe -and $probe.StatusCode -eq 200) {
         $started = $true
         break

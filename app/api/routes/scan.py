@@ -5,20 +5,106 @@ Endpoints para disparar e consultar varreduras de VMDKs.
 import asyncio
 import logging
 from datetime import datetime, timezone
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status, Request, Body
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.scanner.vmdk_scanner import scan_vmdks_async
 from app.core.vcenter.connection_manager import connection_manager
+from app.core.vmdk_actions import _live_check_vmdk
 from app.dependencies import get_current_user, get_db
 from app.models.scan_result import ScanJob, ScanStatus, VMDKResult, VMDKStatus
 from app.models.vcenter import VCenter
+from app.models.audit_log import AuditLog, ApprovalToken
+from app.models.zombie_scan import ZombieVmdkRecord
 from app.schemas.scan import ScanJobResponse, ScanSummary, VMDKResultResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+def _get_client_ip(request: Request) -> str:
+    """Extrai IP do cliente da request (suporta X-Forwarded-For)."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return "127.0.0.1"
+
+
+@router.post(
+    "/verify-manual-deletion",
+    summary="Verifica se um VMDK foi apagado manualmente e o remove da fila",
+    description="Útil quando um arquivo foi apagado diretamente no vCenter pelo usuário. Isso atualizará o dashboard e o histórico para refletir que não existe mais.",
+)
+async def verify_manual_deletion(
+    request: Request,
+    vmdk_path: str = Body(..., embed=True),
+    vcenter_id: str = Body(..., embed=True),
+    record_id: int | None = Body(None, embed=True),
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    # Cria um token fake para aproveitar a mesma lógica do _live_check_vmdk
+    fake_token = ApprovalToken(vcenter_id=vcenter_id, vmdk_path=vmdk_path, vmdk_datacenter=None)
+    
+    check_result = await _live_check_vmdk(fake_token)
+    
+    if not check_result.get("attempted", False):
+        raise HTTPException(
+            status_code=500, detail=f"Não foi possível conectar ao vCenter para validação: {check_result.get('reason', 'Erro desconhecido')}"
+        )
+        
+    if check_result.get("error"):
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao verificar arquivo: {check_result['error']}"
+        )
+        
+    exists = check_result.get("exists", True)
+    if exists:
+        return {
+            "status": "still_exists",
+            "message": "VMDK verificado online e ainda existe no Storage, nenhuma exclusão detectada."
+        }
+
+    # Se não existe => excluído manualmente. Removemos do snapshot e mandamos pra auditoria
+    if record_id:
+        record = await db.get(ZombieVmdkRecord, record_id)
+        if record:
+            await db.delete(record)
+    else:
+        # Tenta achar o registro mais novo por path/vcenter
+        stmt = select(ZombieVmdkRecord).where(
+            ZombieVmdkRecord.path == vmdk_path,
+            (ZombieVmdkRecord.vcenter_host == vcenter_id) | (ZombieVmdkRecord.vcenter_name == vcenter_id)
+        ).order_by(ZombieVmdkRecord.created_at.desc()).limit(1)
+        record = (await db.execute(stmt)).scalar_one_or_none()
+        if record:
+            await db.delete(record)
+
+    # Cria o auditlog explícito para que o pos-exclusao ou o histórico possa acompanhar
+    analyst = user.get("sub", "unknown")
+    audit = AuditLog(
+        analyst=analyst,
+        action="MANUAL_DELETE_VERIFIED",
+        vmdk_path=vmdk_path,
+        vcenter_id=vcenter_id,
+        dry_run=False,
+        readonly_mode_active=False,
+        status="executed_manual_delete",
+        detail="Arquivo confirmado como apagado manualmente no Storage pelo vCenter.",
+        client_ip=_get_client_ip(request),
+        user_agent=request.headers.get("user-agent")
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {
+        "status": "deleted_manually",
+        "message": "Validamos que o VMDK não existe mais no Storage. O dashboard foi atualizado e um registro de auditoria foi criado.",
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,15 @@
+model = "o4-mini"
+skills = ["weather-fetcher"]
+
+prompt = """
+Fetch current temperature data by following the `weather-fetcher` skill instructions.
+
+Requirements:
+- Use the caller-provided city, defaulting to Dubai, UAE.
+- Respect the requested temperature unit, defaulting to Celsius.
+- Return only:
+Temperature: [X]°[C/F]
+City: [City Name]
+Unit: [Celsius/Fahrenheit]
+- Do not write files or create SVG output.
+"""

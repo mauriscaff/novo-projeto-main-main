@@ -1,46 +1,46 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR" data-bs-theme="dark">
 {#
-base.html — Template base do ZombieHunter
+base.html Ã¢â‚¬â€ Template base do ZombieHunter
 ==========================================
-Todas as páginas do sistema herdam este template via Jinja2.
+Todas as pÃƒÂ¡ginas do sistema herdam este template via Jinja2.
 
-Blocks disponíveis para as páginas filhas:
-block title — Título da aba do navegador (após " | ZombieHunter")
-block content — Conteúdo principal da página
-block scripts — Scripts JS adicionais no final do
+Blocks disponÃƒÂ­veis para as pÃƒÂ¡ginas filhas:
+block title Ã¢â‚¬â€ TÃƒÂ­tulo da aba do navegador (apÃƒÂ³s " | ZombieHunter")
+block content Ã¢â‚¬â€ ConteÃƒÂºdo principal da pÃƒÂ¡gina
+block scripts Ã¢â‚¬â€ Scripts JS adicionais no final do
 
 <body>
 
-  Variáveis de contexto esperadas (injetadas pelo backend):
-  readonly_mode bool — True quando READONLY_MODE=true no .env
-  vcenter_status list — [{ "name": str, "connected": bool }, ...]
-  last_scan_at str — Timestamp da última varredura concluída (ou None)
-  api_version str — Versão da API (ex.: "1.0.0")
-  pending_approvals int — Quantidade de tokens pendentes de execução
+  VariÃƒÂ¡veis de contexto esperadas (injetadas pelo backend):
+  readonly_mode bool Ã¢â‚¬â€ True quando READONLY_MODE=true no .env
+  vcenter_status list Ã¢â‚¬â€ [{ "name": str, "connected": bool }, ...]
+  last_scan_at str Ã¢â‚¬â€ Timestamp da ÃƒÂºltima varredura concluÃƒÂ­da (ou None)
+  api_version str Ã¢â‚¬â€ VersÃƒÂ£o da API (ex.: "1.0.0")
+  pending_approvals int Ã¢â‚¬â€ Quantidade de tokens pendentes de execuÃƒÂ§ÃƒÂ£o
   #}
 
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ZombieHunter — Gerenciador de VMDKs Orphaned em vCenter" />
+    <meta name="description" content="ZombieHunter Ã¢â‚¬â€ Gerenciador de VMDKs Orphaned em vCenter" />
 
-    <!-- ── Título da página ─────────────────────────────────────────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ TÃƒÂ­tulo da pÃƒÂ¡gina Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     <title>{% block title %}Dashboard{% endblock %} | ZombieHunter</title>
 
-    <!-- ── Bootstrap 5.3 (dark theme nativo) ───────────────────────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Bootstrap 5.3 (dark theme nativo) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       crossorigin="anonymous" />
 
-    <!-- ── Bootstrap Icons 1.11 ─────────────────────────────────────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Bootstrap Icons 1.11 Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
-    <!-- ── DataTables 2.x — Bootstrap 5 integration ────────────────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ DataTables 2.x Ã¢â‚¬â€ Bootstrap 5 integration Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css" />
 
-    <!-- ── Estilos customizados do ZombieHunter ─────────────────────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Estilos customizados do ZombieHunter Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     <style>
-      /* ── Paleta base ──────────────────────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ Paleta base Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       :root {
         --zh-sidebar-width: 240px;
         --zh-navbar-height: 56px;
@@ -56,7 +56,7 @@ block scripts — Scripts JS adicionais no final do
         --zh-accent-purple: #bc8cff;
       }
 
-      /* ── Reset de fundo ───────────────────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ Reset de fundo Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       html,
       body {
         background-color: var(--zh-bg-body);
@@ -68,7 +68,7 @@ block scripts — Scripts JS adicionais no final do
         overflow: hidden;
       }
 
-      /* ── Navbar ───────────────────────────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ Navbar Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       .zh-navbar {
         height: var(--zh-navbar-height);
         background-color: var(--zh-bg-sidebar);
@@ -94,7 +94,7 @@ block scripts — Scripts JS adicionais no final do
         filter: drop-shadow(0 0 6px rgba(248, 81, 73, 0.5));
       }
 
-      /* Badge READ-ONLY (verde) — modo seguro padrão */
+      /* Badge READ-ONLY (verde) Ã¢â‚¬â€ modo seguro padrÃƒÂ£o */
       .zh-readonly-badge {
         background-color: rgba(63, 185, 80, 0.15);
         color: var(--zh-accent-green);
@@ -107,7 +107,7 @@ block scripts — Scripts JS adicionais no final do
         white-space: nowrap;
       }
 
-      /* Badge OPERACIONAL (vermelho pulsante) — ações destrutivas ativas */
+      /* Badge OPERACIONAL (vermelho pulsante) Ã¢â‚¬â€ aÃƒÂ§ÃƒÂµes destrutivas ativas */
       .zh-operational-badge {
         background-color: rgba(248, 81, 73, 0.15);
         color: var(--zh-accent-red);
@@ -152,7 +152,7 @@ block scripts — Scripts JS adicionais no final do
         box-shadow: 0 0 6px rgba(248, 81, 73, 0.5);
       }
 
-      /* ── Sidebar ──────────────────────────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       .zh-sidebar {
         width: var(--zh-sidebar-width);
         background-color: var(--zh-bg-sidebar);
@@ -200,7 +200,7 @@ block scripts — Scripts JS adicionais no final do
         border-radius: 2px;
       }
 
-      /* Seção de título na sidebar */
+      /* SeÃƒÂ§ÃƒÂ£o de tÃƒÂ­tulo na sidebar */
       .zh-sidebar-label {
         font-size: 0.65rem;
         font-weight: 700;
@@ -210,7 +210,7 @@ block scripts — Scripts JS adicionais no final do
         padding: 16px 16px 4px;
       }
 
-      /* Links de navegação */
+      /* Links de navegaÃƒÂ§ÃƒÂ£o */
       .zh-nav-link {
         display: flex;
         align-items: center;
@@ -237,7 +237,7 @@ block scripts — Scripts JS adicionais no final do
         font-weight: 500;
       }
 
-      /* Linha indicadora da página ativa */
+      /* Linha indicadora da pÃƒÂ¡gina ativa */
       .zh-nav-link.active::before {
         content: "";
         position: absolute;
@@ -257,7 +257,7 @@ block scripts — Scripts JS adicionais no final do
         flex-shrink: 0;
       }
 
-      /* Badge contador de aprovações pendentes */
+      /* Badge contador de aprovaÃƒÂ§ÃƒÂµes pendentes */
       .zh-nav-badge {
         margin-left: auto;
         font-size: 0.65rem;
@@ -275,7 +275,7 @@ block scripts — Scripts JS adicionais no final do
         color: var(--zh-text-muted);
       }
 
-      /* ── Área de conteúdo principal ───────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ ÃƒÂrea de conteÃƒÂºdo principal Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       .zh-main {
         margin-left: var(--zh-sidebar-width);
         margin-top: var(--zh-navbar-height);
@@ -284,7 +284,7 @@ block scripts — Scripts JS adicionais no final do
         padding: 24px 28px;
       }
 
-      /* ── Footer ───────────────────────────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       .zh-footer {
         margin-left: var(--zh-sidebar-width);
         background-color: var(--zh-bg-sidebar);
@@ -300,7 +300,7 @@ block scripts — Scripts JS adicionais no final do
         flex-wrap: wrap;
       }
 
-      /* Aviso de segurança no footer */
+      /* Aviso de seguranÃƒÂ§a no footer */
       .zh-footer-security {
         color: var(--zh-accent-yellow);
         display: flex;
@@ -309,7 +309,7 @@ block scripts — Scripts JS adicionais no final do
         font-weight: 500;
       }
 
-      /* ── Cards de conteúdo ────────────────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ Cards de conteÃƒÂºdo Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       .zh-card {
         background-color: var(--zh-bg-card);
         border: 1px solid var(--zh-border);
@@ -324,7 +324,7 @@ block scripts — Scripts JS adicionais no final do
         font-size: 0.875rem;
       }
 
-      /* ── Utilitários ──────────────────────────────────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ UtilitÃƒÂ¡rios Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       .text-zombie-red {
         color: var(--zh-accent-red);
       }
@@ -427,19 +427,22 @@ block scripts — Scripts JS adicionais no final do
       .zh-feedback-skeleton__line {
         height: 8px;
         border-radius: 999px;
-        background: linear-gradient(
-          90deg,
-          rgba(139, 148, 158, 0.15) 0%,
-          rgba(139, 148, 158, 0.3) 50%,
-          rgba(139, 148, 158, 0.15) 100%
-        );
+        background: linear-gradient(90deg,
+            rgba(139, 148, 158, 0.15) 0%,
+            rgba(139, 148, 158, 0.3) 50%,
+            rgba(139, 148, 158, 0.15) 100%);
         background-size: 220% 100%;
         animation: zh-feedback-shimmer 1.2s infinite linear;
       }
 
       @keyframes zh-feedback-shimmer {
-        from { background-position: 220% 0; }
-        to { background-position: -220% 0; }
+        from {
+          background-position: 220% 0;
+        }
+
+        to {
+          background-position: -220% 0;
+        }
       }
 
       .zh-feedback-toast {
@@ -455,7 +458,7 @@ block scripts — Scripts JS adicionais no final do
         opacity: 1;
       }
 
-      /* ── Responsividade — oculta sidebar em mobile ────────────────────── */
+      /* Ã¢â€â‚¬Ã¢â€â‚¬ Responsividade Ã¢â‚¬â€ oculta sidebar em mobile Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
       @media (max-width: 768px) {
         .zh-sidebar {
           transform: translateX(-100%);
@@ -478,33 +481,32 @@ block scripts — Scripts JS adicionais no final do
   <body>
     <a href="#zh-main-content" class="zh-skip-link">Pular para o conteudo principal</a>
 
-    <!-- ═══════════════════════════════════════════════════════════════════
+    <!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
        NAVBAR SUPERIOR
-       - Logo + nome à esquerda
-       - Badge READ-ONLY sempre visível à direita
+       - Logo + nome ÃƒÂ  esquerda
+       - Badge READ-ONLY sempre visÃƒÂ­vel ÃƒÂ  direita
        - Status de conectividade dos vCenters
-  ═══════════════════════════════════════════════════════════════════ -->
+  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
     <nav class="zh-navbar d-flex align-items-center px-3 gap-3">
 
-      <!-- ── Botão hambúrguer (apenas mobile) ─────────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ BotÃƒÂ£o hambÃƒÂºrguer (apenas mobile) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       <button class="btn btn-sm btn-outline-secondary d-md-none border-0 p-1" id="zh-sidebar-toggle"
-        aria-controls="zh-sidebar" aria-expanded="false"
-        aria-label="Abrir menu" title="Menu">
+        aria-controls="zh-sidebar" aria-expanded="false" aria-label="Abrir menu" title="Menu">
         <i class="bi bi-list fs-5"></i>
       </button>
 
-      <!-- ── Logo e nome do sistema ───────────────────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Logo e nome do sistema Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       <a href="/" class="d-flex align-items-center gap-2 text-decoration-none flex-shrink-0">
-        <!-- Ícone de caveira simbolizando VMDKs "mortos" -->
+        <!-- ÃƒÂcone de caveira simbolizando VMDKs "mortos" -->
         <i class="bi bi-bug-fill zh-logo-icon" aria-hidden="true"></i>
         <span class="zh-logo-text">ZombieHunter</span>
       </a>
 
-      <!-- ── Separador flexível ────────────────────────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Separador flexÃƒÂ­vel Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       <div class="flex-grow-1"></div>
 
-      <!-- ── Status de conectividade dos vCenters ─────────────────────── -->
-      <!-- Exibido como dropdown com cada vCenter e seu estado de conexão -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Status de conectividade dos vCenters Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
+      <!-- Exibido como dropdown com cada vCenter e seu estado de conexÃƒÂ£o -->
       <div class="dropdown d-none d-sm-block">
         <button id="zh-vcenter-status-toggle"
           class="btn btn-sm btn-link text-decoration-none zh-status-toggle d-flex align-items-center gap-2 p-1"
@@ -559,7 +561,7 @@ block scripts — Scripts JS adicionais no final do
           </li>
           {% endfor %}
           {% else %}
-          <!-- Fallback quando nenhum vCenter está cadastrado -->
+          <!-- Fallback quando nenhum vCenter estÃƒÂ¡ cadastrado -->
           <li>
             <span class="dropdown-item-text text-muted-zh" style="font-size: .8rem; padding: 8px 14px;">
               <i class="bi bi-info-circle me-1"></i>Nenhum vCenter cadastrado
@@ -577,33 +579,43 @@ block scripts — Scripts JS adicionais no final do
         </ul>
       </div>
 
-      <!-- ── Badge READ-ONLY MODE — NUNCA OCULTAR ─────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Badge READ-ONLY MODE Ã¢â‚¬â€ NUNCA OCULTAR Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       <!--
-      Este badge é a principal salvaguarda visual do sistema.
-      Independente de qualquer estado, ele SEMPRE deve estar visível.
-      Quando READONLY_MODE=true (padrão), exibe em vermelho pulsante.
+      Este badge ÃƒÂ© a principal salvaguarda visual do sistema.
+      Independente de qualquer estado, ele SEMPRE deve estar visÃƒÂ­vel.
+      Quando READONLY_MODE=true (padrÃƒÂ£o), exibe em vermelho pulsante.
       Quando READONLY_MODE=false, exibe aviso em laranja.
     -->
       {% if auth_enabled %}
       <div class="d-flex align-items-center gap-2 flex-shrink-0">
         <span id="zh-auth-user" class="small text-muted-zh d-none"></span>
-        <button id="zh-logout-btn" type="button" class="btn btn-sm btn-outline-secondary d-none" title="Encerrar sessao">
+        <button id="zh-logout-btn" type="button" class="btn btn-sm btn-outline-secondary d-none"
+          title="Encerrar sessao">
           <i class="bi bi-box-arrow-right me-1"></i>Sair
         </button>
       </div>
       {% endif %}
 
       <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <div class="form-check form-switch mb-0 mt-1" title="Alternar Modo Somente Leitura">
+          <input class="form-check-input" type="checkbox" role="switch" id="zh-readonly-toggle" {% if readonly_mode
+            %}checked{% endif %} style="cursor: pointer;">
+          <label class="form-check-label d-none d-sm-inline text-muted-zh" for="zh-readonly-toggle"
+            style="font-size: 0.75rem; margin-right: 5px;">
+            RO Mode
+          </label>
+        </div>
         {% if readonly_mode %}
-        <!-- Modo seguro: operações destrutivas bloqueadas — badge VERDE -->
-        <span class="zh-readonly-badge" title="READONLY_MODE=true — nenhuma operação destrutiva pode ser executada">
-          &#128274; READ-ONLY MODE &mdash; Nenhuma ação destrutiva permitida
+        <!-- Modo seguro: operaÃƒÂ§ÃƒÂµes destrutivas bloqueadas Ã¢â‚¬â€ badge VERDE -->
+        <span class="zh-readonly-badge"
+          title="READONLY_MODE=true Ã¢â‚¬â€ nenhuma operaÃƒÂ§ÃƒÂ£o destrutiva pode ser executada">
+          &#128274; READ-ONLY MODE &mdash; Nenhuma aÃƒÂ§ÃƒÂ£o destrutiva permitida
         </span>
         {% else %}
-        <!-- Modo operacional — badge VERMELHO PULSANTE de atenção máxima -->
+        <!-- Modo operacional Ã¢â‚¬â€ badge VERMELHO PULSANTE de atenÃƒÂ§ÃƒÂ£o mÃƒÂ¡xima -->
         <span class="zh-operational-badge"
-          title="READONLY_MODE=false — ações destrutivas HABILITADAS com ApprovalToken">
-          &#9888;&#65039; MODO OPERACIONAL &mdash; Ações destrutivas ATIVAS
+          title="READONLY_MODE=false Ã¢â‚¬â€ aÃƒÂ§ÃƒÂµes destrutivas HABILITADAS com ApprovalToken">
+          &#9888;&#65039; MODO OPERACIONAL &mdash; AÃƒÂ§ÃƒÂµes destrutivas ATIVAS
         </span>
         {% endif %}
       </div>
@@ -612,35 +624,39 @@ block scripts — Scripts JS adicionais no final do
     <div id="zh-sidebar-overlay" class="zh-sidebar-overlay d-md-none" aria-hidden="true"></div>
 
 
-    <!-- ═══════════════════════════════════════════════════════════════════
+    <!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
        SIDEBAR ESQUERDA
-       Links de navegação principal com ícones e badge de aprovações
-  ═══════════════════════════════════════════════════════════════════ -->
+       Links de navegaÃƒÂ§ÃƒÂ£o principal com ÃƒÂ­cones e badge de aprovaÃƒÂ§ÃƒÂµes
+  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
     {% set _path = request.url.path|lower %}
     {% set _status_qs = (request.query_params.get('status', '')|upper) %}
     {% set nav_dashboard_active = (_path == '/' or _path.startswith('/dashboard')) %}
-    {% set nav_scan_active = (_path.startswith('/scan') or _path.startswith('/results')) and _status_qs != 'WHITELIST' %}
+    {% set nav_scan_active = (_path.startswith('/scan') or _path.startswith('/results')) and _status_qs != 'WHITELIST'
+    %}
     {% set nav_post_exclusion_active = _path.startswith('/operations/post-exclusion-report') %}
+    {% set nav_post_exclusion_history_active = _path.startswith('/operations/post-exclusion-history') %}
     {% set nav_approvals_active = _path.startswith('/approvals') %}
     {% set nav_vcenters_active = _path.startswith('/vcenters') %}
+    {% set nav_sources_active = _path.startswith('/sources') %}
     {% set nav_schedules_active = _path.startswith('/schedules') %}
     {% set nav_webhooks_active = _path.startswith('/webhooks') %}
     {% set nav_audit_active = (_path.startswith('/audit') or _path.startswith('/audit-log')) %}
-    {% set nav_whitelist_active = (_path.startswith('/whitelist') or (_path.startswith('/scan/results') and _status_qs == 'WHITELIST')) %}
+    {% set nav_whitelist_active = (_path.startswith('/whitelist') or (_path.startswith('/scan/results') and _status_qs
+    == 'WHITELIST')) %}
     {% set nav_settings_active = _path.startswith('/settings') %}
     {% set nav_health_active = (_path == '/health' or _path.startswith('/health/')) %}
-    <aside class="zh-sidebar" id="zh-sidebar" aria-label="Navegação principal">
+    <aside class="zh-sidebar" id="zh-sidebar" aria-label="NavegaÃƒÂ§ÃƒÂ£o principal">
 
-      <!-- ── Seção: Operações ──────────────────────────────────────────── -->
-      <p class="zh-sidebar-label">Operações</p>
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ SeÃƒÂ§ÃƒÂ£o: OperaÃƒÂ§ÃƒÂµes Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
+      <p class="zh-sidebar-label">OperaÃƒÂ§ÃƒÂµes</p>
 
-      <!-- Dashboard — visão geral de métricas históricas -->
+      <!-- Dashboard Ã¢â‚¬â€ visÃƒÂ£o geral de mÃƒÂ©tricas histÃƒÂ³ricas -->
       <a href="/" class="zh-nav-link {% if nav_dashboard_active %}active{% endif %}" title="Painel principal">
         <i class="bi bi-grid-1x2-fill"></i>
         <span>Dashboard</span>
       </a>
 
-      <!-- Resultados da Varredura — lista paginada de VMDKs zombie detectados -->
+      <!-- Resultados da Varredura Ã¢â‚¬â€ lista paginada de VMDKs zombie detectados -->
       <a href="/scan/results" class="zh-nav-link {% if nav_scan_active %}active{% endif %}"
         title="Resultados de varredura">
         <i class="bi bi-search"></i>
@@ -648,63 +664,71 @@ block scripts — Scripts JS adicionais no final do
       </a>
 
       <a href="/operations/post-exclusion-report"
-        class="zh-nav-link {% if nav_post_exclusion_active %}active{% endif %}"
-        title="Relatorio pos-exclusao">
+        class="zh-nav-link {% if nav_post_exclusion_active %}active{% endif %}" title="Relatorio pos-exclusao">
         <i class="bi bi-clipboard-data"></i>
         <span>Pos-Exclusao</span>
       </a>
 
-      <!-- Aprovações Pendentes — badge em vermelho com quantidade -->
+      <a href="/operations/post-exclusion-history"
+        class="zh-nav-link {% if nav_post_exclusion_history_active %}active{% endif %}" title="Historico pos-exclusao">
+        <i class="bi bi-clock-history"></i>
+        <span>Historico</span>
+      </a>
+
+      <!-- AprovaÃƒÂ§ÃƒÂµes Pendentes Ã¢â‚¬â€ badge em vermelho com quantidade -->
       <a href="/approvals" class="zh-nav-link {% if nav_approvals_active %}active{% endif %}"
         title="Aprovacoes pendentes">
         <i class="bi bi-shield-check"></i>
-        <span>Aprovações</span>
-        <!-- Badge: mostra 0 quando não há pendências (cor neutra) -->
-        <span class="zh-nav-badge {{ 'zero' if (pending_approvals or 0) == 0 }}" id="zh-pending-badge" aria-live="polite"
-          aria-atomic="true">
+        <span>AprovaÃƒÂ§ÃƒÂµes</span>
+        <!-- Badge: mostra 0 quando nÃƒÂ£o hÃƒÂ¡ pendÃƒÂªncias (cor neutra) -->
+        <span class="zh-nav-badge {{ 'zero' if (pending_approvals or 0) == 0 }}" id="zh-pending-badge"
+          aria-live="polite" aria-atomic="true">
           {{ pending_approvals or 0 }}
         </span>
       </a>
 
       <hr class="zh-sidebar-divider" />
 
-      <!-- ── Seção: Infraestrutura ─────────────────────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ SeÃƒÂ§ÃƒÂ£o: Infraestrutura Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       <p class="zh-sidebar-label">Infraestrutura</p>
 
-      <!-- vCenters — cadastro e gestão de conexões -->
-      <a href="/vcenters" class="zh-nav-link {% if nav_vcenters_active %}active{% endif %}"
-        title="Gerenciar vCenters">
+      <!-- vCenters Ã¢â‚¬â€ cadastro e gestÃƒÂ£o de conexÃƒÂµes -->
+      <a href="/vcenters" class="zh-nav-link {% if nav_vcenters_active %}active{% endif %}" title="Gerenciar vCenters">
         <i class="bi bi-hdd-network-fill"></i>
         <span>vCenters</span>
       </a>
 
-      <!-- Agendamentos — configuração de varreduras automáticas via cron -->
+
+      <a href="/sources" class="zh-nav-link {% if nav_sources_active %}active{% endif %}" title="Fontes monitoradas">
+        <i class="bi bi-diagram-3-fill"></i>
+        <span>Fontes</span>
+      </a>
+
+      <!-- Agendamentos Ã¢â‚¬â€ configuraÃƒÂ§ÃƒÂ£o de varreduras automÃƒÂ¡ticas via cron -->
       <a href="/schedules" class="zh-nav-link {% if nav_schedules_active %}active{% endif %}"
         title="Agendamentos de varredura">
         <i class="bi bi-calendar-check-fill"></i>
         <span>Agendamentos</span>
       </a>
 
-      <!-- Webhooks — alertas para Teams, Slack e HTTP genérico -->
-      <a href="/webhooks" class="zh-nav-link {% if nav_webhooks_active %}active{% endif %}"
-        title="Webhooks de alerta">
+      <!-- Webhooks Ã¢â‚¬â€ alertas para Teams, Slack e HTTP genÃƒÂ©rico -->
+      <a href="/webhooks" class="zh-nav-link {% if nav_webhooks_active %}active{% endif %}" title="Webhooks de alerta">
         <i class="bi bi-bell-fill"></i>
         <span>Webhooks</span>
       </a>
 
       <hr class="zh-sidebar-divider" />
 
-      <!-- ── Seção: Auditoria ──────────────────────────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ SeÃƒÂ§ÃƒÂ£o: Auditoria Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       <p class="zh-sidebar-label">Auditoria</p>
 
-      <!-- Audit Log — histórico imutável de todas as operações e tentativas -->
-      <a href="/audit-log" class="zh-nav-link {% if nav_audit_active %}active{% endif %}"
-        title="Log de auditoria">
+      <!-- Audit Log Ã¢â‚¬â€ histÃƒÂ³rico imutÃƒÂ¡vel de todas as operaÃƒÂ§ÃƒÂµes e tentativas -->
+      <a href="/audit-log" class="zh-nav-link {% if nav_audit_active %}active{% endif %}" title="Log de auditoria">
         <i class="bi bi-journal-text"></i>
         <span>Auditoria</span>
       </a>
 
-      <!-- Whitelist — VMDKs marcados como seguros e excluídos de varreduras -->
+      <!-- Whitelist Ã¢â‚¬â€ VMDKs marcados como seguros e excluÃƒÂ­dos de varreduras -->
       <a href="/whitelist" class="zh-nav-link {% if nav_whitelist_active %}active{% endif %}"
         title="Whitelist de VMDKs">
         <i class="bi bi-shield-fill-check"></i>
@@ -713,17 +737,17 @@ block scripts — Scripts JS adicionais no final do
 
       <hr class="zh-sidebar-divider" />
 
-      <!-- ── Seção: Sistema ────────────────────────────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ SeÃƒÂ§ÃƒÂ£o: Sistema Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       <p class="zh-sidebar-label">Sistema</p>
 
-      <!-- Configurações — parâmetros gerais do ZombieHunter -->
+      <!-- ConfiguraÃƒÂ§ÃƒÂµes Ã¢â‚¬â€ parÃƒÂ¢metros gerais do ZombieHunter -->
       <a href="/settings" class="zh-nav-link {% if nav_settings_active %}active{% endif %}"
         title="Configuracoes do sistema">
         <i class="bi bi-gear-fill"></i>
-        <span>Configurações</span>
+        <span>ConfiguraÃƒÂ§ÃƒÂµes</span>
       </a>
 
-      <!-- Health check — status da API, banco e conexões vCenter -->
+      <!-- Health check Ã¢â‚¬â€ status da API, banco e conexÃƒÂµes vCenter -->
       <a href="/health" class="zh-nav-link {% if nav_health_active %}active{% endif %}" title="Health da API"
         target="_blank" rel="noopener">
         <i class="bi bi-activity"></i>
@@ -731,21 +755,21 @@ block scripts — Scripts JS adicionais no final do
         <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: .65rem; opacity: .5;"></i>
       </a>
 
-      <!-- Espaço inferior para não cortar o último item -->
+      <!-- EspaÃƒÂ§o inferior para nÃƒÂ£o cortar o ÃƒÂºltimo item -->
       <div style="height: 20px;"></div>
 
     </aside><!-- fim .zh-sidebar -->
 
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-       CONTEÚDO PRINCIPAL — bloco "content" preenchido pelas páginas filhas
-  ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+       CONTEÃƒÅ¡DO PRINCIPAL Ã¢â‚¬â€ bloco "content" preenchido pelas pÃƒÂ¡ginas filhas
+  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
     <main class="zh-main" id="zh-main-content">
 
-      <!-- ── Breadcrumb dinâmico (opcional por página) ─────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Breadcrumb dinÃƒÂ¢mico (opcional por pÃƒÂ¡gina) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       {% block breadcrumb %}{% endblock %}
 
-      <!-- ── Alertas globais de sessão (injetados via contexto Jinja2) ── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Alertas globais de sessÃƒÂ£o (injetados via contexto Jinja2) Ã¢â€â‚¬Ã¢â€â‚¬ -->
       {% if flash_messages %}
       <div class="mb-3" role="alert" aria-live="polite">
         {% for category, message in flash_messages %}
@@ -760,12 +784,12 @@ block scripts — Scripts JS adicionais no final do
       </div>
       {% endif %}
 
-      <!-- ── Conteúdo injetado pelas páginas filhas ─────────────────────── -->
+      <!-- Ã¢â€â‚¬Ã¢â€â‚¬ ConteÃƒÂºdo injetado pelas pÃƒÂ¡ginas filhas Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
       {% block content %}
-      <!-- Fallback: página filha não definiu content -->
+      <!-- Fallback: pÃƒÂ¡gina filha nÃƒÂ£o definiu content -->
       <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 50vh;">
         <i class="bi bi-bug-fill text-zombie-red mb-3" style="font-size: 3rem;"></i>
-        <h5 class="text-muted-zh">Nenhum conteúdo definido para esta página.</h5>
+        <h5 class="text-muted-zh">Nenhum conteÃƒÂºdo definido para esta pÃƒÂ¡gina.</h5>
         <a href="/" class="btn btn-sm btn-outline-secondary mt-3">
           <i class="bi bi-house me-1"></i>Voltar ao Dashboard
         </a>
@@ -775,52 +799,52 @@ block scripts — Scripts JS adicionais no final do
     </main><!-- fim .zh-main -->
 
 
-    <!-- ═══════════════════════════════════════════════════════════════════
+    <!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
        FOOTER
-       - Última varredura (timestamp dinâmico)
-       - Versão da API
-       - Aviso de segurança obrigatório
-  ═══════════════════════════════════════════════════════════════════ -->
+       - ÃƒÅ¡ltima varredura (timestamp dinÃƒÂ¢mico)
+       - VersÃƒÂ£o da API
+       - Aviso de seguranÃƒÂ§a obrigatÃƒÂ³rio
+  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
     <footer class="zh-footer" role="contentinfo">
 
       <!-- Coluna esquerda: metadata do sistema -->
       <div class="d-flex align-items-center gap-3 flex-wrap">
 
-        <!-- Timestamp da última varredura concluída -->
+        <!-- Timestamp da ÃƒÂºltima varredura concluÃƒÂ­da -->
         <span class="d-flex align-items-center gap-1">
           <i class="bi bi-clock-history" aria-hidden="true"></i>
-          <span>Última varredura:</span>
+          <span>ÃƒÅ¡ltima varredura:</span>
           <span id="zh-last-scan-time">
             {% if last_scan_at %}
             <time datetime="{{ last_scan_at }}" title="{{ last_scan_at }}" class="text-zombie-blue">{{ last_scan_at
               }}</time>
             {% else %}
-            <em class="text-muted-zh">Nenhuma varredura concluída</em>
+            <em class="text-muted-zh">Nenhuma varredura concluÃƒÂ­da</em>
             {% endif %}
           </span>
         </span>
 
         <!-- Separador visual -->
-        <span class="text-muted-zh d-none d-md-inline" aria-hidden="true">·</span>
+        <span class="text-muted-zh d-none d-md-inline" aria-hidden="true">Ã‚Â·</span>
 
-        <!-- Versão da API -->
+        <!-- VersÃƒÂ£o da API -->
         <span class="d-none d-md-flex align-items-center gap-1">
           <i class="bi bi-cpu" aria-hidden="true"></i>
           <span>API</span>
-          <span class="text-zombie-blue">v{{ api_version or '—' }}</span>
+          <span class="text-zombie-blue">v{{ api_version or 'Ã¢â‚¬â€' }}</span>
         </span>
 
       </div>
 
-      <!-- Coluna direita: aviso de segurança — sempre visível -->
+      <!-- Coluna direita: aviso de seguranÃƒÂ§a Ã¢â‚¬â€ sempre visÃƒÂ­vel -->
       <!--
-      ATENÇÃO: Este aviso não deve ser removido. Reforça ao usuário que
-      o sistema é estritamente READ-ONLY por padrão e que toda ação
-      destrutiva exige aprovação explícita de um analista humano.
+      ATENÃƒâ€¡ÃƒÆ’O: Este aviso nÃƒÂ£o deve ser removido. ReforÃƒÂ§a ao usuÃƒÂ¡rio que
+      o sistema ÃƒÂ© estritamente READ-ONLY por padrÃƒÂ£o e que toda aÃƒÂ§ÃƒÂ£o
+      destrutiva exige aprovaÃƒÂ§ÃƒÂ£o explÃƒÂ­cita de um analista humano.
     -->
-      <div class="zh-footer-security" role="note" aria-label="Aviso de segurança">
+      <div class="zh-footer-security" role="note" aria-label="Aviso de seguranÃƒÂ§a">
         <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
-        <span>Nenhuma ação é executada sem aprovação do analista</span>
+        <span>Nenhuma aÃƒÂ§ÃƒÂ£o ÃƒÂ© executada sem aprovaÃƒÂ§ÃƒÂ£o do analista</span>
       </div>
 
     </footer><!-- fim .zh-footer -->
@@ -859,21 +883,21 @@ block scripts — Scripts JS adicionais no final do
     </div>
     {% endif %}
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-       SCRIPTS — carregados no final do body para performance
-  ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+       SCRIPTS Ã¢â‚¬â€ carregados no final do body para performance
+  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
 
-    <!-- ── Configuração global de auth web ──────────────────────────────
-       Frontend usa sessão JWT em cookie HttpOnly.
-       Não expor API key em HTML/JS e remover header X-API-Key legado.
-  ─────────────────────────────────────────────────────────────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ ConfiguraÃƒÂ§ÃƒÂ£o global de auth web Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+       Frontend usa sessÃƒÂ£o JWT em cookie HttpOnly.
+       NÃƒÂ£o expor API key em HTML/JS e remover header X-API-Key legado.
+  Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     <script>
       "use strict";
 
       // Mantido por compatibilidade com scripts legados.
       // Nao recebe API key real no browser.
       window.ZH_API_KEY = "";
-      window.ZH_AUTH_ENABLED = {% if auth_enabled %}true{% else %}false{% endif %};
+      window.ZH_AUTH_ENABLED = {% if auth_enabled %}true{% else %} false{% endif %};
       window.zhAuth = {
         authenticated: !window.ZH_AUTH_ENABLED,
         user: window.ZH_AUTH_ENABLED ? null : { sub: "auth-disabled" }
@@ -891,19 +915,12 @@ block scripts — Scripts JS adicionais no final do
         return _zhOriginalFetch(input, nextInit);
       };
 
-      // Também injeta no $.ajax do jQuery (usado pelo DataTables)
+      // TambÃƒÂ©m injeta no $.ajax do jQuery (usado pelo DataTables)
       (function () {
         document.addEventListener("DOMContentLoaded", function () {
           if (window.$) {
             $.ajaxSetup({
               xhrFields: { withCredentials: true },
-              beforeSend: function (xhr) {
-                try {
-                  xhr.setRequestHeader("X-API-Key", "");
-                } catch (_) {
-                  // noop
-                }
-              },
             });
           }
         });
@@ -914,20 +931,20 @@ block scripts — Scripts JS adicionais no final do
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js?v={{ api_version }}"
       crossorigin="anonymous"></script>
 
-    <!-- Chart.js 4.x — gráficos de tendência e distribuição -->
+    <!-- Chart.js 4.x Ã¢â‚¬â€ grÃƒÂ¡ficos de tendÃƒÂªncia e distribuiÃƒÂ§ÃƒÂ£o -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js?v={{ api_version }}"></script>
 
-    <!-- DataTables 2.x core + integração Bootstrap 5 -->
+    <!-- DataTables 2.x core + integraÃƒÂ§ÃƒÂ£o Bootstrap 5 -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js?v={{ api_version }}"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js?v={{ api_version }}"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js?v={{ api_version }}"></script>
     <script src="/static/js/ui_feedback.js?v={{ api_version }}"></script>
 
-    <!-- ── Scripts globais do ZombieHunter ──────────────────────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Scripts globais do ZombieHunter Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     <script>
       "use strict";
 
-      // ── Configuração global do Chart.js para tema escuro ─────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ ConfiguraÃƒÂ§ÃƒÂ£o global do Chart.js para tema escuro Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       Chart.defaults.color = "#8b949e";
       Chart.defaults.borderColor = "#30363d";
       Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
@@ -1028,7 +1045,7 @@ block scripts — Scripts JS adicionais no final do
         }
       }
 
-      // ── Toggle da sidebar em mobile ───────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Toggle da sidebar em mobile Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       const sidebarToggle = document.getElementById("zh-sidebar-toggle");
       const sidebar = document.getElementById("zh-sidebar");
       const sidebarOverlay = document.getElementById("zh-sidebar-overlay");
@@ -1102,7 +1119,7 @@ block scripts — Scripts JS adicionais no final do
         });
       }
 
-      // ── Atualização periódica do badge de aprovações pendentes ────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ AtualizaÃƒÂ§ÃƒÂ£o periÃƒÂ³dica do badge de aprovaÃƒÂ§ÃƒÂµes pendentes Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // Consulta a API a cada 60s para refletir novos tokens emitidos
       if (window.ZH_AUTH_ENABLED) {
         const authModalEl = document.getElementById("zh-auth-modal");
@@ -1144,11 +1161,11 @@ block scripts — Scripts JS adicionais no final do
           console.warn("[ui] refreshPendingBadge falhou:", err);
         }
       }
-      // Primeira chamada após 5s (evita conflito com carregamento inicial)
+      // Primeira chamada apÃƒÂ³s 5s (evita conflito com carregamento inicial)
       setTimeout(refreshPendingBadge, 5000);
       setInterval(refreshPendingBadge, 60_000);
 
-      // ── Atualização periódica do status dos vCenters ──────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ AtualizaÃƒÂ§ÃƒÂ£o periÃƒÂ³dica do status dos vCenters Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // Consulta /health/readiness a cada 2 minutos e atualiza o dot global
       async function refreshVcenterDot() {
         if (!window.zhAuth?.authenticated) return;
@@ -1173,13 +1190,12 @@ block scripts — Scripts JS adicionais no final do
             statusText.textContent = total === 0 ? "Sem vCenters" : (allOk ? "Operacional" : "Com falha");
           }
           if (statusIcon) {
-            statusIcon.className = `bi ${
-              total === 0
+            statusIcon.className = `bi ${total === 0
                 ? "bi-question-circle text-muted-zh"
                 : allOk
                   ? "bi-check-circle-fill text-zombie-green"
                   : "bi-exclamation-circle-fill text-zombie-red"
-            }`;
+              }`;
           }
         } catch (err) {
           console.warn("[ui] refreshVcenterDot falhou:", err);
@@ -1188,22 +1204,22 @@ block scripts — Scripts JS adicionais no final do
       setTimeout(refreshVcenterDot, 10_000);
       setInterval(refreshVcenterDot, 120_000);
 
-      // ── Helper: formata valor em GB → "X.XX GB" ou "X.XX TB" (>= 1024 GB) ───────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Helper: formata valor em GB Ã¢â€ â€™ "X.XX GB" ou "X.XX TB" (>= 1024 GB) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       window.zhFormatSizeGB = (gb) => {
-        if (gb == null) return "—";
+        if (gb == null) return "Ã¢â‚¬â€";
         const n = Number(gb);
         if (n >= 1024) return (n / 1024).toFixed(2) + " TB";
         return n.toFixed(2) + " GB";
       };
       // Formata bytes para GB ou TB (usa zhFormatSizeGB)
       window.zhFormatGB = (bytes) => {
-        if (bytes == null) return "—";
+        if (bytes == null) return "Ã¢â‚¬â€";
         return window.zhFormatSizeGB(bytes / (1024 ** 3));
       };
 
-      // ── Helper: formata timestamp ISO para locale pt-BR ───────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Helper: formata timestamp ISO para locale pt-BR Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       window.zhFormatDate = (isoStr) => {
-        if (!isoStr) return "—";
+        if (!isoStr) return "Ã¢â‚¬â€";
         try {
           return new Intl.DateTimeFormat("pt-BR", {
             dateStyle: "short",
@@ -1215,13 +1231,41 @@ block scripts — Scripts JS adicionais no final do
         }
       };
 
-      // Aplica formatação em todos os elementos com data-zh-date
+      // Aplica formataÃƒÂ§ÃƒÂ£o em todos os elementos com data-zh-date
       document.querySelectorAll("[data-zh-date]").forEach((el) => {
         el.textContent = window.zhFormatDate(el.dataset.zhDate);
       });
+
+      // Lógica do Toggle READONLY_MODE
+      const readonlyToggle = document.getElementById("zh-readonly-toggle");
+      if (readonlyToggle) {
+        readonlyToggle.addEventListener("change", async (e) => {
+          const isChecked = e.target.checked;
+          readonlyToggle.disabled = true;
+          try {
+            const resp = await fetch("/api/v1/settings/readonly_mode", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Accept: "application/json" },
+              body: JSON.stringify({ readonly_mode: isChecked })
+            });
+            if (resp.ok) {
+              window.location.reload();
+            } else {
+              alert("Falha ao alterar o Modo Somente Leitura.");
+              readonlyToggle.checked = !isChecked;
+            }
+          } catch (err) {
+            console.error(err);
+            alert("Erro de rede ao alterar o Modo Somente Leitura.");
+            readonlyToggle.checked = !isChecked;
+          } finally {
+            readonlyToggle.disabled = false;
+          }
+        });
+      }
     </script>
 
-    <!-- ── Block para scripts adicionais das páginas filhas ─────────── -->
+    <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Block para scripts adicionais das pÃƒÂ¡ginas filhas Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
     {% block scripts %}{% endblock %}
 
   </body>

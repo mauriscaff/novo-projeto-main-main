@@ -1,0 +1,26 @@
+# Personal overrides (not shared with team)
+AGENTS.override.md
+
+# Local Codex config (personal settings)
+.codex/config.local.toml
+
+# Generated workflow output
+orchestration-workflow/output.md
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.idea/
+
+# Environment variables
+.env
+.env.local
