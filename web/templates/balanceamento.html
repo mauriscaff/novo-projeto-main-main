@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Balanceamento de Capacidade{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+
+    <!-- Cabeçalho -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="fs-5 fw-bold mb-0" style="color:var(--zh-text-primary);">
+                <i class="bi bi-bar-chart-steps me-2" style="color:var(--zh-blue);"></i>Balanceamento de Capacidade
+            </h1>
+            <small class="text-muted-zh">Saúde e uso dos Datastores · Candidatas à migração · Recomendações de
+                ação</small>
+        </div>
+        <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+            <select id="zh-vcenter-select" class="form-select form-select-sm"
+                style="width:auto;min-width:180px;background:var(--zh-surface-2);border-color:var(--zh-border);color:var(--zh-text-primary);">
+                <option value="">Selecione o vCenter...</option>
+            </select>
+            <button id="zh-btn-analisar" class="btn btn-sm btn-primary" disabled>
+                <i class="bi bi-arrow-clockwise me-1"></i>Analisar
+            </button>
+        </div>
+    </div>
+
+    <!-- Feedback global -->
+    <div id="zh-balance-feedback" class="mb-3 d-none"></div>
+
+    <!-- Cards de resumo -->
+    <div class="row g-3 mb-4" id="zh-summary-cards" style="display:none!important;">
+        <div class="col-6 col-lg-3">
+            <div class="zh-stat-card h-100 text-center p-3">
+                <div class="fs-3 fw-bold mb-1" id="zh-sum-total">—</div>
+                <div class="text-muted-zh small">Datastores</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="zh-stat-card h-100 text-center p-3" style="border-color:rgba(248,81,73,.3);">
+                <div class="fs-3 fw-bold mb-1" id="zh-sum-red" style="color:var(--zh-accent-red);">—</div>
+                <div class="text-muted-zh small">🔴 Críticos (&gt;85%)</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="zh-stat-card h-100 text-center p-3" style="border-color:rgba(210,153,34,.3);">
+                <div class="fs-3 fw-bold mb-1" id="zh-sum-yellow" style="color:var(--zh-accent-yellow);">—</div>
+                <div class="text-muted-zh small">🟡 Atenção (70–85%)</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="zh-stat-card h-100 text-center p-3" style="border-color:rgba(63,185,80,.3);">
+                <div class="fs-3 fw-bold mb-1" id="zh-sum-green" style="color:var(--zh-accent-green);">—</div>
+                <div class="text-muted-zh small">🟢 Saudáveis (&lt;70%)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- Lista de Datastores -->
+        <div class="col-12 col-xl-8">
+            <div class="zh-card h-100">
+                <div class="zh-card-header d-flex align-items-center justify-content-between mb-3">
+                    <span class="fw-semibold">Datastores</span>
+                    <span class="text-muted-zh small" id="zh-generated-at"></span>
+                </div>
+                <div id="zh-ds-list">
+                    <div class="text-muted-zh small text-center py-5">
+                        <i class="bi bi-bar-chart-steps fs-3 d-block mb-2 opacity-50"></i>
+                        Selecione um vCenter e clique em <strong>Analisar</strong> para carregar os dados.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Painel de Recomendações -->
+        <div class="col-12 col-xl-4">
+            <div class="zh-card h-100">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-lightbulb-fill me-1" style="color:var(--zh-accent-yellow);"></i>
+                    Recomendações de Ação
+                </div>
+                <div id="zh-recommendations">
+                    <span class="text-muted-zh small">Aguardando análise...</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .zh-ds-item {
+        border: 1px solid var(--zh-border);
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        background: var(--zh-surface-2);
+        transition: border-color .2s;
+    }
+
+    .zh-ds-item:hover {
+        border-color: var(--zh-blue);
+    }
+
+    .zh-ds-item.health-red {
+        border-left: 3px solid var(--zh-accent-red);
+    }
+
+    .zh-ds-item.health-yellow {
+        border-left: 3px solid var(--zh-accent-yellow);
+    }
+
+    .zh-ds-item.health-green {
+        border-left: 3px solid var(--zh-accent-green);
+    }
+
+    .zh-progress-bar-track {
+        height: 8px;
+        border-radius: 4px;
+        background: var(--zh-surface-3, #30363d);
+        overflow: hidden;
+    }
+
+    .zh-progress-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width .6s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .zh-rec-item {
+        border-left: 3px solid var(--zh-accent-yellow);
+        padding: 10px 12px;
+        border-radius: 0 8px 8px 0;
+        background: rgba(210, 153, 34, .07);
+        margin-bottom: 10px;
+        font-size: .82rem;
+        line-height: 1.5;
+        color: var(--zh-text-primary);
+    }
+
+    .zh-rec-item.ok {
+        border-left-color: var(--zh-accent-green);
+        background: rgba(63, 185, 80, .07);
+    }
+
+    .zh-vm-pill {
+        display: inline-block;
+        font-size: .7rem;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: rgba(88, 166, 255, .12);
+        color: var(--zh-blue);
+        border: 1px solid rgba(88, 166, 255, .25);
+        margin: 2px 2px 2px 0;
+        font-family: monospace;
+    }
+</style>
+
+<script>
+    "use strict";
+
+    const API_CAPACITY = "/api/v1/capacity/report";
+    const API_VCENTERS = "/api/v1/vcenters";
+
+    // ── Init ─────────────────────────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", async () => {
+        await _loadVcenterOptions();
+        document.getElementById("zh-btn-analisar").addEventListener("click", _runAnalysis);
+        document.getElementById("zh-vcenter-select").addEventListener("change", (e) => {
+            document.getElementById("zh-btn-analisar").disabled = !e.target.value;
+        });
+    });
+
+    // ── Carrega vCenters no <select> ─────────────────────────────────────────────
+    async function _loadVcenterOptions() {
+        try {
+            const resp = await fetch(API_VCENTERS, { credentials: "same-origin" });
+            if (!resp.ok) return;
+            const vcs = await resp.json();
+            const sel = document.getElementById("zh-vcenter-select");
+            (vcs.items ?? vcs).forEach(vc => {
+                const opt = document.createElement("option");
+                opt.value = vc.id;
+                opt.textContent = `${vc.name} (${vc.host})`;
+                sel.appendChild(opt);
+            });
+        } catch (err) {
+            console.warn("[Balance] Falha ao carregar vCenters:", err);
+        }
+    }
+
+    // ── Executa análise ───────────────────────────────────────────────────────────
+    async function _runAnalysis() {
+        const vcId = document.getElementById("zh-vcenter-select").value;
+        if (!vcId) return;
+
+        const btn = document.getElementById("zh-btn-analisar");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analisando...';
+
+        _setFeedback("loading", "Consultando datastores no vCenter...");
+        document.getElementById("zh-ds-list").innerHTML = _spinner();
+
+        try {
+            const resp = await fetch(`${API_CAPACITY}?vcenter_id=${vcId}`, { credentials: "same-origin" });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail ?? `HTTP ${resp.status}`);
+            }
+            const data = await resp.json();
+            _renderSummary(data.summary);
+            _renderDatastoreList(data.datastores);
+            _renderRecommendations(data.recommendations);
+            const ts = data.generated_at ? new Date(data.generated_at).toLocaleString("pt-BR") : "";
+            document.getElementById("zh-generated-at").textContent = ts ? `Gerado em ${ts}` : "";
+            _clearFeedback();
+        } catch (err) {
+            _setFeedback("error", `Falha ao analisar: ${err.message}`);
+            document.getElementById("zh-ds-list").innerHTML =
+                `<div class="alert alert-danger py-2 small">${_esc(err.message)}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Analisar';
+        }
+    }
+
+    // ── Renders ───────────────────────────────────────────────────────────────────
+    function _renderSummary(s) {
+        if (!s) return;
+        document.getElementById("zh-summary-cards").style.display = "";
+        document.getElementById("zh-sum-total").textContent = s.total_datastores ?? "—";
+        document.getElementById("zh-sum-red").textContent = s.red ?? 0;
+        document.getElementById("zh-sum-yellow").textContent = s.yellow ?? 0;
+        document.getElementById("zh-sum-green").textContent = s.green ?? 0;
+    }
+
+    function _renderDatastoreList(datastores) {
+        const container = document.getElementById("zh-ds-list");
+        if (!datastores || datastores.length === 0) {
+            container.innerHTML = '<p class="text-muted-zh small text-center py-4">Nenhum datastore encontrado.</p>';
+            return;
+        }
+
+        const HEALTH_COLOR = { red: "var(--zh-accent-red)", yellow: "var(--zh-accent-yellow)", green: "var(--zh-accent-green)" };
+        const HEALTH_LABEL = { red: "🔴 Crítico", yellow: "🟡 Atenção", green: "🟢 Saudável" };
+
+        container.innerHTML = datastores.map(ds => {
+            const color = HEALTH_COLOR[ds.health_status] || "#6e7681";
+            const pct = ds.use_pct ?? 0;
+            const vmHtml = (ds.top_vms ?? []).map(vm =>
+                `<span class="zh-vm-pill" title="${_esc(vm.path || '')}">${_esc(vm.name)} · ${vm.committed_gb} GB</span>`
+            ).join("");
+
+            return `
+    <div class="zh-ds-item health-${ds.health_status}">
+      <div class="d-flex align-items-start justify-content-between mb-2 gap-2">
+        <div class="fw-semibold text-truncate" style="font-size:.9rem;" title="${_esc(ds.name)}">${_esc(ds.name)}</div>
+        <span style="white-space:nowrap;font-size:.75rem;color:${color};font-weight:600;">${HEALTH_LABEL[ds.health_status] ?? ds.health_status}</span>
+      </div>
+      <!-- Barra de progresso -->
+      <div class="zh-progress-bar-track mb-2">
+        <div class="zh-progress-bar-fill" style="width:${Math.min(pct, 100)}%;background:${color};"></div>
+      </div>
+      <!-- Métricas -->
+      <div class="d-flex gap-3 flex-wrap" style="font-size:.78rem;color:var(--zh-text-secondary);">
+        <span><strong style="color:${color};">${pct}%</strong> usado</span>
+        <span>Livre: <strong>${ds.free_gb} GB</strong></span>
+        <span>Usado: <strong>${ds.used_gb} GB</strong></span>
+        <span>Capacidade: <strong>${ds.capacity_gb} GB</strong></span>
+        ${ds.uncommitted_gb > 0 ? `<span>Provisionado: <strong>${ds.uncommitted_gb} GB</strong></span>` : ""}
+      </div>
+      <!-- Candidatas à migração -->
+      ${vmHtml ? `
+      <div class="mt-2" style="font-size:.75rem;">
+        <span class="text-muted-zh me-1">Candidatas à migração:</span>${vmHtml}
+      </div>` : ""}
+    </div>`;
+        }).join("");
+    }
+
+    function _renderRecommendations(recs) {
+        const el = document.getElementById("zh-recommendations");
+        if (!recs || recs.length === 0) {
+            el.innerHTML = '<span class="text-muted-zh small">Nenhuma recomendação.</span>';
+            return;
+        }
+        el.innerHTML = recs.map(r => {
+            const isOk = r.startsWith("✅");
+            return `<div class="zh-rec-item ${isOk ? "ok" : ""}">${_esc(r)}</div>`;
+        }).join("");
+    }
+
+    // ── Feedback helpers ──────────────────────────────────────────────────────────
+    function _setFeedback(state, msg) {
+        const el = document.getElementById("zh-balance-feedback");
+        el.classList.remove("d-none");
+        if (state === "loading") {
+            el.className = "mb-3 alert alert-info py-2 small";
+            el.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${_esc(msg)}`;
+        } else if (state === "error") {
+            el.className = "mb-3 alert alert-danger py-2 small";
+            el.textContent = msg;
+        }
+    }
+    function _clearFeedback() {
+        const el = document.getElementById("zh-balance-feedback");
+        el.classList.add("d-none");
+        el.textContent = "";
+    }
+
+    // ── Utils ─────────────────────────────────────────────────────────────────────
+    function _esc(s) {
+        return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function _spinner() {
+        return `<div class="text-center py-5 text-muted-zh">
+    <div class="spinner-border" style="width:2rem;height:2rem;border-width:3px;color:var(--zh-blue);"></div>
+    <div class="mt-2 small">Consultando datastores...</div>
+  </div>`;
+    }
+</script>
+{% endblock %}

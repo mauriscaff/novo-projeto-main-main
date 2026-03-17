@@ -645,6 +645,7 @@ block scripts Ã¢â‚¬â€ Scripts JS adicionais no final do
     == 'WHITELIST')) %}
     {% set nav_settings_active = _path.startswith('/settings') %}
     {% set nav_health_active = (_path == '/health' or _path.startswith('/health/')) %}
+    {% set nav_balance_active = _path.startswith('/balanceamento') %}
     <aside class="zh-sidebar" id="zh-sidebar" aria-label="NavegaÃƒÂ§ÃƒÂ£o principal">
 
       <!-- Ã¢â€â‚¬Ã¢â€â‚¬ SeÃƒÂ§ÃƒÂ£o: OperaÃƒÂ§ÃƒÂµes Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
@@ -685,6 +686,13 @@ block scripts Ã¢â‚¬â€ Scripts JS adicionais no final do
           aria-live="polite" aria-atomic="true">
           {{ pending_approvals or 0 }}
         </span>
+      </a>
+
+      <!-- Balanceamento de Capacidade — gestão de datastores -->
+      <a href="/balanceamento" class="zh-nav-link {% if nav_balance_active %}active{% endif %}"
+        title="Capacidade e balanceamento de datastores">
+        <i class="bi bi-bar-chart-steps"></i>
+        <span>Balanceamento</span>
       </a>
 
       <hr class="zh-sidebar-divider" />
@@ -1191,10 +1199,10 @@ block scripts Ã¢â‚¬â€ Scripts JS adicionais no final do
           }
           if (statusIcon) {
             statusIcon.className = `bi ${total === 0
-                ? "bi-question-circle text-muted-zh"
-                : allOk
-                  ? "bi-check-circle-fill text-zombie-green"
-                  : "bi-exclamation-circle-fill text-zombie-red"
+              ? "bi-question-circle text-muted-zh"
+              : allOk
+                ? "bi-check-circle-fill text-zombie-green"
+                : "bi-exclamation-circle-fill text-zombie-red"
               }`;
           }
         } catch (err) {

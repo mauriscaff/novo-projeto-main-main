@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, text
 
-from app.api.routes import approvals, auth, dashboard, datastore_reports, monitored_sources, scan, scanner, schedules, vcenter, webhooks, system_settings
+from app.api.routes import approvals, auth, capacity, dashboard, datastore_reports, monitored_sources, scan, scanner, schedules, vcenter, webhooks, system_settings
 from app.core.scheduler import scheduler, start as scheduler_start, stop as scheduler_stop
 from app.core.vcenter.connection_manager import connection_manager
 from app.dependencies import get_current_user
@@ -105,6 +105,7 @@ app.include_router(dashboard.router,  prefix="/api/v1/dashboard",  tags=["Dashbo
 app.include_router(approvals.router,  prefix="/api/v1/approvals",  tags=["AprovaÃƒÂ§ÃƒÂµes & Auditoria"])
 app.include_router(monitored_sources.router, prefix="/api/v1/monitored-sources", tags=["Fontes Monitoradas"])
 app.include_router(system_settings.router, prefix="/api/v1/settings", tags=["Sistema"])
+app.include_router(capacity.router,       prefix="/api/v1/capacity",   tags=["Capacidade"])
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Arquivos estÃƒÂ¡ticos (CSS, JS) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 app.mount("/static", StaticFiles(directory=str(_WEB_DIR / "static")), name="static")
@@ -210,6 +211,12 @@ async def web_audit_log(request: Request):
 async def web_vcenters(request: Request):
     ctx = await _base_ctx(request)
     return templates.TemplateResponse("vcenters.html", ctx)
+
+
+@app.get("/balanceamento", response_class=HTMLResponse, tags=["Web"], include_in_schema=False)
+async def web_balanceamento(request: Request):
+    ctx = await _base_ctx(request)
+    return templates.TemplateResponse("balanceamento.html", ctx)
 
 
 
