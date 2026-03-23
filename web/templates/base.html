@@ -953,9 +953,11 @@ block scripts Ã¢â‚¬â€ Scripts JS adicionais no final do
       "use strict";
 
       // Ã¢â€â‚¬Ã¢â€â‚¬ ConfiguraÃƒÂ§ÃƒÂ£o global do Chart.js para tema escuro Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-      Chart.defaults.color = "#8b949e";
-      Chart.defaults.borderColor = "#30363d";
-      Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
+      if (window.Chart?.defaults) {
+        window.Chart.defaults.color = "#8b949e";
+        window.Chart.defaults.borderColor = "#30363d";
+        window.Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
+      }
 
       let zhAuthModal = null;
 

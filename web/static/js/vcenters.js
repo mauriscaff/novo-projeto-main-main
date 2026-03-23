@@ -42,6 +42,29 @@ async function _apiFetch(url, init = {}) {
   });
 }
 
+function _createModalController(modalEl) {
+  if (!modalEl) {
+    return { show() {}, hide() {} };
+  }
+  if (window.bootstrap?.Modal) {
+    return new window.bootstrap.Modal(modalEl, { keyboard: false });
+  }
+  return {
+    show() {
+      modalEl.classList.add("show");
+      modalEl.style.display = "block";
+      modalEl.removeAttribute("aria-hidden");
+      document.body.classList.add("modal-open");
+    },
+    hide() {
+      modalEl.classList.remove("show");
+      modalEl.style.display = "none";
+      modalEl.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-open");
+    },
+  };
+}
+
 // â”€â”€ Estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let vcenters    = [];            // lista completa
@@ -58,8 +81,11 @@ let deletingId = null;
 // â”€â”€ InicializaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 document.addEventListener("DOMContentLoaded", async () => {
-  modalAdd = new bootstrap.Modal(document.getElementById("zh-modal-vcenter"), { keyboard: false });
-  modalDel = new bootstrap.Modal(document.getElementById("zh-modal-delete"),  { keyboard: false });
+  modalAdd = _createModalController(document.getElementById("zh-modal-vcenter"));
+  modalDel = _createModalController(document.getElementById("zh-modal-delete"));
+  if (!window.bootstrap?.Modal) {
+    console.warn("[vcenters] Bootstrap JS indisponivel; modais em modo simplificado.");
+  }
 
   _bindFormEvents();
   _bindOperationalGuide();
@@ -141,9 +167,11 @@ function _renderCards() {
   grid.innerHTML = vcenters.map(_cardHtml).join("");
 
   // Re-vincular tooltips apÃ³s render
-  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-    new bootstrap.Tooltip(el, { trigger: "hover" });
-  });
+  if (window.bootstrap?.Tooltip) {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+      new window.bootstrap.Tooltip(el, { trigger: "hover" });
+    });
+  }
   _updateOperationalGuide();
 }
 
@@ -803,7 +831,11 @@ function _showToast(type, msg, opts = {}) {
       </div>
     </div>`);
   const el = document.getElementById(id);
-  const t  = new bootstrap.Toast(el, { delay: 4000 });
+  if (!window.bootstrap?.Toast) {
+    setTimeout(() => el?.remove(), 4000);
+    return;
+  }
+  const t  = new window.bootstrap.Toast(el, { delay: 4000 });
   t.show();
   el.addEventListener("hidden.bs.toast", () => el.remove());
 }
