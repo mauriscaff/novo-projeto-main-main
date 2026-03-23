@@ -149,6 +149,7 @@ async def _base_ctx(request: Request) -> dict:
         "api_version":      settings.app_version,
         "last_scan_at":     None,   # preenchido por cada rota que precise
         "pending_approvals": pending,
+        "sdrs_datacenter_scope": os.getenv("SDRS_DATACENTER_SCOPE", "DTC-SGI"),
         "flash_messages":   [],     # lista de (category, message) Ã¢â‚¬â€ sem Flask
     }
 

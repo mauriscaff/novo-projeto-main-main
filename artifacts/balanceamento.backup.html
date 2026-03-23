@@ -1,0 +1,726 @@
+{% extends "base.html" %}
+
+{% block title %}SDRS Assistido{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+    <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+        <div>
+            <h1 class="fs-5 fw-bold mb-0" style="color:var(--zh-text-primary);">
+                <i class="bi bi-diagram-3 me-2" style="color:var(--zh-blue);"></i>SDRS Assistido
+            </h1>
+            <small class="text-muted-zh">Regras e simulacao de recomendacoes para Storage vMotion (modo recommend-only).</small>
+        </div>
+        <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+            <select id="zh-vcenter-select" class="form-select form-select-sm"
+                style="width:auto;min-width:220px;background:var(--zh-surface-2);border-color:var(--zh-border);color:var(--zh-text-primary);">
+                <option value="">Selecione o vCenter...</option>
+            </select>
+            <button id="zh-btn-analisar" class="btn btn-sm btn-primary" disabled>
+                <i class="bi bi-arrow-clockwise me-1"></i>Analisar Datastores
+            </button>
+            <button id="zh-btn-sdrs-simulate" class="btn btn-sm" disabled
+                style="background:var(--zh-blue);color:#fff;border:none;">
+                <i class="bi bi-play-fill me-1"></i>Simular plano SDRS
+            </button>
+        </div>
+    </div>
+
+    <div id="zh-balance-feedback" class="mb-3 d-none"></div>
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-6">
+            <div class="zh-card h-100">
+                <div class="zh-card-header d-flex align-items-center justify-content-between mb-3">
+                    <span class="fw-semibold">Datastores do escopo</span>
+                    <span class="text-muted-zh small" id="zh-generated-at"></span>
+                </div>
+                <div id="zh-ds-list">
+                    <div class="text-muted-zh small text-center py-5">
+                        <i class="bi bi-hdd-network fs-3 d-block mb-2 opacity-50"></i>
+                        Selecione um vCenter e clique em <strong>Analisar Datastores</strong>.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="zh-card mb-3" id="zh-sdrs-rules">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-shield-check me-1" style="color:var(--zh-accent-green);"></i>
+                    Regras SDRS aplicadas nesta fase
+                </div>
+                <ul class="mb-0 ps-3 small" style="line-height:1.6;color:var(--zh-text-secondary);">
+                    <li>Modo <code>recommend_only</code>: nenhuma mudanca executada.</li>
+                    <li>Escopo fixo por datacenter: <code>{{ sdrs_datacenter_scope|default('DTC-SGI') }}</code>.</li>
+                    <li>Threshold principal de utilizacao por datastore (soft constraint).</li>
+                    <li>Referencia de I/O em ms para contexto operacional.</li>
+                    <li>Respeito a <code>READONLY_MODE</code> e politicas de seguranca.</li>
+                    <li>Sem alterar contratos de API existentes.</li>
+                </ul>
+            </div>
+
+            <div class="zh-card mb-3">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-sliders me-1" style="color:var(--zh-blue);"></i>
+                    Parametros da simulacao
+                </div>
+                <div class="row g-2">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small mb-1 text-muted-zh" for="zh-sdrs-utilization">Uso (%)</label>
+                        <input id="zh-sdrs-utilization" type="number" min="50" max="95" step="1" value="80"
+                            class="form-control form-control-sm zh-input">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small mb-1 text-muted-zh" for="zh-sdrs-io-latency">I/O (ms)</label>
+                        <input id="zh-sdrs-io-latency" type="number" min="1" max="100" step="0.1" value="15"
+                            class="form-control form-control-sm zh-input">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small mb-1 text-muted-zh" for="zh-sdrs-max-moves">Max moves</label>
+                        <input id="zh-sdrs-max-moves" type="number" min="1" max="100" step="1" value="10"
+                            class="form-control form-control-sm zh-input">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small mb-1 text-muted-zh" for="zh-sdrs-datastore-scope">Escopo opcional (CSV)</label>
+                        <input id="zh-sdrs-datastore-scope" type="text" class="form-control form-control-sm zh-input"
+                            placeholder="Ex.: STA_LUN_03,STA_LUN_05">
+                    </div>
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="small text-muted-zh">Selecao rapida:</span>
+                            <button type="button" id="zh-sdrs-select-core" class="btn btn-sm btn-outline-primary py-0 px-2">STA + STB + STC</button>
+                            <button type="button" id="zh-sdrs-select-sta" class="btn btn-sm btn-outline-info py-0 px-2">STA</button>
+                            <button type="button" id="zh-sdrs-select-stb" class="btn btn-sm btn-outline-info py-0 px-2">STB</button>
+                            <button type="button" id="zh-sdrs-select-stc" class="btn btn-sm btn-outline-info py-0 px-2">STC</button>
+                            <button type="button" id="zh-sdrs-select-all" class="btn btn-sm btn-outline-secondary py-0 px-2">Todos</button>
+                            <button type="button" id="zh-sdrs-clear-selection" class="btn btn-sm btn-outline-secondary py-0 px-2">Limpar</button>
+                        </div>
+                        <div id="zh-sdrs-selection-summary" class="small text-muted-zh mt-2">Todos os datastores no escopo.</div>
+                    </div>
+                </div>
+                <div id="zh-sdrs-feedback" class="mt-3 d-none"></div>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="zh-stat-card text-center p-2">
+                        <div class="small text-muted-zh">Escopo</div>
+                        <div id="zh-sdrs-scope-count" class="fw-bold">-</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="zh-stat-card text-center p-2">
+                        <div class="small text-muted-zh">Fontes</div>
+                        <div id="zh-sdrs-source-count" class="fw-bold">-</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="zh-stat-card text-center p-2">
+                        <div class="small text-muted-zh">Warnings</div>
+                        <div id="zh-sdrs-warn-count" class="fw-bold">-</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-6 col-xl-3">
+                    <div class="zh-stat-card text-center p-2">
+                        <div class="small text-muted-zh">Recomendacoes</div>
+                        <div id="zh-sdrs-rec-count" class="fw-bold">-</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-6 col-xl-3">
+                    <div class="zh-stat-card text-center p-2">
+                        <div class="small text-muted-zh">Bloqueios</div>
+                        <div id="zh-sdrs-blocked-count" class="fw-bold">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="zh-card mb-3">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-list-check me-1" style="color:var(--zh-accent-yellow);"></i>
+                    Plano recomendado
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>VM</th>
+                                <th>Cluster</th>
+                                <th>Origem</th>
+                                <th>Destino</th>
+                                <th class="text-end">GB</th>
+                                <th class="text-end">Destino apos</th>
+                                <th>Reason code</th>
+                                <th>Risco/Regra</th>
+                                <th>Explicacao</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zh-sdrs-table-body">
+                            <tr>
+                                <td colspan="9" class="text-muted-zh small">Execute a simulacao para gerar recomendacoes.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="zh-card mb-3">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-diagram-3 me-1" style="color:var(--zh-blue);"></i>
+                    Decisoes da engine SDRS
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Cluster</th>
+                                <th>Status</th>
+                                <th>Reason code</th>
+                                <th>Explicacao</th>
+                                <th>Risco</th>
+                                <th>Acoes sugeridas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zh-sdrs-decisions-body">
+                            <tr>
+                                <td colspan="6" class="text-muted-zh small">Sem decisoes ainda. Rode a simulacao.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="zh-card mb-3">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-journal-text me-1" style="color:var(--zh-accent-green);"></i>
+                    Trilha de auditoria
+                </div>
+                <ul id="zh-sdrs-audit-list" class="small text-muted-zh ps-3 mb-0"></ul>
+            </div>
+
+            <div class="zh-card">
+                <div class="zh-card-header fw-semibold mb-3">
+                    <i class="bi bi-exclamation-triangle me-1" style="color:var(--zh-accent-red);"></i>
+                    Fontes bloqueadas e notas
+                </div>
+                <ul id="zh-sdrs-blocked-list" class="small text-muted-zh ps-3 mb-3"></ul>
+                <ul id="zh-sdrs-notes" class="small text-muted-zh ps-3 mb-0"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .zh-input {
+        background: var(--zh-surface-2);
+        border-color: var(--zh-border);
+        color: var(--zh-text-primary);
+    }
+
+    .zh-ds-item {
+        border: 1px solid var(--zh-border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        background: var(--zh-surface-2);
+    }
+
+    .zh-ds-item.health-red {
+        border-left: 3px solid var(--zh-accent-red);
+    }
+
+    .zh-ds-item.health-yellow {
+        border-left: 3px solid var(--zh-accent-yellow);
+    }
+
+    .zh-ds-item.health-green {
+        border-left: 3px solid var(--zh-accent-green);
+    }
+
+    .zh-inline-pill {
+        display: inline-block;
+        font-size: .72rem;
+        padding: 2px 8px;
+        border-radius: 16px;
+        border: 1px solid var(--zh-border);
+        background: var(--zh-surface-3, #30363d);
+        color: var(--zh-text-secondary);
+    }
+
+    .zh-status-pill {
+        display: inline-block;
+        border-radius: 12px;
+        font-size: .72rem;
+        padding: 2px 8px;
+        border: 1px solid transparent;
+    }
+
+    .zh-status-pill.status-recommend {
+        background: rgba(63, 185, 80, 0.16);
+        color: #77d992;
+        border-color: rgba(63, 185, 80, 0.4);
+    }
+
+    .zh-status-pill.status-warn {
+        background: rgba(210, 153, 34, 0.16);
+        color: #e3c267;
+        border-color: rgba(210, 153, 34, 0.4);
+    }
+
+    .zh-status-pill.status-block {
+        background: rgba(248, 81, 73, 0.16);
+        color: #ff9b96;
+        border-color: rgba(248, 81, 73, 0.4);
+    }
+</style>
+
+<script>
+    "use strict";
+
+    const API_CAPACITY = "/api/v1/capacity/report";
+    const API_VCENTERS = "/api/v1/vcenters";
+    const API_SDRS = "/api/v1/capacity/sdrs/recommendations";
+    const SDRS_DATACENTER_SCOPE = "{{ sdrs_datacenter_scope|default('DTC-SGI') }}";
+
+    /**
+     * @typedef {Object} SdrsDecision
+     * @property {"recommend"|"warn"|"block"} status
+     * @property {string} reason_code
+     * @property {string} explanation_text
+     * @property {string=} source_datastore
+     * @property {string=} source_datastore_cluster
+     * @property {string=} risk_detected
+     * @property {string=} rule_triggered
+     * @property {string[]=} actions_suggested
+     * @property {Object<string, any>=} audit_payload
+     */
+
+    /** @type {Record<string, any> | null} */
+    let _report = null;
+    /** @type {Set<string>} */
+    let _selectedDatastores = new Set();
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await _loadVcenterOptions();
+
+        document.getElementById("zh-btn-analisar").addEventListener("click", _runAnalysis);
+        document.getElementById("zh-vcenter-select").addEventListener("change", e => {
+            const hasVcenter = !!e.target.value;
+            document.getElementById("zh-btn-analisar").disabled = !hasVcenter;
+            document.getElementById("zh-btn-sdrs-simulate").disabled = !(hasVcenter && _report);
+            _resetSdrsView();
+        });
+        document.getElementById("zh-btn-sdrs-simulate").addEventListener("click", _runSdrsSimulation);
+        document.getElementById("zh-sdrs-select-core")?.addEventListener("click", () => _selectDatastoresByPrefixes(["STA", "STB", "STC"]));
+        document.getElementById("zh-sdrs-select-sta")?.addEventListener("click", () => _selectDatastoresByPrefixes(["STA"]));
+        document.getElementById("zh-sdrs-select-stb")?.addEventListener("click", () => _selectDatastoresByPrefixes(["STB"]));
+        document.getElementById("zh-sdrs-select-stc")?.addEventListener("click", () => _selectDatastoresByPrefixes(["STC"]));
+        document.getElementById("zh-sdrs-select-all")?.addEventListener("click", _selectAllDatastores);
+        document.getElementById("zh-sdrs-clear-selection")?.addEventListener("click", _clearDatastoreSelection);
+    });
+
+    async function _loadVcenterOptions() {
+        try {
+            const resp = await fetch(API_VCENTERS, { credentials: "same-origin" });
+            if (!resp.ok) return;
+
+            const data = await resp.json();
+            const items = data.items ?? data ?? [];
+            const select = document.getElementById("zh-vcenter-select");
+            items.forEach(vc => {
+                const opt = document.createElement("option");
+                opt.value = vc.id;
+                opt.textContent = `${vc.name} (${vc.host})`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.warn("[SDRS] falha ao carregar vCenters", err);
+        }
+    }
+
+    async function _runAnalysis() {
+        const vcId = document.getElementById("zh-vcenter-select").value;
+        if (!vcId) return;
+
+        const btn = document.getElementById("zh-btn-analisar");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analisando...';
+        _setFeedback("loading", "Consultando datastores no vCenter...");
+        document.getElementById("zh-ds-list").innerHTML = _spinner("Consultando datastores...");
+        _resetSdrsView();
+
+        try {
+            const resp = await fetch(`${API_CAPACITY}?vcenter_id=${vcId}&datacenter=${encodeURIComponent(SDRS_DATACENTER_SCOPE)}`, { credentials: "same-origin" });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail ?? `HTTP ${resp.status}`);
+            }
+
+            _report = await resp.json();
+            _renderDatastoreList(_report.datastores ?? []);
+
+            const ts = _report.generated_at ? new Date(_report.generated_at).toLocaleString("pt-BR") : "";
+            document.getElementById("zh-generated-at").textContent = ts ? `Gerado em ${ts}` : "";
+            document.getElementById("zh-btn-sdrs-simulate").disabled = false;
+            _clearFeedback();
+        } catch (err) {
+            _setFeedback("error", `Falha ao analisar: ${err.message}`);
+            document.getElementById("zh-ds-list").innerHTML =
+                `<div class="alert alert-danger py-2 small">${_esc(err.message)}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Analisar Datastores';
+        }
+    }
+
+    function _renderDatastoreList(datastores) {
+        const list = document.getElementById("zh-ds-list");
+        if (!datastores.length) {
+            _selectedDatastores = new Set();
+            _syncSelectionSummary(0);
+            list.innerHTML = '<p class="text-muted-zh small text-center py-4">Nenhum datastore encontrado.</p>';
+            return;
+        }
+
+        const allNames = datastores.map(ds => String(ds.name || "")).filter(Boolean);
+        if (_selectedDatastores.size === 0) {
+            _selectedDatastores = new Set(allNames);
+        } else {
+            _selectedDatastores = new Set(allNames.filter(name => _selectedDatastores.has(name)));
+            if (_selectedDatastores.size === 0) {
+                _selectedDatastores = new Set(allNames);
+            }
+        }
+
+        const labelByHealth = {
+            red: "Critico",
+            yellow: "Atencao",
+            green: "Saudavel",
+        };
+
+        list.innerHTML = datastores.map(ds => {
+            const name = String(ds.name || "");
+            const pct = Number(ds.use_pct ?? 0);
+            const capacity = Number(ds.capacity_gb ?? 0);
+            const free = Number(ds.free_gb ?? 0);
+            const health = ds.health_status || "green";
+            const cluster = ds.datastore_cluster || "sem-cluster";
+            const checked = _selectedDatastores.has(name) ? "checked" : "";
+            return `
+                <div class="zh-ds-item health-${_esc(health)}">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                        <div class="d-flex align-items-center gap-2 min-w-0">
+                            <input type="checkbox" class="form-check-input zh-ds-selector" data-ds-name="${_esc(name)}" ${checked}>
+                            <div class="fw-semibold text-truncate" title="${_esc(name)}">${_esc(name)}</div>
+                        </div>
+                        <span class="zh-inline-pill">${_esc(labelByHealth[health] ?? health)} - ${_esc(pct.toFixed(1))}%</span>
+                    </div>
+                    <div class="small text-muted-zh">Cluster: <strong>${_esc(cluster)}</strong> | Livre: <strong>${_esc(free.toFixed(1))} GB</strong> | Capacidade: <strong>${_esc(capacity.toFixed(1))} GB</strong></div>
+                </div>
+            `;
+        }).join("");
+
+        _bindDatastoreSelectionEvents(datastores.length);
+        _syncSelectionSummary(datastores.length);
+    }
+
+    function _bindDatastoreSelectionEvents(totalDatastores) {
+        document.querySelectorAll(".zh-ds-selector").forEach(el => {
+            el.addEventListener("change", (event) => {
+                const name = String(event.target?.dataset?.dsName || "");
+                if (!name) return;
+                if (event.target.checked) {
+                    _selectedDatastores.add(name);
+                } else {
+                    _selectedDatastores.delete(name);
+                }
+                _syncSelectionSummary(totalDatastores);
+            });
+        });
+    }
+
+    function _syncSelectionSummary(totalDatastores) {
+        const el = document.getElementById("zh-sdrs-selection-summary");
+        if (!el) return;
+        const selected = _selectedDatastores.size;
+        if (!totalDatastores) {
+            el.textContent = "Nenhum datastore carregado.";
+            return;
+        }
+        if (selected === totalDatastores) {
+            el.textContent = `Todos os datastores selecionados (${selected}/${totalDatastores}).`;
+            return;
+        }
+        if (selected === 0) {
+            el.textContent = "Nenhum datastore selecionado.";
+            return;
+        }
+        el.textContent = `${selected}/${totalDatastores} datastores selecionados.`;
+    }
+
+    function _selectDatastoresByPrefixes(prefixes) {
+        if (!_report?.datastores?.length) return;
+        const normalized = prefixes.map(p => String(p || "").toUpperCase());
+        const next = (_report.datastores || [])
+            .map(ds => String(ds.name || ""))
+            .filter(name => normalized.some(prefix => name.toUpperCase().startsWith(prefix)));
+        _selectedDatastores = new Set(next);
+        document.querySelectorAll(".zh-ds-selector").forEach(el => {
+            const name = String(el.dataset.dsName || "");
+            el.checked = _selectedDatastores.has(name);
+        });
+        _syncSelectionSummary((_report.datastores || []).length);
+    }
+
+    function _selectAllDatastores() {
+        if (!_report?.datastores?.length) return;
+        _selectedDatastores = new Set((_report.datastores || []).map(ds => String(ds.name || "")));
+        document.querySelectorAll(".zh-ds-selector").forEach(el => { el.checked = true; });
+        _syncSelectionSummary((_report.datastores || []).length);
+    }
+
+    function _clearDatastoreSelection() {
+        _selectedDatastores = new Set();
+        document.querySelectorAll(".zh-ds-selector").forEach(el => { el.checked = false; });
+        _syncSelectionSummary(_report?.datastores?.length || 0);
+    }
+
+    function _resetSdrsView() {
+        document.getElementById("zh-sdrs-scope-count").textContent = "-";
+        document.getElementById("zh-sdrs-source-count").textContent = "-";
+        document.getElementById("zh-sdrs-warn-count").textContent = "-";
+        document.getElementById("zh-sdrs-rec-count").textContent = "-";
+        document.getElementById("zh-sdrs-blocked-count").textContent = "-";
+        document.getElementById("zh-sdrs-table-body").innerHTML =
+            '<tr><td colspan="9" class="text-muted-zh small">Execute a simulacao para gerar recomendacoes.</td></tr>';
+        document.getElementById("zh-sdrs-decisions-body").innerHTML =
+            '<tr><td colspan="6" class="text-muted-zh small">Sem decisoes ainda. Rode a simulacao.</td></tr>';
+        document.getElementById("zh-sdrs-audit-list").innerHTML = "";
+        document.getElementById("zh-sdrs-blocked-list").innerHTML = "";
+        document.getElementById("zh-sdrs-notes").innerHTML = "";
+        _selectedDatastores = new Set();
+        _syncSelectionSummary(_report?.datastores?.length || 0);
+        _clearSdrsFeedback();
+    }
+
+    async function _runSdrsSimulation() {
+        const vcId = document.getElementById("zh-vcenter-select").value;
+        if (!vcId || !_report) {
+            _setSdrsFeedback("error", "Analise os datastores antes de simular o plano SDRS.");
+            return;
+        }
+
+        const utilization = document.getElementById("zh-sdrs-utilization").value || "80";
+        const ioLatency = document.getElementById("zh-sdrs-io-latency").value || "15";
+        const maxMoves = document.getElementById("zh-sdrs-max-moves").value || "10";
+        const datastoreScope = (document.getElementById("zh-sdrs-datastore-scope").value || "").trim();
+
+        const params = new URLSearchParams({
+            vcenter_id: vcId,
+            utilization_threshold_pct: utilization,
+            io_latency_threshold_ms: ioLatency,
+            max_moves: maxMoves,
+        });
+        params.set("datacenter", SDRS_DATACENTER_SCOPE);
+        const totalDatastores = (_report?.datastores || []).length;
+        if (datastoreScope) {
+            params.set("datastores", datastoreScope);
+        } else if (totalDatastores > 0) {
+            if (_selectedDatastores.size === 0) {
+                _setSdrsFeedback("error", "Selecione pelo menos um datastore ou informe o CSV.");
+                return;
+            }
+            if (_selectedDatastores.size < totalDatastores) {
+                params.set("datastores", Array.from(_selectedDatastores).join(","));
+            }
+        }
+
+        const btn = document.getElementById("zh-btn-sdrs-simulate");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Simulando...';
+        _setSdrsFeedback("loading", "Gerando recomendacoes SDRS...");
+
+        try {
+            const resp = await fetch(`${API_SDRS}?${params.toString()}`, { credentials: "same-origin" });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail ?? `HTTP ${resp.status}`);
+            }
+
+            const payload = await resp.json();
+            _renderSdrsPlan(payload);
+            _setSdrsFeedback("success", "Plano SDRS gerado com sucesso (somente recomendacoes).");
+        } catch (err) {
+            _setSdrsFeedback("error", `Falha ao simular SDRS: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Simular plano SDRS';
+        }
+    }
+
+    function _renderSdrsPlan(payload) {
+        const summary = payload.summary ?? {};
+        const recommendations = payload.recommendations ?? [];
+        const blocked = payload.blocked_sources ?? [];
+        /** @type {SdrsDecision[]} */
+        const decisions = payload.decisions ?? [];
+        const auditTrail = payload.audit_trail ?? [];
+        const notes = payload.notes ?? [];
+
+        document.getElementById("zh-sdrs-scope-count").textContent = _fmtNum(summary.datastores_considered);
+        document.getElementById("zh-sdrs-source-count").textContent = _fmtNum(summary.sources_over_threshold);
+        document.getElementById("zh-sdrs-warn-count").textContent = _fmtNum(summary.warnings);
+        document.getElementById("zh-sdrs-rec-count").textContent = _fmtNum(summary.recommendations);
+        document.getElementById("zh-sdrs-blocked-count").textContent = _fmtNum(summary.blocked_sources);
+
+        const tbody = document.getElementById("zh-sdrs-table-body");
+        if (!recommendations.length) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-muted-zh small">Nenhuma recomendacao para os parametros atuais.</td></tr>';
+        } else {
+            tbody.innerHTML = recommendations.map(rec => {
+                const cluster = rec.source_datastore_cluster || rec.target_datastore_cluster || "-";
+                const riskRule = `${rec.risk_detected || "-"} | ${rec.rule_triggered || "-"}`;
+                return `
+                <tr>
+                    <td class="small">${_esc(rec.vm_name)}</td>
+                    <td class="small">${_esc(cluster)}</td>
+                    <td class="small">${_esc(rec.source_datastore)}</td>
+                    <td class="small">${_esc(rec.target_datastore)}</td>
+                    <td class="small text-end">${_esc(_fmtNum(rec.estimated_move_gb))}</td>
+                    <td class="small text-end">${_esc(_fmtNum(rec.target_use_pct_after))}%</td>
+                    <td class="small"><code>${_esc(rec.reason_code || "-")}</code></td>
+                    <td class="small text-muted-zh">${_esc(riskRule)}</td>
+                    <td class="small text-muted-zh">${_esc(rec.explanation_text || "-")}</td>
+                </tr>
+            `;
+            }).join("");
+        }
+
+        const decisionBody = document.getElementById("zh-sdrs-decisions-body");
+        if (!decisions.length) {
+            decisionBody.innerHTML = '<tr><td colspan="6" class="text-muted-zh small">Nenhuma decisao retornada pela engine.</td></tr>';
+        } else {
+            decisionBody.innerHTML = decisions.map(decision => {
+                const cluster = decision.source_datastore_cluster || decision.target_datastore_cluster || "-";
+                const actions = (decision.actions_suggested || []).join(", ") || "-";
+                return `
+                <tr>
+                    <td class="small">${_esc(cluster)}</td>
+                    <td class="small">${_statusBadge(decision.status)}</td>
+                    <td class="small"><code>${_esc(decision.reason_code || "-")}</code></td>
+                    <td class="small text-muted-zh">${_esc(decision.explanation_text || "-")}</td>
+                    <td class="small text-muted-zh">${_esc(decision.risk_detected || "-")}</td>
+                    <td class="small text-muted-zh">${_esc(actions)}</td>
+                </tr>
+            `;
+            }).join("");
+        }
+
+        const auditList = document.getElementById("zh-sdrs-audit-list");
+        if (!auditTrail.length) {
+            auditList.innerHTML = '<li>Nenhum evento de auditoria retornado para esta simulacao.</li>';
+        } else {
+            auditList.innerHTML = auditTrail.map(item =>
+                `<li><code>${_esc(item.event || "sdrs_policy_decision")}</code> #${_esc(item.decision_index || "-")} - ${_esc(item.reason_code || "-")} - ${_esc(item.source_datastore || "-")} ${item.target_datastore ? `-> ${_esc(item.target_datastore)}` : ""}</li>`
+            ).join("");
+        }
+
+        const blockedList = document.getElementById("zh-sdrs-blocked-list");
+        if (!blocked.length) {
+            blockedList.innerHTML = '<li>Nenhuma fonte bloqueada.</li>';
+        } else {
+            blockedList.innerHTML = blocked.map(item => {
+                const cluster = item.source_datastore_cluster ? ` [${_esc(item.source_datastore_cluster)}]` : "";
+                const riskRule = `${item.risk_detected || "-"} | ${item.rule_triggered || "-"}`;
+                return `<li><strong>${_esc(item.source_datastore)}${cluster}:</strong> <code>${_esc(item.reason_code || "-")}</code> - ${_esc(item.explanation_text || "Sem explicacao")} (${_esc(riskRule)})${item.use_pct !== undefined ? ` (${_esc(_fmtNum(item.use_pct))}%)` : ""}</li>`;
+            }).join("");
+        }
+
+        const notesList = document.getElementById("zh-sdrs-notes");
+        notesList.innerHTML = notes.length
+            ? notes.map(note => `<li>${_esc(note)}</li>`).join("")
+            : '<li>Sem notas adicionais.</li>';
+    }
+
+    function _setFeedback(state, msg) {
+        const el = document.getElementById("zh-balance-feedback");
+        el.classList.remove("d-none");
+        if (state === "loading") {
+            el.className = "mb-3 alert alert-info py-2 small";
+            el.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${_esc(msg)}`;
+            return;
+        }
+        el.className = "mb-3 alert alert-danger py-2 small";
+        el.textContent = msg;
+    }
+
+    function _clearFeedback() {
+        const el = document.getElementById("zh-balance-feedback");
+        el.classList.add("d-none");
+        el.className = "mb-3 d-none";
+        el.textContent = "";
+    }
+
+    function _setSdrsFeedback(state, msg) {
+        const el = document.getElementById("zh-sdrs-feedback");
+        el.classList.remove("d-none");
+        if (state === "loading") {
+            el.className = "mt-3 alert alert-info py-2 small";
+            el.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${_esc(msg)}`;
+            return;
+        }
+        if (state === "success") {
+            el.className = "mt-3 alert alert-success py-2 small";
+            el.textContent = msg;
+            return;
+        }
+        el.className = "mt-3 alert alert-danger py-2 small";
+        el.textContent = msg;
+    }
+
+    function _clearSdrsFeedback() {
+        const el = document.getElementById("zh-sdrs-feedback");
+        el.classList.add("d-none");
+        el.className = "mt-3 d-none";
+        el.textContent = "";
+    }
+
+    function _fmtNum(value) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return "0";
+        return num.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    }
+
+    function _esc(s) {
+        return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function _statusBadge(status) {
+        const normalized = String(status || "").toLowerCase();
+        const label = normalized === "recommend" ? "recommend" : normalized === "warn" ? "warn" : "block";
+        return `<span class="zh-status-pill status-${_esc(label)}">${_esc(label)}</span>`;
+    }
+
+    function _spinner(msg = "Carregando...") {
+        return `<div class="text-center py-5 text-muted-zh">
+            <div class="spinner-border" style="width:2rem;height:2rem;border-width:3px;color:var(--zh-blue);"></div>
+            <div class="mt-2 small">${_esc(msg)}</div>
+        </div>`;
+    }
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
