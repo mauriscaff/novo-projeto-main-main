@@ -53,11 +53,20 @@ function Resolve-PythonCommand {
 }
 
 function Get-ListeningPid([int]$PortNumber) {
-    $line = netstat -ano | Select-String ":$PortNumber " | Select-Object -First 1
-    if (-not $line) { return $null }
-    $parts = ($line.ToString() -replace "\s+", " ").Trim().Split(" ")
-    if ($parts.Length -lt 5) { return $null }
-    return [int]$parts[-1]
+    $lines = netstat -ano | Select-String ":$PortNumber "
+    foreach ($line in $lines) {
+        $text = ($line.ToString() -replace "\s+", " ").Trim()
+        $parts = $text.Split(" ")
+        # Formato esperado (TCP): Proto LocalAddr ForeignAddr State PID
+        if ($parts.Length -lt 5) { continue }
+        $state = $parts[-2]
+        if ($state -ne "LISTENING") { continue }
+        $pidText = $parts[-1]
+        if ($pidText -match "^\d+$") {
+            return [int]$pidText
+        }
+    }
+    return $null
 }
 
 function Normalize-ProcessPathVariable {

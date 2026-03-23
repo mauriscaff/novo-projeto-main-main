@@ -27,7 +27,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import asc, cast, desc, func, select, Date
+from sqlalchemy import asc, cast, desc, exists, func, select, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.datastore_report import KNOWN_ZOMBIE_TYPES, aggregate_datastore_rows
@@ -776,13 +776,33 @@ async def list_all_results(
         size_stmt = size_stmt.where(ZombieVmdkRecord.job_id == job_id)
     elif latest_only:
         from app.models.zombie_scan import ZombieScanJob
-        latest_job_q = await db.execute(
+
+        # Prioriza o job concluido mais recente que realmente possui registros.
+        # Isso evita resposta vazia quando o ultimo job finalizou sem achados.
+        latest_with_results_q = await db.execute(
+            select(ZombieScanJob.job_id)
+            .where(
+                ZombieScanJob.status == "completed",
+                exists(
+                    select(1).where(ZombieVmdkRecord.job_id == ZombieScanJob.job_id)
+                ),
+            )
+            .order_by(ZombieScanJob.finished_at.desc())
+            .limit(1)
+        )
+        latest_job_id = latest_with_results_q.scalar_one_or_none()
+
+        if latest_job_id is None:
+            # Fallback: se nenhum job concluido tiver registros, preserva
+            # o comportamento antigo (ultimo job concluido, mesmo sem achados).
+            latest_job_q = await db.execute(
             select(ZombieScanJob.job_id)
             .where(ZombieScanJob.status == "completed")
             .order_by(ZombieScanJob.finished_at.desc())
             .limit(1)
-        )
-        latest_job_id = latest_job_q.scalar_one_or_none()
+            )
+            latest_job_id = latest_job_q.scalar_one_or_none()
+
         if latest_job_id:
             stmt = stmt.where(ZombieVmdkRecord.job_id == latest_job_id)
             count_stmt = count_stmt.where(ZombieVmdkRecord.job_id == latest_job_id)
